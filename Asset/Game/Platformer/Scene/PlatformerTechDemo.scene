@@ -63,7 +63,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.037499994
+          y: 0.0349999927
           z: 0
         Rotation:
           - 0
@@ -192,12 +192,12 @@ Entities:
         Parent: 0
       - Component: LightComponent
         Enable: 1
-        LightType: 4
+        LightType: 1
         CastShadow: 1
         Position:
-          x: -24
-          y: 42
-          z: -30
+          x: 10.441102
+          y: 154.472839
+          z: -26.9897041
           w: 0
         Direction:
           x: -0.0696073472
@@ -215,7 +215,7 @@ Entities:
           z: 0.280000001
           w: 1
         Param:
-          x: 10
+          x: 1500
           y: 0
           z: 0
           w: 0
@@ -226,20 +226,20 @@ Entities:
           w: 0
         LightView:
           -
-            - 1
-            - 0
+            - 0.556295395
             - -0
-            - 28.3841572
+            - 0.830984652
+            - 16.6196938
           -
-            - 0
-            - 0.5
-            - 0.866025388
-            - -96.2209244
+            - -0.828064203
+            - 0.0837649107
+            - 0.554340363
+            - 10.6679811
           -
-            - 0
-            - -0.866025388
-            - 0.5
-            - 9.16247177
+            - -0.0696073472
+            - -0.996485591
+            - 0.0465980284
+            - 155.914398
           -
             - 0
             - 0
@@ -247,20 +247,20 @@ Entities:
             - 1
         LightProjection:
           -
-            - 0.0399999991
+            - 0.0133333337
             - 0
             - 0
             - 0
           -
             - 0
-            - 0.0399999991
+            - 0.0133333337
             - 0
             - 0
           -
             - 0
             - 0
-            - 0.0100100096
-            - -0.00100100099
+            - 0.00333444495
+            - -0.000333444506
           -
             - 0
             - 0
@@ -387,10 +387,16 @@ Entities:
         assistThirdJumpBoost: 0.949999988
         assistLandingCarryBoost: 0.239999995
         stepAssistEnabled: true
-        stepAssistHeight: 0.340000004
-        stepAssistProbeDistance: 0.400000006
-        stepAssistForwardOffset: 0.0199999996
-        stepAssistCooldown: 0.0549999997
+        stepAssistHeight: 0.379999995
+        stepAssistProbeDistance: 0.479999989
+        stepAssistForwardOffset: 0.0350000001
+        stepAssistCooldown: 0.0399999991
+        stepAssistGroundGrace: 0.100000001
+        stepAssistSideProbeScale: 0.620000005
+        stepAssistTopInset: 0.119999997
+        stepAssistForwardNudge: 0.0350000001
+        stepAssistHeightTolerance: 0.0799999982
+        stepAssistFeedbackEnabled: true
       - Component: PrefabComponent
         FilePath: Asset/Game/Platformer/Prefab/PlatformerPlayerFeedback.prefab
   - Entity: 6
@@ -899,6 +905,16 @@ Entities:
         cycleSeconds: 4.5999999
         phaseOffset: 0.100000001
         carryPlayer: true
+        interactionFeedbackEnabled: true
+        pathTelegraphEnabled: true
+        telegraphDotCount: 18
+        telegraphParticleSize: 0.0850000009
+        telegraphPulseSpeed: 3.20000005
+        preTurnWarningSeconds: 0.379999995
+        motionTrailEnabled: true
+        motionTrailInterval: 0.075000003
+        platformGlowEnabled: true
+        platformGlowIntensity: 2.20000005
   - Entity: 13
     Components:
       - Component: NameComponent
@@ -983,15 +999,25 @@ Entities:
         cycleSeconds: 4.19999981
         phaseOffset: 0.349999994
         carryPlayer: true
+        interactionFeedbackEnabled: true
+        pathTelegraphEnabled: true
+        telegraphDotCount: 18
+        telegraphParticleSize: 0.0850000009
+        telegraphPulseSpeed: 3.20000005
+        preTurnWarningSeconds: 0.379999995
+        motionTrailEnabled: true
+        motionTrailInterval: 0.075000003
+        platformGlowEnabled: true
+        platformGlowIntensity: 2.20000005
   - Entity: 14
     Components:
       - Component: NameComponent
         Name: Enemy_Meadow
       - Component: TransformComponent
         Position:
-          x: 8.79858635e-06
+          x: 1.05554054e-05
           y: 0.450022221
-          z: 16.0001431
+          z: 16.0001717
         Rotation:
           - 0
           - 0
@@ -1066,17 +1092,31 @@ Entities:
           z: 0
         patrolDistance: 2.20000005
         patrolSpeed: 1.14999998
+        movementStyle: -1
+        movementAcceleration: 7.5
+        turnApproachDistance: 0.620000005
+        turnPauseSeconds: 0.219999999
+        burstInterval: 2.70000005
+        burstWindupSeconds: 0.300000012
+        burstDuration: 0.340000004
+        burstSpeedMultiplier: 2.3499999
+        awarenessDistance: 6
+        awarenessCorridorWidth: 2.5999999
+        reactionCooldown: 1.64999998
+        motionSquashEnabled: true
+        movementDustEnabled: true
         stompHeightMargin: 0.180000007
         defeatDuration: 0.419999987
+        turnDustEnabled: true
   - Entity: 15
     Components:
       - Component: NameComponent
         Name: Enemy_Orchard
       - Component: TransformComponent
         Position:
-          x: -4.99994802
+          x: -4.99993896
           y: 6.95002508
-          z: 78.9999542
+          z: 78.9999313
         Rotation:
           - 0
           - 0
@@ -1151,17 +1191,31 @@ Entities:
           z: 1
         patrolDistance: 1.79999995
         patrolSpeed: 1.14999998
+        movementStyle: -1
+        movementAcceleration: 7.5
+        turnApproachDistance: 0.620000005
+        turnPauseSeconds: 0.219999999
+        burstInterval: 2.70000005
+        burstWindupSeconds: 0.300000012
+        burstDuration: 0.340000004
+        burstSpeedMultiplier: 2.3499999
+        awarenessDistance: 6
+        awarenessCorridorWidth: 2.5999999
+        reactionCooldown: 1.64999998
+        motionSquashEnabled: true
+        movementDustEnabled: true
         stompHeightMargin: 0.180000007
         defeatDuration: 0.419999987
+        turnDustEnabled: true
   - Entity: 16
     Components:
       - Component: NameComponent
         Name: Enemy_Ruins
       - Component: TransformComponent
         Position:
-          x: -4.99994087
+          x: -4.99993181
           y: 6.45002508
-          z: 106.999901
+          z: 106.999878
         Rotation:
           - 0
           - 0
@@ -1236,8 +1290,22 @@ Entities:
           z: 0
         patrolDistance: 2.29999995
         patrolSpeed: 1.29999995
+        movementStyle: -1
+        movementAcceleration: 7.5
+        turnApproachDistance: 0.620000005
+        turnPauseSeconds: 0.219999999
+        burstInterval: 2.70000005
+        burstWindupSeconds: 0.300000012
+        burstDuration: 0.340000004
+        burstSpeedMultiplier: 2.3499999
+        awarenessDistance: 6
+        awarenessCorridorWidth: 2.5999999
+        reactionCooldown: 1.64999998
+        motionSquashEnabled: true
+        movementDustEnabled: true
         stompHeightMargin: 0.180000007
         defeatDuration: 0.419999987
+        turnDustEnabled: true
   - Entity: 17
     Components:
       - Component: NameComponent
@@ -1321,6 +1389,7 @@ Entities:
           z: 0
         activationScale: 1.25
         pulseSpeed: 3
+        beaconInterval: 0.720000029
   - Entity: 18
     Components:
       - Component: NameComponent
@@ -1404,6 +1473,7 @@ Entities:
           z: 0
         activationScale: 1.25
         pulseSpeed: 3
+        beaconInterval: 0.720000029
   - Entity: 19
     Components:
       - Component: NameComponent
@@ -1487,6 +1557,7 @@ Entities:
           z: 0
         activationScale: 1.25
         pulseSpeed: 3
+        beaconInterval: 0.720000029
   - Entity: 20
     Components:
       - Component: NameComponent
@@ -1539,6 +1610,7 @@ Entities:
         profile: 1
         exitProfile: 0
         restoreOnExit: true
+        transitionFeedbackEnabled: true
   - Entity: 21
     Components:
       - Component: NameComponent
@@ -1591,6 +1663,7 @@ Entities:
         profile: 2
         exitProfile: 0
         restoreOnExit: true
+        transitionFeedbackEnabled: true
   - Entity: 22
     Components:
       - Component: NameComponent
@@ -1672,6 +1745,7 @@ Entities:
         bobAmplitude: 0.180000007
         bobFrequency: 2.20000005
         collectDuration: 0.550000012
+        idleSparkInterval: 0.620000005
   - Entity: 23
     Components:
       - Component: NameComponent
@@ -1753,6 +1827,7 @@ Entities:
         bobAmplitude: 0.180000007
         bobFrequency: 2.20000005
         collectDuration: 0.550000012
+        idleSparkInterval: 0.620000005
   - Entity: 24
     Components:
       - Component: NameComponent
@@ -1834,6 +1909,7 @@ Entities:
         bobAmplitude: 0.180000007
         bobFrequency: 2.20000005
         collectDuration: 0.550000012
+        idleSparkInterval: 0.620000005
   - Entity: 25
     Components:
       - Component: NameComponent
@@ -1915,6 +1991,7 @@ Entities:
         bobAmplitude: 0.180000007
         bobFrequency: 2.20000005
         collectDuration: 0.550000012
+        idleSparkInterval: 0.620000005
   - Entity: 26
     Components:
       - Component: NameComponent
@@ -1996,6 +2073,7 @@ Entities:
         bobAmplitude: 0.180000007
         bobFrequency: 2.20000005
         collectDuration: 0.550000012
+        idleSparkInterval: 0.620000005
   - Entity: 27
     Components:
       - Component: NameComponent
@@ -2077,6 +2155,7 @@ Entities:
         bobAmplitude: 0.180000007
         bobFrequency: 2.20000005
         collectDuration: 0.550000012
+        idleSparkInterval: 0.620000005
   - Entity: 28
     Components:
       - Component: NameComponent
@@ -2158,6 +2237,7 @@ Entities:
         bobAmplitude: 0.180000007
         bobFrequency: 2.20000005
         collectDuration: 0.550000012
+        idleSparkInterval: 0.620000005
   - Entity: 29
     Components:
       - Component: NameComponent
@@ -2239,6 +2319,7 @@ Entities:
         bobAmplitude: 0.180000007
         bobFrequency: 2.20000005
         collectDuration: 0.550000012
+        idleSparkInterval: 0.620000005
   - Entity: 30
     Components:
       - Component: NameComponent
@@ -2320,6 +2401,7 @@ Entities:
         bobAmplitude: 0.180000007
         bobFrequency: 2.20000005
         collectDuration: 0.550000012
+        idleSparkInterval: 0.620000005
   - Entity: 31
     Components:
       - Component: NameComponent
@@ -2401,7 +2483,8 @@ Entities:
         bobAmplitude: 0.180000007
         bobFrequency: 2.20000005
         collectDuration: 0.550000012
-  - Entity: 33
+        idleSparkInterval: 0.620000005
+  - Entity: 32
     Components:
       - Component: NameComponent
         Name: Ruin_Bear_Left
@@ -2445,7 +2528,7 @@ Entities:
         FilePath: Asset\Model\bear.fbx
         isBlender: false
         AnimationTime: 0
-  - Entity: 34
+  - Entity: 33
     Components:
       - Component: NameComponent
         Name: GuideLamp_1
@@ -2570,7 +2653,7 @@ Entities:
         FilePath: Asset\Model\ball.fbx
         isBlender: false
         AnimationTime: 0
-  - Entity: 35
+  - Entity: 34
     Components:
       - Component: NameComponent
         Name: GuideLamp_2
@@ -2695,7 +2778,7 @@ Entities:
         FilePath: Asset\Model\ball.fbx
         isBlender: false
         AnimationTime: 0
-  - Entity: 36
+  - Entity: 35
     Components:
       - Component: NameComponent
         Name: GuideLamp_3
@@ -2820,13 +2903,13 @@ Entities:
         FilePath: Asset\Model\ball.fbx
         isBlender: false
         AnimationTime: 0
-  - Entity: 37
+  - Entity: 36
     Components:
       - Component: NameComponent
         Name: PlatformerBoss
       - Component: TransformComponent
         Position:
-          x: -1.70944222e-05
+          x: -2.05138695e-05
           y: 0.999997973
           z: 148
         Rotation:
@@ -2951,7 +3034,15 @@ Entities:
         effectCenterHeight: 1
         telegraphPulseInterval: 0.140000001
         defeatBurstInterval: 0.219999999
-  - Entity: 38
+        phaseTwoChargeCount: 2
+        phaseThreeChargeCount: 3
+        comboRetargetDuration: 0.479999989
+        phaseChaseSpeedBonus: 0.649999976
+        phaseChargeSpeedBonus: 0.140000001
+        comboChargeSpeedBonus: 0.0700000003
+        phaseTargetLeadSeconds: 0.119999997
+        maxTargetLeadDistance: 2.4000001
+  - Entity: 37
     Components:
       - Component: NameComponent
         Name: Entity
@@ -3151,7 +3242,7 @@ Entities:
         maxImpulseFovKick: 0.00999999978
         SelfLayerBit: 26
         Profile: 0
-  - Entity: 39
+  - Entity: 38
     Components:
       - Component: NameComponent
         Name: Entity
@@ -3222,7 +3313,7 @@ Entities:
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
         AnimationTime: 0
-  - Entity: 40
+  - Entity: 39
     Components:
       - Component: NameComponent
         Name: Entity
@@ -3293,7 +3384,7 @@ Entities:
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
         AnimationTime: 0
-  - Entity: 41
+  - Entity: 40
     Components:
       - Component: NameComponent
         Name: Entity
@@ -3364,7 +3455,7 @@ Entities:
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
         AnimationTime: 0
-  - Entity: 42
+  - Entity: 41
     Components:
       - Component: NameComponent
         Name: Entity
