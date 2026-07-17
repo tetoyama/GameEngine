@@ -11,8 +11,6 @@ namespace agentos {
 
 namespace {
 
-// LLMが使えない/契約を守れない場合の決定的フォールバック報告。
-// 確定Evidence・最有力仮説・停止理由のみから機械的に組み立てる。
 std::string BuildFallbackReport(const Json& builtEvidence, const Json& rankedHypotheses, const Json& stopInfo) {
 	std::ostringstream oss;
 	oss << "# 調査レポート（フォールバック生成）\n\n";
@@ -29,7 +27,8 @@ std::string BuildFallbackReport(const Json& builtEvidence, const Json& rankedHyp
 	}
 
 	oss << "## 確認済みEvidence\n";
-	if (builtEvidence.is_object() && builtEvidence.contains("evidences") && builtEvidence.at("evidences").is_array()) {
+	if (builtEvidence.is_object() && builtEvidence.contains("evidences") &&
+	    builtEvidence.at("evidences").is_array()) {
 		for (const auto& e : builtEvidence.at("evidences")) {
 			oss << "- " << e.value("claim", std::string()) << "\n";
 		}
@@ -42,8 +41,13 @@ std::string BuildFallbackReport(const Json& builtEvidence, const Json& rankedHyp
 		oss << "不明";
 	}
 	oss << "\n";
-
 	return oss.str();
+}
+
+void PersistFinalResponse(AgentContext& ctx, const std::string& report) {
+	if (ctx.store != nullptr && ctx.sessionId != kInvalidId && !report.empty()) {
+		(void)ctx.store->SetConversationResponse(ctx.sessionId, report);
+	}
 }
 
 } // namespace
@@ -60,11 +64,12 @@ Result SynthesisAgent::Run(AgentContext& ctx, const Json& builtEvidence, const J
 	if (callResult && raw.is_object() && raw.contains("report") && raw.at("report").is_string() &&
 	    !raw.at("report").get<std::string>().empty()) {
 		*reportOut = raw.at("report").get<std::string>();
+		PersistFinalResponse(ctx, *reportOut);
 		return Result::Ok();
 	}
 
-	// LLMが失敗・契約違反でもセッション全体は失敗させず、決定的な報告を返す。
 	*reportOut = BuildFallbackReport(builtEvidence, rankedHypotheses, stopInfo);
+	PersistFinalResponse(ctx, *reportOut);
 	return Result::Ok();
 }
 
