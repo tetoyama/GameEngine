@@ -49,13 +49,13 @@ struct AgentPhase {
 };
 
 constexpr std::array<AgentPhase, 7> kAgentPhases{{
-	{"intake", "INTAKE", "要求を整理"},
-	{"plan", "PLANNER", "タスクを構成"},
-	{"retrieve", "WORKER", "Engine Toolを実行"},
-	{"reason", "REASON", "根拠を統合"},
-	{"critic", "CRITIC", "回答を検証"},
-	{"repair", "REPAIR", "不足を補完"},
-	{"synthesize", "REPORT", "回答を生成"},
+	{"intake", "INTAKE", "要求と会話文脈を整理"},
+	{"plan", "PLANNER", "実行するTask DAGを構成"},
+	{"retrieve", "WORKER", "Engine ToolからEvidenceを取得"},
+	{"reason", "REASON", "Evidenceから仮説を統合"},
+	{"critic", "CRITIC", "根拠とCoverageを検証"},
+	{"repair", "REPAIR", "不足Evidenceを再調査"},
+	{"synthesize", "REPORT", "最終応答を生成"},
 }};
 
 enum class PhaseState {
@@ -100,8 +100,7 @@ bool JsonContainsRouteMarker(const Json& value) {
 }
 
 bool IsErrorStage(const AgentOSService::StateSnapshot& snapshot) {
-	const std::string stage = LowerAscii(snapshot.stage);
-	return !snapshot.errorMessage.empty() || stage == "error";
+	return !snapshot.errorMessage.empty() || LowerAscii(snapshot.stage) == "error";
 }
 
 bool IsStoppedStage(const AgentOSService::StateSnapshot& snapshot) {
@@ -111,6 +110,11 @@ bool IsStoppedStage(const AgentOSService::StateSnapshot& snapshot) {
 
 bool IsCompletedStage(const AgentOSService::StateSnapshot& snapshot) {
 	return LowerAscii(snapshot.stage) == "completed";
+}
+
+bool IsFinalGenerationStage(const AgentOSService::StateSnapshot& snapshot) {
+	const std::string stage = LowerAscii(snapshot.stage);
+	return stage == "synthesize" || stage == "generate_reply" || stage == "reply";
 }
 
 bool IsFastRouteStage(const AgentOSService::StateSnapshot& snapshot) {
@@ -155,17 +159,17 @@ float SessionProgress(const AgentOSService::StateSnapshot& snapshot) {
 	if(IsFastRouteStage(snapshot)) {
 		const std::string stage = LowerAscii(snapshot.stage);
 		if(stage == "direct" || stage == "direct_route") return 0.45f;
-		if(stage == "generate_reply" || stage == "reply") return 0.82f;
+		if(stage == "generate_reply" || stage == "reply") return 0.86f;
 	}
 	const int phaseIndex = ResolvePhaseIndex(snapshot.stage);
 	if(phaseIndex >= 0) {
 		return std::clamp(
-			(static_cast<float>(phaseIndex) + 0.48f) / static_cast<float>(kAgentPhases.size()),
+			(static_cast<float>(phaseIndex) + 0.48f) /
+				static_cast<float>(kAgentPhases.size()),
 			0.0f,
 			0.98f);
 	}
-	if(snapshot.running) return 0.05f;
-	return 0.0f;
+	return snapshot.running ? 0.05f : 0.0f;
 }
 
 PhaseState ResolvePhaseState(
@@ -178,19 +182,16 @@ PhaseState ResolvePhaseState(
 		return PhaseState::Complete;
 	}
 
-	if(IsErrorStage(snapshot)) {
-		const int current = ResolvePhaseIndex(snapshot.stage);
-		if(current >= 0 && phaseIndex == static_cast<std::size_t>(current)) {
-			return PhaseState::Failed;
-		}
-	}
-
 	if(fastRoute) {
 		if(phaseIndex + 1 < kAgentPhases.size()) return PhaseState::Skipped;
 		return snapshot.running ? PhaseState::Active : PhaseState::Complete;
 	}
 
 	const int current = ResolvePhaseIndex(snapshot.stage);
+	if(IsErrorStage(snapshot) && current >= 0 &&
+		phaseIndex == static_cast<std::size_t>(current)) {
+		return PhaseState::Failed;
+	}
 	if(current < 0) return PhaseState::Pending;
 	if(phaseIndex < static_cast<std::size_t>(current)) return PhaseState::Complete;
 	if(phaseIndex == static_cast<std::size_t>(current)) {
@@ -202,16 +203,13 @@ PhaseState ResolvePhaseState(
 ImVec4 PhaseColor(PhaseState state, float pulse = 1.0f) {
 	switch(state) {
 	case PhaseState::Active:
-		return ImVec4(kAccentColor.x, kAccentColor.y, kAccentColor.z, 0.72f + 0.28f * pulse);
-	case PhaseState::Complete:
-		return kSuccessColor;
-	case PhaseState::Skipped:
-		return kSkippedColor;
-	case PhaseState::Failed:
-		return kErrorColor;
+		return ImVec4(kAccentColor.x, kAccentColor.y, kAccentColor.z,
+			0.72f + 0.28f * pulse);
+	case PhaseState::Complete: return kSuccessColor;
+	case PhaseState::Skipped: return kSkippedColor;
+	case PhaseState::Failed: return kErrorColor;
 	case PhaseState::Pending:
-	default:
-		return kPendingColor;
+	default: return kPendingColor;
 	}
 }
 
@@ -224,98 +222,6 @@ const char* PhaseStatusText(PhaseState state) {
 	case PhaseState::Pending:
 	default: return "待機";
 	}
-}
-
-void DrawPill(const char* label, const ImVec4& color) {
-	const ImVec2 textSize = ImGui::CalcTextSize(label);
-	const ImVec2 pos = ImGui::GetCursorScreenPos();
-	const ImVec2 size(textSize.x + 18.0f, textSize.y + 8.0f);
-	ImDrawList* drawList = ImGui::GetWindowDrawList();
-	ImVec4 background = color;
-	background.w = 0.18f;
-	drawList->AddRectFilled(
-		pos,
-		ImVec2(pos.x + size.x, pos.y + size.y),
-		ImGui::GetColorU32(background),
-		999.0f);
-	drawList->AddRect(
-		pos,
-		ImVec2(pos.x + size.x, pos.y + size.y),
-		ImGui::GetColorU32(color),
-		999.0f,
-		0,
-		1.0f);
-	drawList->AddText(
-		ImVec2(pos.x + 9.0f, pos.y + 4.0f),
-		ImGui::GetColorU32(color),
-		label);
-	ImGui::Dummy(size);
-}
-
-void DrawSectionLabel(const char* title, const char* subtitle = nullptr) {
-	ImGui::TextColored(kAccentColor, "%s", title);
-	if(subtitle && subtitle[0] != '\0') {
-		ImGui::SameLine();
-		ImGui::TextDisabled("%s", subtitle);
-	}
-	ImGui::Separator();
-}
-
-void DrawAgentStatusList(
-	const AgentOSService::StateSnapshot& snapshot,
-	const char* id,
-	bool compact) {
-
-	ImGui::PushID(id);
-	const float pulse =
-		0.5f + 0.5f * static_cast<float>(std::sin(ImGui::GetTime() * 4.2));
-	const float rowHeight = compact ? 25.0f : 34.0f;
-
-	for(std::size_t i = 0; i < kAgentPhases.size(); ++i) {
-		const AgentPhase& phase = kAgentPhases[i];
-		const PhaseState state = ResolvePhaseState(snapshot, i);
-		const ImVec4 color = PhaseColor(state, pulse);
-
-		const ImVec2 rowMin = ImGui::GetCursorScreenPos();
-		const float width = (std::max)(120.0f, ImGui::GetContentRegionAvail().x);
-		const ImVec2 rowMax(rowMin.x + width, rowMin.y + rowHeight);
-		ImDrawList* drawList = ImGui::GetWindowDrawList();
-
-		ImVec4 background = state == PhaseState::Active ? kCardAltColor : kCardColor;
-		background.w = state == PhaseState::Active ? 1.0f : 0.72f;
-		drawList->AddRectFilled(rowMin, rowMax, ImGui::GetColorU32(background), 6.0f);
-		drawList->AddRect(rowMin, rowMax, ImGui::GetColorU32(kBorderColor), 6.0f);
-
-		const float centerY = rowMin.y + rowHeight * 0.5f;
-		drawList->AddCircleFilled(
-			ImVec2(rowMin.x + 12.0f, centerY),
-			state == PhaseState::Active ? 4.0f + pulse : 4.0f,
-			ImGui::GetColorU32(color));
-
-		drawList->AddText(
-			ImVec2(rowMin.x + 24.0f, rowMin.y + (compact ? 5.0f : 4.0f)),
-			ImGui::GetColorU32(ImVec4(0.92f, 0.95f, 1.0f, 1.0f)),
-			phase.label);
-
-		if(!compact && width > 390.0f) {
-			drawList->AddText(
-				ImVec2(rowMin.x + 126.0f, rowMin.y + 4.0f),
-				ImGui::GetColorU32(kMutedColor),
-				phase.caption);
-		}
-
-		const char* status = PhaseStatusText(state);
-		const ImVec2 statusSize = ImGui::CalcTextSize(status);
-		drawList->AddText(
-			ImVec2(rowMax.x - statusSize.x - 10.0f, rowMin.y + (compact ? 5.0f : 4.0f)),
-			ImGui::GetColorU32(color),
-			status);
-
-		ImGui::Dummy(ImVec2(width, rowHeight));
-		if(i + 1 < kAgentPhases.size()) ImGui::Dummy(ImVec2(0.0f, 3.0f));
-	}
-
-	ImGui::PopID();
 }
 
 std::string JsonValueText(const Json& object, const char* key) {
@@ -331,7 +237,6 @@ std::string JsonValueText(const Json& object, const char* key) {
 std::string FirstDetailValue(
 	const Json& detail,
 	std::initializer_list<const char*> keys) {
-
 	for(const char* key : keys) {
 		const std::string value = JsonValueText(detail, key);
 		if(!value.empty()) return value;
@@ -356,20 +261,20 @@ std::string CurrentOperationLabel(
 	std::string operation = FirstDetailValue(
 		snapshot.progressDetail,
 		{"tool", "toolName", "currentTool", "command", "operation"});
-	if(operation.empty()) operation = LatestToolName(audit);
+	if(operation.empty() && LowerAscii(snapshot.stage) == "retrieve") {
+		operation = LatestToolName(audit);
+	}
 	if(!operation.empty()) return operation;
 
 	const std::string stage = LowerAscii(snapshot.stage);
 	if(stage == "loading_model") return "モデル読込";
-	if(stage == "intake") return "要求解析";
-	if(stage == "plan") return "タスク構成";
-	if(stage == "retrieve") return "Engine Tool";
-	if(stage == "reason") return "推論";
-	if(stage == "critic") return "検証";
-	if(stage == "repair") return "再調査";
-	if(stage == "synthesize" || stage == "generate_reply" || stage == "reply") {
-		return "回答生成";
-	}
+	if(stage == "intake") return "会話文脈を解析";
+	if(stage == "plan") return "Task DAGを構成";
+	if(stage == "retrieve") return "Engine Toolを実行";
+	if(stage == "reason") return "Evidenceを統合";
+	if(stage == "critic") return "根拠を検証";
+	if(stage == "repair") return "不足Evidenceを再調査";
+	if(IsFinalGenerationStage(snapshot)) return "最終応答を生成";
 	return {};
 }
 
@@ -377,6 +282,159 @@ std::string CompactLabel(const std::string& text, std::size_t maxChars) {
 	if(text.size() <= maxChars) return text;
 	if(maxChars <= 3) return text.substr(0, maxChars);
 	return text.substr(0, maxChars - 3) + "...";
+}
+
+std::string TruncateText(const std::string& text, std::size_t maxChars) {
+	if(text.size() <= maxChars) return text;
+	return text.substr(0, maxChars) + "\n...(truncated)...";
+}
+
+void DrawPhaseGlyph(
+	ImDrawList* drawList,
+	const ImVec2& center,
+	PhaseState state,
+	const ImVec4& color,
+	float pulse) {
+
+	const ImU32 colorU32 = ImGui::GetColorU32(color);
+	if(state == PhaseState::Pending || state == PhaseState::Skipped) {
+		drawList->AddCircle(center, 5.0f, colorU32, 16, 1.5f);
+		if(state == PhaseState::Skipped) {
+			drawList->AddCircleFilled(center, 2.0f, colorU32);
+		}
+		return;
+	}
+
+	const float radius = state == PhaseState::Active ? 4.5f + pulse : 5.0f;
+	drawList->AddCircleFilled(center, radius, colorU32);
+	if(state == PhaseState::Complete) {
+		drawList->AddLine(
+			ImVec2(center.x - 2.5f, center.y),
+			ImVec2(center.x - 0.5f, center.y + 2.2f),
+			IM_COL32(18, 31, 38, 255),
+			1.3f);
+		drawList->AddLine(
+			ImVec2(center.x - 0.5f, center.y + 2.2f),
+			ImVec2(center.x + 3.0f, center.y - 2.5f),
+			IM_COL32(18, 31, 38, 255),
+			1.3f);
+	} else if(state == PhaseState::Failed) {
+		drawList->AddLine(
+			ImVec2(center.x - 2.2f, center.y - 2.2f),
+			ImVec2(center.x + 2.2f, center.y + 2.2f),
+			IM_COL32(28, 20, 25, 255),
+			1.3f);
+		drawList->AddLine(
+			ImVec2(center.x + 2.2f, center.y - 2.2f),
+			ImVec2(center.x - 2.2f, center.y + 2.2f),
+			IM_COL32(28, 20, 25, 255),
+			1.3f);
+	}
+}
+
+void DrawAgentStatusRail(
+	const AgentOSService::StateSnapshot& snapshot,
+	const Json& audit,
+	const char* id) {
+
+	ImGui::PushID(id);
+	const float pulse =
+		0.5f + 0.5f * static_cast<float>(std::sin(ImGui::GetTime() * 4.2));
+	const float width = (std::max)(170.0f, ImGui::GetContentRegionAvail().x);
+	const float height = 38.0f;
+	const float nodeWidth = 16.0f;
+	const int activeIndex = ResolvePhaseIndex(snapshot.stage);
+	const bool hasActive = snapshot.running && activeIndex >= 0 &&
+		activeIndex < static_cast<int>(kAgentPhases.size());
+	const float activeWidth = hasActive
+		? std::clamp(width * 0.30f, 82.0f, 118.0f)
+		: nodeWidth;
+	const float itemWidths = hasActive
+		? activeWidth + nodeWidth * static_cast<float>(kAgentPhases.size() - 1)
+		: nodeWidth * static_cast<float>(kAgentPhases.size());
+	const float gap = kAgentPhases.size() > 1
+		? (std::max)(2.0f,
+			(width - itemWidths) / static_cast<float>(kAgentPhases.size() - 1))
+		: 0.0f;
+
+	const ImVec2 origin = ImGui::GetCursorScreenPos();
+	const float centerY = origin.y + height * 0.5f;
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	drawList->AddLine(
+		ImVec2(origin.x + 8.0f, centerY),
+		ImVec2(origin.x + width - 8.0f, centerY),
+		ImGui::GetColorU32(kBorderColor),
+		2.0f);
+
+	float x = origin.x;
+	for(std::size_t i = 0; i < kAgentPhases.size(); ++i) {
+		const AgentPhase& phase = kAgentPhases[i];
+		const PhaseState state = ResolvePhaseState(snapshot, i);
+		const ImVec4 color = PhaseColor(state, pulse);
+		const bool active = hasActive && static_cast<int>(i) == activeIndex;
+		const float itemWidth = active ? activeWidth : nodeWidth;
+		const ImVec2 itemMin(x, origin.y + 4.0f);
+		const ImVec2 itemMax(x + itemWidth, origin.y + height - 4.0f);
+
+		if(active) {
+			ImVec4 background = color;
+			background.w = 0.16f + 0.05f * pulse;
+			drawList->AddRectFilled(
+				itemMin,
+				itemMax,
+				ImGui::GetColorU32(background),
+				999.0f);
+			drawList->AddRect(
+				itemMin,
+				itemMax,
+				ImGui::GetColorU32(color),
+				999.0f,
+				0,
+				1.2f);
+			const ImVec2 glyphCenter(itemMin.x + 12.0f, centerY);
+			DrawPhaseGlyph(drawList, glyphCenter, state, color, pulse);
+			drawList->AddText(
+				ImVec2(itemMin.x + 23.0f, origin.y + 11.0f),
+				ImGui::GetColorU32(ImVec4(0.93f, 0.97f, 1.0f, 1.0f)),
+				phase.label);
+		} else {
+			DrawPhaseGlyph(
+				drawList,
+				ImVec2(itemMin.x + nodeWidth * 0.5f, centerY),
+				state,
+				color,
+				pulse);
+		}
+
+		ImGui::SetCursorScreenPos(itemMin);
+		ImGui::InvisibleButton("phase", ImVec2(itemWidth, height - 8.0f));
+		if(ImGui::IsItemHovered()) {
+			ImGui::BeginTooltip();
+			ImGui::TextColored(color, "%s", phase.label);
+			ImGui::SameLine();
+			ImGui::TextDisabled("%s", PhaseStatusText(state));
+			ImGui::TextWrapped("%s", phase.caption);
+			if(active) {
+				const std::string operation = CurrentOperationLabel(snapshot, audit);
+				if(!operation.empty()) {
+					ImGui::Separator();
+					ImGui::Text("現在: %s", operation.c_str());
+				}
+				if(snapshot.progressDetail.is_object() &&
+					!snapshot.progressDetail.empty()) {
+					ImGui::TextDisabled("%s", TruncateText(
+						snapshot.progressDetail.dump(2), 700).c_str());
+				}
+			}
+			ImGui::EndTooltip();
+		}
+
+		x += itemWidth + gap;
+	}
+
+	ImGui::SetCursorScreenPos(origin);
+	ImGui::Dummy(ImVec2(width, height));
+	ImGui::PopID();
 }
 
 std::string TrimLeft(std::string value) {
@@ -424,8 +482,7 @@ void RenderCodeBlock(const std::string& code, const std::string& language, int b
 	for(char c : code) if(c == '\n') ++lineCount;
 	const float codeHeight = (std::min)(
 		180.0f,
-		(std::max)(
-			52.0f,
+		(std::max)(52.0f,
 			static_cast<float>(lineCount) *
 				ImGui::GetTextLineHeightWithSpacing() + 10.0f));
 
@@ -435,7 +492,6 @@ void RenderCodeBlock(const std::string& code, const std::string& language, int b
 		ImVec2(-1.0f, codeHeight),
 		true,
 		ImGuiWindowFlags_HorizontalScrollbar);
-
 	std::istringstream stream(code);
 	std::string line;
 	while(std::getline(stream, line)) {
@@ -443,7 +499,6 @@ void RenderCodeBlock(const std::string& code, const std::string& language, int b
 	}
 	ImGui::EndChild();
 	ImGui::PopStyleColor();
-
 	if(ImGui::SmallButton("Copy")) ImGui::SetClipboardText(code.c_str());
 	ImGui::PopID();
 }
@@ -480,21 +535,68 @@ void RenderRichText(const std::string& text, int messageId) {
 			}
 			continue;
 		}
-
 		std::string& target = inCode ? code : plain;
 		if(!target.empty()) target += '\n';
 		target += line;
 	}
-
 	if(inCode) flushCode();
 	else flushPlain();
+}
+
+std::string DecodePartialJsonString(const std::string& text, const char* key) {
+	const std::string marker = std::string("\"") + key + "\"";
+	const std::size_t keyPos = text.find(marker);
+	if(keyPos == std::string::npos) return {};
+	const std::size_t colon = text.find(':', keyPos + marker.size());
+	if(colon == std::string::npos) return {};
+	const std::size_t quote = text.find('"', colon + 1);
+	if(quote == std::string::npos) return {};
+
+	std::string decoded;
+	decoded.reserve(text.size() - quote);
+	bool escaped = false;
+	for(std::size_t i = quote + 1; i < text.size(); ++i) {
+		const char c = text[i];
+		if(escaped) {
+			switch(c) {
+			case 'n': decoded += '\n'; break;
+			case 'r': break;
+			case 't': decoded += '\t'; break;
+			case '"': decoded += '"'; break;
+			case '\\': decoded += '\\'; break;
+			default:
+				decoded += '\\';
+				decoded += c;
+				break;
+			}
+			escaped = false;
+			continue;
+		}
+		if(c == '\\') {
+			escaped = true;
+			continue;
+		}
+		if(c == '"') break;
+		decoded += c;
+	}
+	return decoded;
+}
+
+std::string LiveFinalResponse(const AgentOSService::StateSnapshot& snapshot) {
+	if(!IsFinalGenerationStage(snapshot) || snapshot.liveResponse.empty()) return {};
+	std::string report = DecodePartialJsonString(snapshot.liveResponse, "report");
+	if(report.empty()) report = DecodePartialJsonString(snapshot.liveResponse, "reply");
+	if(!report.empty()) return report;
+
+	const std::string trimmed = TrimLeft(snapshot.liveResponse);
+	if(trimmed.rfind("```", 0) == 0 || trimmed.rfind("{", 0) == 0) return {};
+	return snapshot.liveResponse;
 }
 
 std::string ProcessLabel(
 	std::int64_t elapsedMillis,
 	std::int64_t promptTokens,
 	std::int64_t completionTokens) {
-
 	std::ostringstream out;
 	out.setf(std::ios::fixed);
 	out.precision(1);
@@ -508,17 +610,30 @@ void DrawLiveResponseCard(
 	const Json& audit) {
 
 	const std::string operation = CurrentOperationLabel(snapshot, audit);
-	std::string status = "応答生成中";
+	const std::string liveFinal = LiveFinalResponse(snapshot);
+	const bool finalStage = IsFinalGenerationStage(snapshot);
 	const int dotCount = static_cast<int>(ImGui::GetTime() * 2.5) % 4;
+	std::string status = finalStage ? "最終応答を生成中" : "処理中";
 	status.append(static_cast<std::size_t>(dotCount), '.');
-	if(!operation.empty()) status += " (" + operation + ")";
+	if(!operation.empty() && !finalStage) status += "  " + operation;
 
-	const float progress = SessionProgress(snapshot);
-	const float baseHeight = 78.0f;
-	const float phaseHeight =
-		static_cast<float>(kAgentPhases.size()) * 28.0f + 18.0f;
-	const float previewHeight = snapshot.liveResponse.empty() ? 0.0f : 66.0f;
-	const float height = baseHeight + phaseHeight + previewHeight;
+	const float availableWidth = (std::max)(180.0f, ImGui::GetContentRegionAvail().x - 18.0f);
+	float previewHeight = 0.0f;
+	if(finalStage) {
+		if(liveFinal.empty()) {
+			previewHeight = 38.0f;
+		} else {
+			previewHeight = std::clamp(
+				ImGui::CalcTextSize(liveFinal.c_str(), nullptr, false, availableWidth).y + 34.0f,
+				70.0f,
+				300.0f);
+		}
+	}
+	const std::string& processText = !snapshot.liveThinking.empty()
+		? snapshot.liveThinking
+		: snapshot.sessionProcessLog;
+	const float logHeight = processText.empty() ? 0.0f : 24.0f;
+	const float height = 104.0f + previewHeight + logHeight;
 
 	ImGui::TextColored(kAssistantColor, "AGENTOS");
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.050f, 0.058f, 0.078f, 1.0f));
@@ -527,46 +642,75 @@ void DrawLiveResponseCard(
 	ImGui::BeginChild("LiveAgentOSResponse", ImVec2(-1.0f, height), true);
 
 	ImGui::TextColored(kAccentColor, "%s", status.c_str());
-	ImGui::SameLine();
-	ImGui::TextDisabled("%s", CurrentAgentLabel(snapshot));
-	ImGui::ProgressBar(progress, ImVec2(-1.0f, 7.0f), "");
+	ImGui::ProgressBar(SessionProgress(snapshot), ImVec2(-1.0f, 5.0f), "");
+	DrawAgentStatusRail(snapshot, audit, "LiveAgentStatusRail");
 
-	ImGui::Spacing();
-	ImGui::TextColored(kMutedColor, "エージェント状況");
-	DrawAgentStatusList(snapshot, "LiveAgentStatus", true);
-
-	const std::string& processText =
-		!snapshot.liveThinking.empty()
-			? snapshot.liveThinking
-			: snapshot.sessionProcessLog;
-	if(!processText.empty()) {
-		if(ImGui::TreeNodeEx(
-			"##LiveProcessLog",
-			ImGuiTreeNodeFlags_SpanAvailWidth,
-			"処理ログ")) {
-			ImGui::PushStyleColor(ImGuiCol_Text, kMutedColor);
-			RenderPlainText(processText);
-			ImGui::PopStyleColor();
-			ImGui::TreePop();
+	if(finalStage) {
+		ImGui::Separator();
+		if(liveFinal.empty()) {
+			ImGui::TextDisabled("最初の出力トークンを待っています...");
+		} else {
+			RenderRichText(liveFinal, 900000);
+			if(snapshot.generationActive) {
+				ImGui::TextColored(kAccentColor, "| ");
+			}
 		}
 	}
 
-	if(!snapshot.liveResponse.empty()) {
-		ImGui::Separator();
-		ImGui::TextDisabled("生成プレビュー");
-		RenderRichText(snapshot.liveResponse, 900000);
+	if(!processText.empty() && ImGui::TreeNodeEx(
+		"##LiveProcessLog",
+		ImGuiTreeNodeFlags_SpanAvailWidth,
+		"処理ログ")) {
+		ImGui::PushStyleColor(ImGuiCol_Text, kMutedColor);
+		RenderPlainText(processText);
+		ImGui::PopStyleColor();
+		ImGui::TreePop();
 	}
 
 	ImGui::EndChild();
 	ImGui::PopStyleVar();
 	ImGui::PopStyleColor(2);
-
 	ImGui::TextDisabled(
 		"%.1fs  |  %lld tk  |  %.1f tk/s",
 		static_cast<double>(snapshot.liveElapsedMillis) / 1000.0,
 		static_cast<long long>(
 			snapshot.livePromptTokens + snapshot.liveCompletionTokens),
 		snapshot.tokensPerSecond);
+}
+
+void DrawPill(const char* label, const ImVec4& color) {
+	const ImVec2 textSize = ImGui::CalcTextSize(label);
+	const ImVec2 pos = ImGui::GetCursorScreenPos();
+	const ImVec2 size(textSize.x + 18.0f, textSize.y + 8.0f);
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	ImVec4 background = color;
+	background.w = 0.18f;
+	drawList->AddRectFilled(
+		pos,
+		ImVec2(pos.x + size.x, pos.y + size.y),
+		ImGui::GetColorU32(background),
+		999.0f);
+	drawList->AddRect(
+		pos,
+		ImVec2(pos.x + size.x, pos.y + size.y),
+		ImGui::GetColorU32(color),
+		999.0f,
+		0,
+		1.0f);
+	drawList->AddText(
+		ImVec2(pos.x + 9.0f, pos.y + 4.0f),
+		ImGui::GetColorU32(color),
+		label);
+	ImGui::Dummy(size);
+}
+
+void DrawSectionLabel(const char* title, const char* subtitle = nullptr) {
+	ImGui::TextColored(kAccentColor, "%s", title);
+	if(subtitle && subtitle[0] != '\0') {
+		ImGui::SameLine();
+		ImGui::TextDisabled("%s", subtitle);
+	}
+	ImGui::Separator();
 }
 
 void DrawMissionSummary(const AgentOSService::StateSnapshot& snapshot) {
@@ -585,18 +729,17 @@ void DrawMissionSummary(const AgentOSService::StateSnapshot& snapshot) {
 	ImGui::PushStyleColor(ImGuiCol_Border, kBorderColor);
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
 	ImGui::BeginChild("MissionSummary", ImVec2(-1.0f, 82.0f), true);
-
 	DrawPill(CurrentAgentLabel(snapshot), stateColor);
 	ImGui::SameLine();
 	ImGui::TextDisabled("%s", snapshot.stage.empty() ? "idle" : snapshot.stage.c_str());
-	ImGui::ProgressBar(SessionProgress(snapshot), ImVec2(-1.0f, 8.0f), "");
-
+	ImGui::ProgressBar(SessionProgress(snapshot), ImVec2(-1.0f, 7.0f), "");
 	const std::string task = FirstDetailValue(
 		snapshot.progressDetail,
 		{"description", "goal", "task", "planTaskId", "taskId"});
 	if(!task.empty()) ImGui::TextWrapped("%s", task.c_str());
-	else ImGui::TextDisabled(snapshot.running ? "タスクを準備しています" : "実行中のタスクはありません");
-
+	else ImGui::TextDisabled(snapshot.running
+		? "タスクを準備しています"
+		: "実行中のタスクはありません");
 	ImGui::EndChild();
 	ImGui::PopStyleVar();
 	ImGui::PopStyleColor(2);
@@ -604,27 +747,20 @@ void DrawMissionSummary(const AgentOSService::StateSnapshot& snapshot) {
 
 void DrawToolActivity(const Json& audit) {
 	DrawSectionLabel("TOOL ACTIVITY", "Engine access");
-
 	if(!audit.is_array() || audit.empty()) {
 		ImGui::TextDisabled("Tool実行はありません。");
 		return;
 	}
-
-	const std::size_t begin =
-		audit.size() > 8 ? audit.size() - 8 : static_cast<std::size_t>(0);
+	const std::size_t begin = audit.size() > 8 ? audit.size() - 8 : 0;
 	for(std::size_t i = begin; i < audit.size(); ++i) {
 		const Json& entry = audit[i];
 		const std::string tool = entry.value("tool", std::string("Unknown"));
 		const std::string status = entry.value("status", std::string());
 		const std::string error = entry.value("error", std::string());
-		const bool failed =
-			!error.empty() ||
-			StringContains(status, "fail") ||
-			StringContains(status, "denied");
-
+		const bool failed = !error.empty() || StringContains(status, "fail") ||
+			StringContains(status, "denied") || StringContains(status, "reject");
 		ImGui::PushID(static_cast<int>(i));
-		DrawPill(
-			status.empty() ? (failed ? "FAILED" : "DONE") : status.c_str(),
+		DrawPill(status.empty() ? (failed ? "FAILED" : "DONE") : status.c_str(),
 			failed ? kErrorColor : kSuccessColor);
 		ImGui::SameLine();
 		ImGui::TextWrapped("%s", tool.c_str());
@@ -635,9 +771,6 @@ void DrawToolActivity(const Json& audit) {
 
 } // namespace
 
-// --------------------------------------------
-// Initialize
-// --------------------------------------------
 void AgentOSPanel::Initialize(EditorService* editor) {
 	m_editor = editor;
 	m_show = true;
@@ -647,23 +780,14 @@ void AgentOSPanel::Initialize(EditorService* editor) {
 	std::memset(m_inputBuffer, 0, sizeof(m_inputBuffer));
 }
 
-// --------------------------------------------
-// Finalize
-// --------------------------------------------
 void AgentOSPanel::Finalize() {
 	m_editor = nullptr;
 	m_service = nullptr;
 }
 
-// --------------------------------------------
-// Draw
-// --------------------------------------------
 void AgentOSPanel::Draw(const EditorDrawContext) {
 	if(!m_show) return;
-
-	if(m_service) {
-		m_service->PumpMainThread(m_frameCounter++);
-	}
+	if(m_service) m_service->PumpMainThread(m_frameCounter++);
 
 	ImGui::SetNextWindowSize(ImVec2(380.0f, 680.0f), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSizeConstraints(
@@ -675,9 +799,7 @@ void AgentOSPanel::Draw(const EditorDrawContext) {
 	}
 
 	if(!m_service) {
-		ImGui::TextColored(
-			kErrorColor,
-			"AgentOSService is not attached to this panel.");
+		ImGui::TextColored(kErrorColor, "AgentOSService is not attached to this panel.");
 		ImGui::TextWrapped(
 			"Docs/AgentOS/02_VS_Integration.md の手順に従い、"
 			"EditorService::Initialize() の後で SetService() を呼び出してください。");
@@ -709,7 +831,6 @@ void AgentOSPanel::Draw(const EditorDrawContext) {
 		}
 		ImGui::EndTabBar();
 	}
-
 	ImGui::End();
 }
 
@@ -726,29 +847,20 @@ void AgentOSPanel::DrawCompactHeader() {
 		false,
 		ImGuiWindowFlags_HorizontalScrollbar);
 	ImGui::SetNextItemWidth(118.0f);
-	if(ImGui::BeginCombo(
-		"##Model",
-		modelLabel.c_str(),
-		ImGuiComboFlags_HeightSmall)) {
+	if(ImGui::BeginCombo("##Model", modelLabel.c_str(), ImGuiComboFlags_HeightSmall)) {
 		ImGui::Selectable(
-			snapshot.modelName.empty()
-				? "Local model"
-				: snapshot.modelName.c_str(),
+			snapshot.modelName.empty() ? "Local model" : snapshot.modelName.c_str(),
 			true);
 		ImGui::EndCombo();
 	}
 	if(ImGui::IsItemHovered()) {
-		ImGui::SetTooltip(
-			"Model: %s",
-			snapshot.modelName.empty()
-				? "Local model"
-				: snapshot.modelName.c_str());
+		ImGui::SetTooltip("Model: %s",
+			snapshot.modelName.empty() ? "Local model" : snapshot.modelName.c_str());
 	}
 	ImGui::SameLine();
 	ImGui::TextDisabled("DX11");
 	ImGui::SameLine();
-	ImGui::Text(
-		"%lld tk",
+	ImGui::Text("%lld tk",
 		static_cast<long long>(
 			snapshot.totalPromptTokens + snapshot.totalCompletionTokens));
 	ImGui::SameLine();
@@ -757,9 +869,6 @@ void AgentOSPanel::DrawCompactHeader() {
 	ImGui::PopStyleColor();
 }
 
-// --------------------------------------------
-// DrawChatTab
-// --------------------------------------------
 void AgentOSPanel::DrawChatTab() {
 	const AgentOSService::StateSnapshot snapshot = m_service->GetSnapshot();
 	const Json audit = m_service->GetAuditSnapshot();
@@ -768,20 +877,17 @@ void AgentOSPanel::DrawChatTab() {
 		m_lastLiveCompletionTokens = snapshot.liveCompletionTokens;
 		m_scrollToBottom = snapshot.running;
 	}
-
 	if(!snapshot.errorMessage.empty()) {
 		ImGui::TextColored(kErrorColor, "%s", snapshot.errorMessage.c_str());
 	}
 
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(5.0f, 6.0f));
 	ImGui::BeginChild("AgentOSChatTimeline", ImVec2(-1.0f, -116.0f), false);
-
 	for(std::size_t index = 0; index < snapshot.chatLog.size(); ++index) {
 		const AgentOSService::ChatEntry& entry = snapshot.chatLog[index];
 		const bool isUser = entry.role == "user";
 		ImGui::PushID(static_cast<int>(index));
-		ImGui::TextColored(
-			isUser ? kUserColor : kAssistantColor,
+		ImGui::TextColored(isUser ? kUserColor : kAssistantColor,
 			isUser ? "YOU" : "AGENTOS");
 
 		if(!isUser && !entry.processLog.empty()) {
@@ -794,13 +900,8 @@ void AgentOSPanel::DrawChatTab() {
 				ImGuiTreeNodeFlags_SpanAvailWidth,
 				"%s",
 				label.c_str())) {
-				ImGui::PushStyleColor(
-					ImGuiCol_ChildBg,
-					ImVec4(0.055f, 0.063f, 0.083f, 1.0f));
-				ImGui::BeginChild(
-					"ProcessBody",
-					ImVec2(-1.0f, 110.0f),
-					true);
+				ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.055f, 0.063f, 0.083f, 1.0f));
+				ImGui::BeginChild("ProcessBody", ImVec2(-1.0f, 110.0f), true);
 				ImGui::PushStyleColor(ImGuiCol_Text, kMutedColor);
 				RenderPlainText(entry.processLog);
 				ImGui::PopStyleColor();
@@ -812,10 +913,8 @@ void AgentOSPanel::DrawChatTab() {
 
 		RenderRichText(entry.text, static_cast<int>(index) + 1);
 		if(!isUser) {
-			ImGui::TextDisabled(
-				"%lld tk  |  %.1fs",
-				static_cast<long long>(
-					entry.promptTokens + entry.completionTokens),
+			ImGui::TextDisabled("%lld tk  |  %.1fs",
+				static_cast<long long>(entry.promptTokens + entry.completionTokens),
 				static_cast<double>(entry.elapsedMillis) / 1000.0);
 		}
 		ImGui::Spacing();
@@ -824,12 +923,7 @@ void AgentOSPanel::DrawChatTab() {
 		ImGui::PopID();
 	}
 
-	// 実行中のAgentOS表示は、独立したダッシュボードではなく
-	// ユーザー発言に続く一時的なアシスタント応答としてチャット内へ置く。
-	if(snapshot.running) {
-		DrawLiveResponseCard(snapshot, audit);
-	}
-
+	if(snapshot.running) DrawLiveResponseCard(snapshot, audit);
 	if(m_scrollToBottom) {
 		ImGui::SetScrollHereY(1.0f);
 		m_scrollToBottom = false;
@@ -843,10 +937,8 @@ void AgentOSPanel::DrawChatTab() {
 		m_inputBuffer,
 		sizeof(m_inputBuffer),
 		ImVec2(-1.0f, 66.0f));
-	const bool submitShortcut =
-		ImGui::IsItemFocused() &&
-		ImGui::GetIO().KeyCtrl &&
-		ImGui::IsKeyPressed(ImGuiKey_Enter, false);
+	const bool submitShortcut = ImGui::IsItemFocused() &&
+		ImGui::GetIO().KeyCtrl && ImGui::IsKeyPressed(ImGuiKey_Enter, false);
 	const bool hasInput = m_inputBuffer[0] != '\0';
 
 	if(snapshot.running) {
@@ -857,8 +949,7 @@ void AgentOSPanel::DrawChatTab() {
 		ImGui::TextDisabled("生成を停止");
 	} else {
 		ImGui::BeginDisabled(!hasInput);
-		const bool sendClicked =
-			ImGui::Button("Send", ImVec2(76.0f, 0.0f));
+		const bool sendClicked = ImGui::Button("Send", ImVec2(76.0f, 0.0f));
 		ImGui::EndDisabled();
 		ImGui::SameLine();
 		ImGui::TextDisabled("Ctrl+Enter");
@@ -875,26 +966,21 @@ void AgentOSPanel::DrawChatTab() {
 		for(const auto& entry : snapshot.chatLog) {
 			clip += "[" + entry.role + "]\n" + entry.text + "\n\n";
 		}
+		const std::string liveFinal = LiveFinalResponse(snapshot);
+		if(!liveFinal.empty()) clip += "[assistant/streaming]\n" + liveFinal + "\n";
 		ImGui::SetClipboardText(clip.c_str());
 	}
 }
 
-// --------------------------------------------
-// DrawFlowTab
-// --------------------------------------------
 void AgentOSPanel::DrawFlowTab() {
 	const AgentOSService::StateSnapshot snapshot = m_service->GetSnapshot();
 	const Json audit = m_service->GetAuditSnapshot();
-
 	DrawMissionSummary(snapshot);
 	ImGui::Spacing();
-
-	DrawSectionLabel("エージェント状況", "回答生成パイプライン");
-	DrawAgentStatusList(snapshot, "FlowAgentStatus", false);
+	DrawSectionLabel("エージェント状況", "hover for details");
+	DrawAgentStatusRail(snapshot, audit, "FlowAgentStatusRail");
 	ImGui::Spacing();
-
 	DrawToolActivity(audit);
-
 	if(snapshot.progressDetail.is_object() &&
 		!snapshot.progressDetail.empty() &&
 		ImGui::CollapsingHeader("Task detail")) {
@@ -902,17 +988,12 @@ void AgentOSPanel::DrawFlowTab() {
 	}
 }
 
-// --------------------------------------------
-// DrawHypothesesTab
-// --------------------------------------------
 void AgentOSPanel::DrawHypothesesTab() {
 	const AgentOSService::StateSnapshot snapshot = m_service->GetSnapshot();
 	const Json& root = snapshot.lastHypotheses;
-	const Json hypotheses =
-		root.is_object()
-			? root.value("hypotheses", Json::array())
-			: Json::array();
-
+	const Json hypotheses = root.is_object()
+		? root.value("hypotheses", Json::array())
+		: Json::array();
 	if(!hypotheses.is_array() || hypotheses.empty()) {
 		ImGui::TextDisabled("No hypotheses yet.");
 		return;
@@ -920,44 +1001,22 @@ void AgentOSPanel::DrawHypothesesTab() {
 
 	for(std::size_t i = 0; i < hypotheses.size(); ++i) {
 		const Json& hypothesis = hypotheses[i];
-		const std::string text =
-			hypothesis.value("text", std::string());
-		const double confidence =
-			std::clamp(
-				hypothesis.value("confidence", 0.0),
-				0.0,
-				1.0);
-
+		std::string text = hypothesis.value("description", std::string());
+		if(text.empty()) text = hypothesis.value("text", std::string());
+		const double confidence = std::clamp(
+			hypothesis.value("confidence", 0.0), 0.0, 1.0);
 		ImGui::PushID(static_cast<int>(i));
 		ImGui::PushStyleColor(ImGuiCol_ChildBg, kCardColor);
 		ImGui::PushStyleColor(ImGuiCol_Border, kBorderColor);
 		ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 8.0f);
-		ImGui::BeginChild(
-			"HypothesisCard",
-			ImVec2(0.0f, 126.0f),
-			true);
-
+		ImGui::BeginChild("HypothesisCard", ImVec2(0.0f, 126.0f), true);
 		ImGui::TextColored(kAccentColor, "HYPOTHESIS %02zu", i + 1);
 		ImGui::TextWrapped("%s", text.c_str());
-		ImGui::ProgressBar(
-			static_cast<float>(confidence),
-			ImVec2(-1.0f, 8.0f),
-			"confidence");
-
-		const Json supports =
-			hypothesis.value("supports", Json::array());
+		ImGui::ProgressBar(static_cast<float>(confidence), ImVec2(-1.0f, 8.0f), "confidence");
+		const Json supports = hypothesis.value("supports", Json::array());
 		if(supports.is_array() && !supports.empty()) {
-			std::string ids;
-			for(const Json& evidenceId : supports) {
-				if(!ids.empty()) ids += ", ";
-				ids += evidenceId.is_number_integer()
-					? std::to_string(
-						evidenceId.get<std::int64_t>())
-					: evidenceId.dump();
-			}
-			ImGui::TextDisabled("Evidence: %s", ids.c_str());
+			ImGui::TextDisabled("Evidence: %s", supports.dump().c_str());
 		}
-
 		ImGui::EndChild();
 		ImGui::PopStyleVar();
 		ImGui::PopStyleColor(2);
@@ -966,52 +1025,34 @@ void AgentOSPanel::DrawHypothesesTab() {
 	}
 }
 
-// --------------------------------------------
-// DrawAuditTab
-// --------------------------------------------
 void AgentOSPanel::DrawAuditTab() {
 	const Json audit = m_service->GetAuditSnapshot();
-
 	if(!audit.is_array() || audit.empty()) {
 		ImGui::TextDisabled("No commands recorded yet.");
 		return;
 	}
-
-	ImGui::BeginChild(
-		"AgentOSAuditLog",
-		ImVec2(-1.0f, -1.0f),
-		true);
+	ImGui::BeginChild("AgentOSAuditList", ImVec2(-1.0f, -1.0f), false);
 	for(std::size_t i = 0; i < audit.size(); ++i) {
 		const Json& entry = audit[i];
-		const std::string tool =
-			entry.value("tool", std::string());
-		const std::string status =
-			entry.value("status", std::string());
-		const std::string issuer =
-			entry.value("issuer", std::string());
-		const std::string error =
-			entry.value("error", std::string());
-		const bool failed =
-			!error.empty() ||
-			StringContains(status, "fail");
-
+		const std::string tool = entry.value("tool", std::string("Unknown"));
+		const std::string issuer = entry.value("issuer", std::string());
+		const std::string status = entry.value("status", std::string());
+		const std::string error = entry.value("error", std::string());
+		const bool failed = !error.empty() || StringContains(status, "fail") ||
+			StringContains(status, "reject");
 		ImGui::PushID(static_cast<int>(i));
-		DrawPill(
-			status.empty() ? "UNKNOWN" : status.c_str(),
-			failed ? kErrorColor : kSuccessColor);
+		ImGui::TextColored(failed ? kErrorColor : kSuccessColor, "%s", tool.c_str());
 		ImGui::SameLine();
-		ImGui::Text("%s", tool.c_str());
-		ImGui::SameLine();
-		ImGui::TextDisabled("by %s", issuer.c_str());
-
-		if(!error.empty()) {
-			ImGui::TextColored(
-				kErrorColor,
-				"error: %s",
-				error.c_str());
+		ImGui::TextDisabled("%s", status.c_str());
+		if(!issuer.empty()) ImGui::TextDisabled("issuer: %s", issuer.c_str());
+		if(entry.contains("arguments")) {
+			ImGui::TextWrapped("args: %s", entry.at("arguments").dump().c_str());
 		}
-		if(ImGui::TreeNode("Command detail")) {
-			ImGui::TextWrapped("%s", entry.dump(2).c_str());
+		if(!error.empty()) ImGui::TextColored(kErrorColor, "%s", error.c_str());
+		if(ImGui::TreeNode("Payload")) {
+			if(entry.contains("payload")) {
+				ImGui::TextWrapped("%s", entry.at("payload").dump(2).c_str());
+			}
 			ImGui::TreePop();
 		}
 		ImGui::Separator();
@@ -1020,66 +1061,28 @@ void AgentOSPanel::DrawAuditTab() {
 	ImGui::EndChild();
 }
 
-// --------------------------------------------
-// DrawStatusTab
-// --------------------------------------------
 void AgentOSPanel::DrawStatusTab() {
 	const AgentOSService::StateSnapshot snapshot = m_service->GetSnapshot();
-
-	if(ImGui::CollapsingHeader(
-		"Runtime state",
-		ImGuiTreeNodeFlags_DefaultOpen)) {
-		ImGui::Text("Busy: %s", snapshot.running ? "true" : "false");
-		ImGui::Text(
-			"Stage: %s",
-			snapshot.stage.empty()
-				? "idle"
-				: snapshot.stage.c_str());
-		ImGui::Text(
-			"Active agent: %s",
-			CurrentAgentLabel(snapshot));
-		ImGui::Text(
-			"Model: %s",
-			snapshot.modelName.c_str());
-		ImGui::Text(
-			"Target: %s",
-			snapshot.targetEnvironment.c_str());
-		ImGui::Text(
-			"Tokens: %lld prompt / %lld completion",
-			static_cast<long long>(snapshot.totalPromptTokens),
-			static_cast<long long>(snapshot.totalCompletionTokens));
-		ImGui::Text(
-			"Generation: %.1f tk/s",
-			snapshot.tokensPerSecond);
-	}
-
+	ImGui::Text("Stage: %s", snapshot.stage.empty() ? "idle" : snapshot.stage.c_str());
+	ImGui::Text("Running: %s", snapshot.running ? "true" : "false");
+	ImGui::Text("Model: %s", snapshot.modelName.empty() ? "Local model" : snapshot.modelName.c_str());
+	ImGui::TextWrapped("Target: %s", snapshot.targetEnvironment.c_str());
+	ImGui::Text("Session: %.1fs", static_cast<double>(snapshot.sessionElapsedMillis) / 1000.0);
+	ImGui::Text("Tokens: %lld prompt / %lld completion",
+		static_cast<long long>(snapshot.sessionPromptTokens),
+		static_cast<long long>(snapshot.sessionCompletionTokens));
+	ImGui::Text("Speed: %.2f tk/s", snapshot.tokensPerSecond);
+	ImGui::TextWrapped("Transcript: %s", snapshot.transcriptPath.c_str());
 	if(!snapshot.errorMessage.empty()) {
-		ImGui::TextColored(
-			kErrorColor,
-			"Error: %s",
-			snapshot.errorMessage.c_str());
-	} else {
-		ImGui::TextDisabled("Error: none");
+		ImGui::TextColored(kErrorColor, "%s", snapshot.errorMessage.c_str());
 	}
-
-	if(!snapshot.transcriptPath.empty()) {
-		ImGui::TextWrapped(
-			"Transcript: %s",
-			snapshot.transcriptPath.c_str());
-		if(ImGui::SmallButton("Copy path")) {
-			ImGui::SetClipboardText(
-				snapshot.transcriptPath.c_str());
-		}
-	} else {
-		ImGui::TextDisabled("Transcript: no session yet");
-	}
-
 	if(snapshot.progressDetail.is_object() &&
 		!snapshot.progressDetail.empty() &&
-		ImGui::CollapsingHeader("Progress payload")) {
-		ImGui::TextWrapped(
-			"%s",
-			snapshot.progressDetail.dump(2).c_str());
+		ImGui::CollapsingHeader("Progress detail")) {
+		ImGui::TextWrapped("%s", snapshot.progressDetail.dump(2).c_str());
+	}
+	if(!snapshot.lastReport.empty() && ImGui::CollapsingHeader("Last report")) {
+		RenderRichText(snapshot.lastReport, 990000);
 	}
 }
 
