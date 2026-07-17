@@ -11,6 +11,7 @@
 // =======================================================================
 #pragma once
 
+#include <atomic>
 #include <cstdint>
 #include <memory>
 #include <string>
@@ -36,11 +37,16 @@ public:
 		LlmGenerationStats* statsOut = nullptr
 	) override;
 
+	// Cancelは以降のGenerateも即時拒否するラッチとして扱う。
+	// 新しいSessionを開始するときだけResetCancellation()で解除する。
 	void Cancel() override;
+	void ResetCancellation() noexcept;
+	bool IsCancellationRequested() const noexcept;
 
 private:
 	std::shared_ptr<LLAMAAgent> m_agent;
 	std::int64_t m_timeoutMillis;
+	std::atomic<bool> m_cancelRequested{false};
 };
 
 } // namespace agentos
