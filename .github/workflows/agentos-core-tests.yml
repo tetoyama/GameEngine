@@ -17,61 +17,7 @@ on:
       - ".github/workflows/agentos-core-tests.yml"
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
-  apply-component-query-fix:
-    if: github.event_name == 'push'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout llm-agent
-        uses: actions/checkout@v4
-        with:
-          ref: llm-agent
-          fetch-depth: 0
-          show-progress: false
-
-      - name: Extract and run component patch
-        shell: bash
-        run: |
-          set -o pipefail
-          sed -n "/python3 - <<'PY'/,/^          PY$/p" \
-            .github/workflows/agentos-component-query-fix.yml \
-            | sed '1d;$d;s/^          //' > /tmp/agentos-component-query-fix.py
-          python3 /tmp/agentos-component-query-fix.py 2>&1 | tee /tmp/agentos-component-query-fix.log
-
-      - name: Upload patch diagnostics
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: agentos-component-query-fix-log
-          path: /tmp/agentos-component-query-fix.log
-          if-no-files-found: error
-
-      - name: Commit source changes
-        shell: bash
-        run: |
-          sed -i 's/[[:space:]]\+$//' \
-            Source/GameApplication/AgentOS/Core/Logic/ComponentQueryRouting.h \
-            Source/GameApplication/AgentOS/Core/Command/CommandPipeline.cpp \
-            Source/GameApplication/AgentOS/Core/Llm/PromptTemplates.cpp \
-            Source/GameApplication/AgentOS/Service/AgentOSService.cpp \
-            Tests/AgentOSComponentQueryRoutingSmokeTest.cpp \
-            Tests/AgentOS/Makefile
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add \
-            Source/GameApplication/AgentOS/Core/Logic/ComponentQueryRouting.h \
-            Source/GameApplication/AgentOS/Core/Command/CommandPipeline.cpp \
-            Source/GameApplication/AgentOS/Core/Llm/PromptTemplates.cpp \
-            Source/GameApplication/AgentOS/Service/AgentOSService.cpp \
-            Tests/AgentOSComponentQueryRoutingSmokeTest.cpp \
-            Tests/AgentOS/Makefile
-          git status --short
-          git commit -m "Fix AgentOS component query grounding"
-          git push origin HEAD:llm-agent
-
   core-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 15
