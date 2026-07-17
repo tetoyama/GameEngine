@@ -91,6 +91,7 @@ Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const J
 				if (failure.is_string()) {
 					out->failures.push_back(failure.get<std::string>());
 				}
+			}
 		}
 		if (raw.contains("additionalTasksSuggested") && raw.at("additionalTasksSuggested").is_array()) {
 			out->additionalTasks = raw.at("additionalTasksSuggested");
@@ -120,7 +121,6 @@ Result CriticAgent::Run(AgentContext& ctx, const Json& rankedHypotheses, const J
 	out->programmaticScore =
 		0.4 * coverage + 0.3 * topConfidence + 0.2 * contradictionTerm + 0.1 * evidenceTerm;
 
-	// --- Hard Fail条件 ---
 	bool hardFail = false;
 	if (coverage < 1.0) {
 		AddFailureOnce(out, "programmatic hard fail: required task coverage is incomplete");
