@@ -46,61 +46,62 @@ jobs:
           ref: llm-agent
           fetch-depth: 0
       - name: Apply scoped phase IDs
-        shell: python
+        shell: bash
         run: |
+          python - <<'PY'
           from pathlib import Path
 
           path = Path("Source/GameApplication/AgentOS/UI/AgentOSPanel.cpp")
           text = path.read_text(encoding="utf-8")
           old = '''\t\tImGui::SetCursorScreenPos(itemMin);
-\t\tImGui::InvisibleButton("phase", ImVec2(itemWidth, height - 8.0f));
-\t\tif(ImGui::IsItemHovered()) {
-\t\t\tImGui::BeginTooltip();
-\t\t\tImGui::TextColored(color, "%s", phase.label);
-\t\t\tImGui::SameLine();
-\t\t\tImGui::TextDisabled("%s", PhaseStatusText(state));
-\t\t\tImGui::TextWrapped("%s", phase.caption);
-\t\t\tif(active) {
-\t\t\t\tconst std::string operation = CurrentOperationLabel(snapshot, audit);
-\t\t\t\tif(!operation.empty()) {
-\t\t\t\t\tImGui::Separator();
-\t\t\t\t\tImGui::Text("現在: %s", operation.c_str());
-\t\t\t\t}
-\t\t\t\tif(snapshot.progressDetail.is_object() &&
-\t\t\t\t\t!snapshot.progressDetail.empty()) {
-\t\t\t\t\tImGui::TextDisabled("%s", TruncateText(
-\t\t\t\t\t\tsnapshot.progressDetail.dump(2), 700).c_str());
-\t\t\t\t}
-\t\t\t}
-\t\t\tImGui::EndTooltip();
-\t\t}
-'''
+          \t\tImGui::InvisibleButton("phase", ImVec2(itemWidth, height - 8.0f));
+          \t\tif(ImGui::IsItemHovered()) {
+          \t\t\tImGui::BeginTooltip();
+          \t\t\tImGui::TextColored(color, "%s", phase.label);
+          \t\t\tImGui::SameLine();
+          \t\t\tImGui::TextDisabled("%s", PhaseStatusText(state));
+          \t\t\tImGui::TextWrapped("%s", phase.caption);
+          \t\t\tif(active) {
+          \t\t\t\tconst std::string operation = CurrentOperationLabel(snapshot, audit);
+          \t\t\t\tif(!operation.empty()) {
+          \t\t\t\t\tImGui::Separator();
+          \t\t\t\t\tImGui::Text("現在: %s", operation.c_str());
+          \t\t\t\t}
+          \t\t\t\tif(snapshot.progressDetail.is_object() &&
+          \t\t\t\t\t!snapshot.progressDetail.empty()) {
+          \t\t\t\t\tImGui::TextDisabled("%s", TruncateText(
+          \t\t\t\t\t\tsnapshot.progressDetail.dump(2), 700).c_str());
+          \t\t\t\t}
+          \t\t\t}
+          \t\t\tImGui::EndTooltip();
+          \t\t}
+          '''
           new = '''\t\t// Rail instance IDに加えてPhase固有IDを積み、各Hit Targetを一意にする。
-\t\tImGui::PushID(phase.stage);
-\t\tImGui::SetCursorScreenPos(itemMin);
-\t\tImGui::InvisibleButton("##HitTarget", ImVec2(itemWidth, height - 8.0f));
-\t\tif(ImGui::IsItemHovered()) {
-\t\t\tImGui::BeginTooltip();
-\t\t\tImGui::TextColored(color, "%s", phase.label);
-\t\t\tImGui::SameLine();
-\t\t\tImGui::TextDisabled("%s", PhaseStatusText(state));
-\t\t\tImGui::TextWrapped("%s", phase.caption);
-\t\t\tif(active) {
-\t\t\t\tconst std::string operation = CurrentOperationLabel(snapshot, audit);
-\t\t\t\tif(!operation.empty()) {
-\t\t\t\t\tImGui::Separator();
-\t\t\t\t\tImGui::Text("現在: %s", operation.c_str());
-\t\t\t\t}
-\t\t\t\tif(snapshot.progressDetail.is_object() &&
-\t\t\t\t\t!snapshot.progressDetail.empty()) {
-\t\t\t\t\tImGui::TextDisabled("%s", TruncateText(
-\t\t\t\t\t\tsnapshot.progressDetail.dump(2), 700).c_str());
-\t\t\t\t}
-\t\t\t}
-\t\t\tImGui::EndTooltip();
-\t\t}
-\t\tImGui::PopID();
-'''
+          \t\tImGui::PushID(phase.stage);
+          \t\tImGui::SetCursorScreenPos(itemMin);
+          \t\tImGui::InvisibleButton("##HitTarget", ImVec2(itemWidth, height - 8.0f));
+          \t\tif(ImGui::IsItemHovered()) {
+          \t\t\tImGui::BeginTooltip();
+          \t\t\tImGui::TextColored(color, "%s", phase.label);
+          \t\t\tImGui::SameLine();
+          \t\t\tImGui::TextDisabled("%s", PhaseStatusText(state));
+          \t\t\tImGui::TextWrapped("%s", phase.caption);
+          \t\t\tif(active) {
+          \t\t\t\tconst std::string operation = CurrentOperationLabel(snapshot, audit);
+          \t\t\t\tif(!operation.empty()) {
+          \t\t\t\t\tImGui::Separator();
+          \t\t\t\t\tImGui::Text("現在: %s", operation.c_str());
+          \t\t\t\t}
+          \t\t\t\tif(snapshot.progressDetail.is_object() &&
+          \t\t\t\t\t!snapshot.progressDetail.empty()) {
+          \t\t\t\t\tImGui::TextDisabled("%s", TruncateText(
+          \t\t\t\t\t\tsnapshot.progressDetail.dump(2), 700).c_str());
+          \t\t\t\t}
+          \t\t\t}
+          \t\t\tImGui::EndTooltip();
+          \t\t}
+          \t\tImGui::PopID();
+          '''
           count = text.count(old)
           if count == 0 and 'ImGui::InvisibleButton("##HitTarget"' in text:
               print("Phase IDs already fixed")
@@ -108,6 +109,7 @@ jobs:
               raise SystemExit(f"expected exactly one phase hit-target block, found {count}")
           else:
               path.write_text(text.replace(old, new, 1), encoding="utf-8")
+          PY
       - name: Commit fix
         shell: bash
         run: |
