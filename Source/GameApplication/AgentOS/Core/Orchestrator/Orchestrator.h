@@ -2,10 +2,8 @@
 //
 // Orchestrator.h
 //
-// 垂直スライスのメインループ本体（構想§10 / 00_Architecture.md §9,10）。
-// Intake → Plan → (Worker実行 → EvidenceBuild → Reason → Critic →
-// [不足ならRepair→再実行]) → Synthesize を同期的に1回通す。
-// 呼び出し側が専用スレッドで実行する前提（内部でスレッドは作らない）。
+// Intake → Plan → Retrieve → Evidence → Reason → Critic → Repair → Synthesize。
+// conversationContextは、古いTurnの累積要約と最近のuser/assistant最終応答ペアを含む。
 //
 // =======================================================================
 #pragma once
@@ -35,6 +33,7 @@ struct OrchestratorResult {
 	Json stopInfo = Json::object();
 	SessionId sessionId = kInvalidId;
 	Json rankedHypotheses = Json::object();
+	Json resolvedRequest = Json::object();
 };
 
 class Orchestrator {
@@ -42,17 +41,11 @@ public:
 	Orchestrator(ILlmBackend* llm, CommandPipeline* pipeline, TaskStore* store,
 	             CapabilityRegistry* capabilityRegistry, OrchestratorConfig config = {});
 
-	// 同期実行。呼び出し側がワーカースレッドから呼ぶ想定。
-	// LLM/Tool/バリデーションのいずれが失敗しても例外・クラッシュせず、
-	// stopInfo.reasonを埋めた劣化済みOrchestratorResultを返す。
-	OrchestratorResult RunSession(const std::string& userRequest);
+	OrchestratorResult RunSession(
+		const std::string& userRequest,
+		const Json& conversationContext = Json::object());
 
-	// Intake/Plan/Retrieve/Reason/Critic/Repair/Synthesizeの各段階遷移で呼ばれる。
-	// UIが進捗表示に使う。
 	void SetProgressCallback(std::function<void(const std::string& stage, const Json& detail)> callback);
-
-	// テスト・監査用: 直近のRunSessionでAgentへ発行したCapabilityTokenを返す。
-	// （Modify権限は絶対に含まれないことをテストで直接検証できるようにするため）
 	CapabilityToken GetLastIssuedToken() const;
 
 private:
