@@ -238,7 +238,7 @@ inline std::string BuildReply(const Route& route, const Json& payload) {
 			route.arguments.value("component", std::string());
 		if(!payload.is_object() || !payload.contains("value")) {
 			return "Entity '" + entity + "' のComponent '" + component +
-				"' の値を取得できませんでした。";
+				'\'' + " の値を取得できませんでした。";
 		}
 		return "Entity '" + entity + "' の " + component +
 			" の現在値です。\n```json\n" +
