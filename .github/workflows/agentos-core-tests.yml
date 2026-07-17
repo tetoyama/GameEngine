@@ -48,12 +48,9 @@ jobs:
           path: /tmp/agentos-component-query-fix.log
           if-no-files-found: error
 
-      - name: Restore workflow and commit source changes
+      - name: Commit source changes
         shell: bash
         run: |
-          git show d26e396a5b38f3e1a5a716d65f8b7d2c214bf31c:.github/workflows/agentos-core-tests.yml \
-            > .github/workflows/agentos-core-tests.yml
-          rm -f .github/workflows/agentos-component-query-fix.yml
           sed -i 's/[[:space:]]\+$//' \
             Source/GameApplication/AgentOS/Core/Logic/ComponentQueryRouting.h \
             Source/GameApplication/AgentOS/Core/Command/CommandPipeline.cpp \
@@ -63,8 +60,13 @@ jobs:
             Tests/AgentOS/Makefile
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -A
-          git status --short
+          git add \
+            Source/GameApplication/AgentOS/Core/Logic/ComponentQueryRouting.h \
+            Source/GameApplication/AgentOS/Core/Command/CommandPipeline.cpp \
+            Source/GameApplication/AgentOS/Core/Llm/PromptTemplates.cpp \
+            Source/GameApplication/AgentOS/Service/AgentOSService.cpp \
+            Tests/AgentOSComponentQueryRoutingSmokeTest.cpp \
+            Tests/AgentOS/Makefile
           git diff --cached --check
           git commit -m "Fix AgentOS component query grounding"
           git push origin HEAD:llm-agent
