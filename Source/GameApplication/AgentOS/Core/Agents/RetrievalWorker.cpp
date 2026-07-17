@@ -361,6 +361,7 @@ Result RetrievalWorker::Run(
 				filteredCatalog.push_back(entry);
 			}
 		}
+	}
 
 	Json commands = ParseExplicitCommands(taskSpec);
 	if (commands.empty()) commands = BuildDeterministicCommands(allowed, filteredCatalog, dependencyEvidence);
