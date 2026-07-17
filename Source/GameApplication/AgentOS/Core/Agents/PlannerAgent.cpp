@@ -5,6 +5,7 @@
 // =======================================================================
 #include "PlannerAgent.h"
 
+#include <cstdint>
 #include <functional>
 #include <string>
 #include <unordered_map>
@@ -44,7 +45,6 @@ bool HasCycle(const std::unordered_map<std::string, std::vector<std::string>>& d
 				if (visit(dep)) {
 					return true;
 				}
-			}
 		}
 		markIt->second = Mark::Done;
 		return false;
@@ -57,6 +57,90 @@ bool HasCycle(const std::unordered_map<std::string, std::vector<std::string>>& d
 		}
 	}
 	return false;
+}
+
+bool CatalogHasTool(const Json& toolCatalog, const std::string& name) {
+	if (!toolCatalog.is_array()) {
+		return false;
+	}
+	for (const auto& tool : toolCatalog) {
+		if (tool.is_object() && tool.value("name", std::string()) == name) {
+			return true;
+		}
+	}
+	return false;
+}
+
+bool ContainsAny(const std::string& text, std::initializer_list<const char*> needles) {
+	for (const char* needle : needles) {
+		if (text.find(needle) != std::string::npos) {
+			return true;
+		}
+	}
+	return false;
+}
+
+// 「現在のシーンの状態/概要を報告」のような単純スナップショット要求は、
+// Planner LLMを使わず安全な既知DAGへ固定する。時間変化を要求していないため
+// WriteTraceは含めない。
+bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json* planOut) {
+	if (planOut == nullptr || !intake.is_object()) {
+		return false;
+	}
+
+	const std::string text = intake.dump();
+	const bool sceneRequest = ContainsAny(text, {"シーン", "Scene", "scene"});
+	const bool snapshotRequest = ContainsAny(text, {"現在", "状態", "状況", "概要", "報告", "一覧", "全体"});
+	const bool temporalRequest = ContainsAny(text, {"変化", "推移", "フレーム間", "トレース", "Trace", "trace", "時間経過"});
+	if (!sceneRequest || !snapshotRequest || temporalRequest) {
+		return false;
+	}
+	if (!CatalogHasTool(toolCatalog, "ListEntities") || !CatalogHasTool(toolCatalog, "ListSystems")) {
+		return false;
+	}
+
+	Json tasks = Json::array();
+	tasks.push_back(Json::object({
+		{"taskId", "T1"},
+		{"type", "RuntimeObservation"},
+		{"description", "アクティブSceneのEntity一覧を取得する"},
+		{"dependencies", Json::array()},
+		{"allowedTools", Json::array({"ListEntities"})},
+		{"searchHints", Json::array()},
+	}));
+	tasks.push_back(Json::object({
+		{"taskId", "T2"},
+		{"type", "RuntimeObservation"},
+		{"description", "登録済みSystemTaskと依存関係を取得する"},
+		{"dependencies", Json::array()},
+		{"allowedTools", Json::array({"ListSystems"})},
+		{"searchHints", Json::array()},
+	}));
+
+	Json analysisDependencies = Json::array({"T1", "T2"});
+	if (CatalogHasTool(toolCatalog, "DescribeEntity")) {
+		tasks.push_back(Json::object({
+			{"taskId", "T3"},
+			{"type", "RuntimeObservation"},
+			{"description", "T1で取得した名前付きEntityから代表的な最大5件のComponent詳細を取得する"},
+			{"dependencies", Json::array({"T1"})},
+			{"allowedTools", Json::array({"DescribeEntity"})},
+			{"searchHints", Json::array()},
+		}));
+		analysisDependencies.push_back("T3");
+	}
+
+	tasks.push_back(Json::object({
+		{"taskId", "T4"},
+		{"type", "Analysis"},
+		{"description", "取得済みのScene観測結果をユーザー要求に沿って統合する"},
+		{"dependencies", analysisDependencies},
+		{"allowedTools", Json::array()},
+		{"searchHints", Json::array()},
+	}));
+
+	*planOut = Json::object({{"tasks", std::move(tasks)}, {"route", "deterministic_scene_snapshot"}});
+	return true;
 }
 
 // PlanのJSONを決定的に検証する。合格すればtrue、不合格ならerrorを埋めてfalse。
@@ -96,6 +180,10 @@ bool ValidatePlan(const Json& plan, const Json& toolCatalog, std::string* error)
 			return false;
 		}
 		const std::string id = task.at("taskId").get<std::string>();
+		if (id.empty()) {
+			*error = "taskId must not be empty";
+			return false;
+		}
 		if (seenIds.count(id) != 0) {
 			*error = "duplicate taskId: " + id;
 			return false;
@@ -126,7 +214,6 @@ bool ValidatePlan(const Json& plan, const Json& toolCatalog, std::string* error)
 					*error = "task '" + id + "' allowedTools references a tool not in the catalog";
 					return false;
 				}
-			}
 		}
 	}
 
@@ -148,13 +235,10 @@ bool ValidatePlan(const Json& plan, const Json& toolCatalog, std::string* error)
 	return true;
 }
 
-// LLMがtaskId/dependenciesを整数で返してきた場合に文字列へ正規化する。
-//
-// [実機対応] プロンプトのスキーマ例と検証の型要求が食い違うと、ローカルモデルは
-// 「スキーマはintegerなのに拒否理由はstringと言っている」という矛盾で混乱し、
-// リトライを浪費する事例が実LLMログで確認された。プロンプト側もstringへ統一したが、
-// integerで返すモデルも受理できるようにここで吸収する（LLM出力は信頼しない原則の一環）。
-void NormalizeTaskIds(Json* plan) {
+// LLMの型揺れと、Toolを持つAnalysisタスクを決定的に正規化する。
+// AnalysisはReasoningAgent専用でWorkerを起動しないため、allowedToolsがある場合は
+// RuntimeObservationへ変換し、Tool実行が黙って消えることを防ぐ。
+void NormalizePlan(Json* plan) {
 	if (plan == nullptr || !plan->is_object() || !plan->contains("tasks")) {
 		return;
 	}
@@ -176,6 +260,11 @@ void NormalizeTaskIds(Json* plan) {
 				}
 			}
 		}
+		const bool hasTools = task.contains("allowedTools") && task["allowedTools"].is_array() &&
+			!task["allowedTools"].empty();
+		if (task.value("type", std::string()) == "Analysis" && hasTools) {
+			task["type"] = "RuntimeObservation";
+		}
 	}
 }
 
@@ -186,6 +275,10 @@ Result PlannerAgent::Run(AgentContext& ctx, const Json& intake, const Json& tool
 		return Result::Fail("PlannerAgent: planOut is null");
 	}
 
+	if (TryBuildSceneSnapshotPlan(intake, toolCatalog, planOut)) {
+		return Result::Ok();
+	}
+
 	const PromptPair prompt = prompts::Plan(intake, toolCatalog, kMaxTasks);
 
 	Json raw;
@@ -194,7 +287,7 @@ Result PlannerAgent::Run(AgentContext& ctx, const Json& intake, const Json& tool
 		return callResult;
 	}
 
-	NormalizeTaskIds(&raw);
+	NormalizePlan(&raw);
 
 	std::string validationError;
 	if (ValidatePlan(raw, toolCatalog, &validationError)) {
@@ -212,7 +305,7 @@ Result PlannerAgent::Run(AgentContext& ctx, const Json& intake, const Json& tool
 		return retryCallResult;
 	}
 
-	NormalizeTaskIds(&retryRaw);
+	NormalizePlan(&retryRaw);
 
 	std::string retryValidationError;
 	if (ValidatePlan(retryRaw, toolCatalog, &retryValidationError)) {
