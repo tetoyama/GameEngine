@@ -406,8 +406,10 @@ void DrawAgentStatusRail(
 				pulse);
 		}
 
+		// Rail instance IDに加えてPhase固有IDを積み、各Hit Targetを一意にする。
+		ImGui::PushID(phase.stage);
 		ImGui::SetCursorScreenPos(itemMin);
-		ImGui::InvisibleButton("phase", ImVec2(itemWidth, height - 8.0f));
+		ImGui::InvisibleButton("##HitTarget", ImVec2(itemWidth, height - 8.0f));
 		if(ImGui::IsItemHovered()) {
 			ImGui::BeginTooltip();
 			ImGui::TextColored(color, "%s", phase.label);
@@ -428,6 +430,7 @@ void DrawAgentStatusRail(
 			}
 			ImGui::EndTooltip();
 		}
+		ImGui::PopID();
 
 		x += itemWidth + gap;
 	}
