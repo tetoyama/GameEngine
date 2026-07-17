@@ -1,0 +1,819 @@
+name: AgentOS UI Tooltip Patch
+
+on:
+  push:
+    branches:
+      - llm-agent
+    paths:
+      - ".github/workflows/agentos-ui-tooltip-patch.yml"
+
+permissions:
+  contents: write
+
+jobs:
+  apply-patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: llm-agent
+          fetch-depth: 0
+
+      - name: Apply AgentOS execution detail UI
+        shell: bash
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+
+          def replace_once(path: str, old: str, new: str) -> None:
+              p = Path(path)
+              text = p.read_text(encoding="utf-8")
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected one match, found {count}\n--- old ---\n{old}")
+              p.write_text(text.replace(old, new, 1), encoding="utf-8")
+
+          # LoggingLlmBackend: notify the UI as soon as a prompt starts, not only after completion.
+          path = "Source/GameApplication/AgentOS/Core/Llm/LoggingLlmBackend.h"
+          replace_once(path,
+          '''\tusing LogCallback = std::function<void(
+          \t\tconst std::string&, const std::string&,
+          \t\tconst std::string&, const LlmGenerationStats&)>;
+
+          \tLoggingLlmBackend(ILlmBackend* inner, LogCallback callback)
+          \t\t: m_inner(inner)
+          \t\t, m_callback(std::move(callback)) {
+          \t}
+          ''',
+          '''\tusing LogCallback = std::function<void(
+          \t\tconst std::string&, const std::string&,
+          \t\tconst std::string&, const LlmGenerationStats&)>;
+          \tusing BeginCallback = std::function<void(
+          \t\tconst std::string&, const std::string&)>;
+
+          \tLoggingLlmBackend(
+          \t\tILlmBackend* inner,
+          \t\tLogCallback callback,
+          \t\tBeginCallback beginCallback = {})
+          \t\t: m_inner(inner)
+          \t\t, m_callback(std::move(callback))
+          \t\t, m_beginCallback(std::move(beginCallback)) {
+          \t}
+          ''')
+          replace_once(path,
+          '''\t\tLlmGenerationStats stats{};
+          \t\tstd::string output;
+          \t\tif(m_inner){
+          ''',
+          '''\t\tif(m_beginCallback){
+          \t\t\tm_beginCallback(systemPrompt, userPrompt);
+          \t\t}
+
+          \t\tLlmGenerationStats stats{};
+          \t\tstd::string output;
+          \t\tif(m_inner){
+          ''')
+          replace_once(path,
+          '''\tILlmBackend* m_inner = nullptr;
+          \tLogCallback m_callback;
+          ''',
+          '''\tILlmBackend* m_inner = nullptr;
+          \tLogCallback m_callback;
+          \tBeginCallback m_beginCallback;
+          ''')
+
+          # Service snapshot: retain bounded per-agent prompt/output exchanges for completed phases.
+          path = "Source/GameApplication/AgentOS/Service/AgentOSService.h"
+          replace_once(path,
+          '''\tstruct ChatEntry {
+          \t\tstd::string role;
+          \t\tstd::string text;
+          \t\tstd::string processLog;
+          \t\tstd::int64_t elapsedMillis = 0;
+          \t\tstd::int64_t promptTokens = 0;
+          \t\tstd::int64_t completionTokens = 0;
+          \t};
+
+          \tstruct StateSnapshot {
+          ''',
+          '''\tstruct ChatEntry {
+          \t\tstd::string role;
+          \t\tstd::string text;
+          \t\tstd::string processLog;
+          \t\tstd::int64_t elapsedMillis = 0;
+          \t\tstd::int64_t promptTokens = 0;
+          \t\tstd::int64_t completionTokens = 0;
+          \t};
+
+          \tstruct LlmExchange {
+          \t\tstd::string systemPrompt;
+          \t\tstd::string inputPrompt;
+          \t\tstd::string output;
+          \t\tstd::string status = "active";
+          \t\tstd::int64_t elapsedMillis = 0;
+          \t\tstd::int64_t promptTokens = 0;
+          \t\tstd::int64_t completionTokens = 0;
+          \t};
+
+          \tstruct AgentExecutionRecord {
+          \t\tstd::string id;
+          \t\tstd::string stage;
+          \t\tstd::string label;
+          \t\tstd::string taskId;
+          \t\tstd::string taskType;
+          \t\tstd::string status = "pending";
+          \t\tbool worker = false;
+          \t\tJson detail = Json::object();
+          \t\tstd::vector<LlmExchange> exchanges;
+          \t};
+
+          \tstruct StateSnapshot {
+          ''')
+          replace_once(path,
+          '''\t\tstd::vector<ChatEntry> chatLog;
+          \t\tstd::string lastReport;
+          ''',
+          '''\t\tstd::vector<ChatEntry> chatLog;
+          \t\tstd::vector<AgentExecutionRecord> executionRecords;
+          \t\tstd::string lastReport;
+          ''')
+          replace_once(path,
+          '''\tvoid AppendProcessEvent(const std::string& event);
+          \tvoid SetStage(const std::string& stage);
+
+          \tvoid OpenTranscriptForSession();
+          ''',
+          '''\tvoid AppendProcessEvent(const std::string& event);
+          \tvoid SetStage(const std::string& stage);
+          \tvoid RecordProgress(const std::string& stage, const Json& detail);
+          \tvoid RecordLlmCallStarted(
+          \t\tconst std::string& systemPrompt,
+          \t\tconst std::string& userPrompt);
+          \tvoid RecordLlmCallCompleted(
+          \t\tconst std::string& systemPrompt,
+          \t\tconst std::string& userPrompt,
+          \t\tconst std::string& output,
+          \t\tconst LlmGenerationStats& stats);
+
+          \tvoid OpenTranscriptForSession();
+          ''')
+
+          # Service implementation: map progress and LLM calls to main agents or individual workers.
+          path = "Source/GameApplication/AgentOS/Service/AgentOSService.cpp"
+          replace_once(path,
+          '''std::string TruncateForLog(const std::string& text, std::size_t maxChars = 16000) {
+          \tif(text.size() <= maxChars) return text;
+          \treturn text.substr(0, maxChars) + "\\n...(truncated)...";
+          }
+
+          std::string ModelFingerprint''',
+          '''std::string TruncateForLog(const std::string& text, std::size_t maxChars = 16000) {
+          \tif(text.size() <= maxChars) return text;
+          \treturn text.substr(0, maxChars) + "\\n...(truncated)...";
+          }
+
+          std::string JsonScalarText(const Json& object, const char* key) {
+          \tif(!object.is_object() || !object.contains(key)) return {};
+          \tconst Json& value = object.at(key);
+          \tif(value.is_string()) return value.get<std::string>();
+          \tif(value.is_number_integer()) return std::to_string(value.get<std::int64_t>());
+          \tif(value.is_number_unsigned()) return std::to_string(value.get<std::uint64_t>());
+          \treturn {};
+          }
+
+          std::string CanonicalExecutionStage(const std::string& rawStage) {
+          \tconst std::string stage = LowerAscii(rawStage);
+          \tif(stage == "reply" || stage == "generate_reply" ||
+          \t   stage == "direct" || stage == "direct_route") {
+          \t\treturn "synthesize";
+          \t}
+          \tif(stage == "escalate") return "plan";
+          \treturn stage;
+          }
+
+          std::string ModelFingerprint''')
+          replace_once(path,
+          '''\t\tm_state.errorMessage.clear();
+          \t\tm_state.progressDetail = Json::object();
+          \t\tm_state.generationActive = false;
+          ''',
+          '''\t\tm_state.errorMessage.clear();
+          \t\tm_state.progressDetail = Json::object();
+          \t\tm_state.executionRecords.clear();
+          \t\tm_state.generationActive = false;
+          ''')
+          replace_once(path,
+          '''\t\tm_orchestrator->SetProgressCallback(
+          \t\t\t[this](const std::string& stage, const Json& detail){
+          \t\t\t\tSetStage(stage);
+          \t\t\t\tWriteTranscriptEvent(
+          \t\t\t\t\t"stage",
+          \t\t\t\t\t{{"stage", stage}},
+          \t\t\t\t\t{{"detail", detail.dump(2)}}
+          \t\t\t\t);
+          \t\t\t\tstd::lock_guard<std::mutex> lock(m_stateMutex);
+          \t\t\t\tm_state.progressDetail = detail;
+          \t\t\t}
+          \t\t);
+          ''',
+          '''\t\tm_orchestrator->SetProgressCallback(
+          \t\t\t[this](const std::string& stage, const Json& detail){
+          \t\t\t\tSetStage(stage);
+          \t\t\t\tWriteTranscriptEvent(
+          \t\t\t\t\t"stage",
+          \t\t\t\t\t{{"stage", stage}},
+          \t\t\t\t\t{{"detail", detail.dump(2)}}
+          \t\t\t\t);
+          \t\t\t\tRecordProgress(stage, detail);
+          \t\t\t}
+          \t\t);
+          ''')
+          replace_once(path,
+          '''\t\t\t}
+          \t\t\tWriteTranscriptEvent(
+          \t\t\t\t"llm_call",
+          ''',
+          '''\t\t\t}
+          \t\t\tRecordLlmCallCompleted(
+          \t\t\t\tsystemPrompt,
+          \t\t\t\tuserPrompt,
+          \t\t\t\tparts.response,
+          \t\t\t\tstats);
+          \t\t\tWriteTranscriptEvent(
+          \t\t\t\t"llm_call",
+          ''')
+          replace_once(path,
+          '''\t\t\t\t {{"system", systemPrompt},
+          \t\t\t\t  {"user", userPrompt},
+          \t\t\t\t  {"output", output}}
+          \t\t\t);
+          \t\t}
+          \t);
+          ''',
+          '''\t\t\t\t {{"system", systemPrompt},
+          \t\t\t\t  {"user", userPrompt},
+          \t\t\t\t  {"output", output}}
+          \t\t\t);
+          \t\t},
+          \t\t[this](const std::string& systemPrompt, const std::string& userPrompt){
+          \t\t\tRecordLlmCallStarted(systemPrompt, userPrompt);
+          \t\t}
+          \t);
+          ''')
+          replace_once(path,
+          '''void AgentOSService::SetStage(const std::string& stage) {
+          \t{
+          \t\tstd::lock_guard<std::mutex> lock(m_stateMutex);
+          \t\tm_state.stage = stage;
+          \t}
+          \tAppendProcessEvent(stage);
+          }
+          ''',
+          '''void AgentOSService::RecordProgress(const std::string& stage, const Json& detail) {
+          \tconst std::string canonicalStage = CanonicalExecutionStage(stage);
+          \tconst std::string event = LowerAscii(detail.value("event", std::string("active")));
+          \tconst std::string taskId = JsonScalarText(detail, "taskId");
+          \tconst bool worker = detail.value("worker", false) ||
+          \t\t((canonicalStage == "retrieve" || canonicalStage == "repair") && !taskId.empty());
+          \tconst std::string recordId = worker
+          \t\t? "worker:" + taskId
+          \t\t: "phase:" + canonicalStage;
+
+          \tstd::lock_guard<std::mutex> lock(m_stateMutex);
+          \tm_state.progressDetail = detail;
+
+          \tauto findRecord = [this](const std::string& id) {
+          \t\treturn std::find_if(
+          \t\t\tm_state.executionRecords.begin(),
+          \t\t\tm_state.executionRecords.end(),
+          \t\t\t[&id](const AgentExecutionRecord& record){ return record.id == id; });
+          \t};
+
+          \tif(worker){
+          \t\tconst std::string phaseId = "phase:" + canonicalStage;
+          \t\tauto phaseIt = findRecord(phaseId);
+          \t\tif(phaseIt == m_state.executionRecords.end()){
+          \t\t\tAgentExecutionRecord phase;
+          \t\t\tphase.id = phaseId;
+          \t\t\tphase.stage = canonicalStage;
+          \t\t\tphase.label = canonicalStage;
+          \t\t\tphase.status = "active";
+          \t\t\tm_state.executionRecords.push_back(std::move(phase));
+          \t\t} else if(phaseIt->status == "pending"){
+          \t\t\tphaseIt->status = "active";
+          \t\t}
+          \t\tif(event == "started" || event == "active"){
+          \t\t\tfor(auto& record : m_state.executionRecords){
+          \t\t\t\tif(record.worker && record.id != recordId && record.status == "active"){
+          \t\t\t\t\trecord.status = "completed";
+          \t\t\t\t}
+          \t\t\t}
+          \t\t}
+          \t} else {
+          \t\tfor(auto& record : m_state.executionRecords){
+          \t\t\tif(!record.worker && record.id != recordId && record.status == "active"){
+          \t\t\t\trecord.status = "completed";
+          \t\t\t}
+          \t\t\tif(record.worker && canonicalStage != "retrieve" &&
+          \t\t\t   canonicalStage != "repair" && record.status == "active"){
+          \t\t\t\trecord.status = "completed";
+          \t\t\t}
+          \t\t}
+          \t}
+
+          \tauto recordIt = findRecord(recordId);
+          \tif(recordIt == m_state.executionRecords.end()){
+          \t\tAgentExecutionRecord record;
+          \t\trecord.id = recordId;
+          \t\trecord.stage = canonicalStage;
+          \t\trecord.worker = worker;
+          \t\trecord.taskId = taskId;
+          \t\trecord.taskType = detail.value("type", std::string());
+          \t\tconst std::string planTaskId = detail.value("planTaskId", std::string());
+          \t\trecord.label = worker
+          \t\t\t? "WORKER " + (!planTaskId.empty() ? planTaskId : taskId)
+          \t\t\t: canonicalStage;
+          \t\tm_state.executionRecords.push_back(std::move(record));
+          \t\trecordIt = std::prev(m_state.executionRecords.end());
+          \t}
+
+          \trecordIt->detail = detail;
+          \tif(!detail.value("type", std::string()).empty()){
+          \t\trecordIt->taskType = detail.value("type", std::string());
+          \t}
+          \tif(event == "completed" || event == "succeeded") recordIt->status = "completed";
+          \telse if(event == "failed" || event == "unsatisfied") recordIt->status = "failed";
+          \telse if(event == "skipped") recordIt->status = "skipped";
+          \telse recordIt->status = "active";
+          }
+
+          void AgentOSService::RecordLlmCallStarted(
+          \tconst std::string& systemPrompt,
+          \tconst std::string& userPrompt) {
+
+          \tstd::lock_guard<std::mutex> lock(m_stateMutex);
+          \tAgentExecutionRecord* target = nullptr;
+          \tfor(auto it = m_state.executionRecords.rbegin(); it != m_state.executionRecords.rend(); ++it){
+          \t\tif(it->worker && it->status == "active"){
+          \t\t\ttarget = &*it;
+          \t\t\tbreak;
+          \t\t}
+          \t}
+          \tif(target == nullptr){
+          \t\tconst std::string stage = CanonicalExecutionStage(m_state.stage);
+          \t\tconst std::string id = "phase:" + stage;
+          \t\tfor(auto it = m_state.executionRecords.rbegin(); it != m_state.executionRecords.rend(); ++it){
+          \t\t\tif(it->id == id){
+          \t\t\t\ttarget = &*it;
+          \t\t\t\tbreak;
+          \t\t\t}
+          \t\t}
+          \t\tif(target == nullptr){
+          \t\t\tAgentExecutionRecord record;
+          \t\t\trecord.id = id;
+          \t\t\trecord.stage = stage;
+          \t\t\trecord.label = stage;
+          \t\t\trecord.status = "active";
+          \t\t\tm_state.executionRecords.push_back(std::move(record));
+          \t\t\ttarget = &m_state.executionRecords.back();
+          \t\t}
+          \t}
+
+          \tLlmExchange exchange;
+          \texchange.systemPrompt = TruncateForLog(systemPrompt);
+          \texchange.inputPrompt = TruncateForLog(userPrompt);
+          \ttarget->exchanges.push_back(std::move(exchange));
+          }
+
+          void AgentOSService::RecordLlmCallCompleted(
+          \tconst std::string& systemPrompt,
+          \tconst std::string& userPrompt,
+          \tconst std::string& output,
+          \tconst LlmGenerationStats& stats) {
+
+          \tstd::lock_guard<std::mutex> lock(m_stateMutex);
+          \tAgentExecutionRecord* target = nullptr;
+          \tfor(auto it = m_state.executionRecords.rbegin(); it != m_state.executionRecords.rend(); ++it){
+          \t\tif(it->worker && it->status == "active"){
+          \t\t\ttarget = &*it;
+          \t\t\tbreak;
+          \t\t}
+          \t}
+          \tif(target == nullptr){
+          \t\tconst std::string id = "phase:" + CanonicalExecutionStage(m_state.stage);
+          \t\tfor(auto it = m_state.executionRecords.rbegin(); it != m_state.executionRecords.rend(); ++it){
+          \t\t\tif(it->id == id){
+          \t\t\t\ttarget = &*it;
+          \t\t\t\tbreak;
+          \t\t\t}
+          \t\t}
+          \t}
+          \tif(target == nullptr) return;
+
+          \tLlmExchange* exchange = nullptr;
+          \tfor(auto it = target->exchanges.rbegin(); it != target->exchanges.rend(); ++it){
+          \t\tif(it->status == "active"){
+          \t\t\texchange = &*it;
+          \t\t\tbreak;
+          \t\t}
+          \t}
+          \tif(exchange == nullptr){
+          \t\tLlmExchange newExchange;
+          \t\tnewExchange.systemPrompt = TruncateForLog(systemPrompt);
+          \t\tnewExchange.inputPrompt = TruncateForLog(userPrompt);
+          \t\ttarget->exchanges.push_back(std::move(newExchange));
+          \t\texchange = &target->exchanges.back();
+          \t}
+          \texchange->output = TruncateForLog(output);
+          \texchange->elapsedMillis = stats.elapsedMillis;
+          \texchange->promptTokens = stats.promptTokens;
+          \texchange->completionTokens = stats.completionTokens;
+          \texchange->status = "completed";
+          }
+
+          void AgentOSService::SetStage(const std::string& stage) {
+          \t{
+          \t\tstd::lock_guard<std::mutex> lock(m_stateMutex);
+          \t\tm_state.stage = stage;
+          \t\tconst std::string lower = LowerAscii(stage);
+          \t\tconst bool terminal = lower == "completed" || lower == "stopped" ||
+          \t\t\tlower == "cancelled" || lower == "error";
+          \t\tif(terminal){
+          \t\t\tconst bool failed = lower != "completed";
+          \t\t\tfor(auto& record : m_state.executionRecords){
+          \t\t\t\tif(record.status == "active") record.status = failed ? "failed" : "completed";
+          \t\t\t}
+          \t\t}
+          \t}
+          \tAppendProcessEvent(stage);
+          }
+          ''')
+
+          # Orchestrator: expose each retrieval/repair task as its own worker lifecycle.
+          path = "Source/GameApplication/AgentOS/Core/Orchestrator/Orchestrator.cpp"
+          replace_once(path,
+          '''\t\tconst TaskId storeTaskId = store_->CreateTask(sessionId, rootTaskId, type, taskSpec, 1);
+          \t\tReportProgress("Retrieve", Json::object({{"taskId", storeTaskId}, {"planTaskId", planTaskId}, {"type", type}}));
+
+          \t\tResult startResult = supervisor.StartTask(storeTaskId);
+          \t\tif (!startResult) {
+          \t\t\tcontinue; // 状態遷移自体が拒否された（通常到達しない防御的分岐）
+          \t\t}
+          ''',
+          '''\t\tconst TaskId storeTaskId = store_->CreateTask(sessionId, rootTaskId, type, taskSpec, 1);
+          \t\tReportProgress("Retrieve", Json::object({
+          \t\t\t{"event", "started"},
+          \t\t\t{"worker", true},
+          \t\t\t{"taskId", storeTaskId},
+          \t\t\t{"planTaskId", planTaskId},
+          \t\t\t{"type", type},
+          \t\t\t{"taskSpec", taskSpec},
+          \t\t}));
+
+          \t\tResult startResult = supervisor.StartTask(storeTaskId);
+          \t\tif (!startResult) {
+          \t\t\tReportProgress("Retrieve", Json::object({
+          \t\t\t\t{"event", "failed"}, {"worker", true}, {"taskId", storeTaskId},
+          \t\t\t\t{"planTaskId", planTaskId}, {"type", type}, {"error", startResult.error},
+          \t\t\t}));
+          \t\t\tcontinue; // 状態遷移自体が拒否された（通常到達しない防御的分岐）
+          \t\t}
+          ''')
+          replace_once(path,
+          '''\t\tif (!depthCheck) {
+          \t\t\tsupervisor.FailTask(storeTaskId, depthCheck.error);
+          \t\t\tcontinue;
+          \t\t}
+
+          \t\tif (type == "Analysis") {
+          \t\t\t// AnalysisタスクはWorkerを起動しない（ReasoningAgentが扱う）。
+          \t\t\tsupervisor.CompleteTask(storeTaskId, Json::object({{"note", "handled by ReasoningAgent"}}));
+          \t\t\tcontinue;
+          \t\t}
+          ''',
+          '''\t\tif (!depthCheck) {
+          \t\t\tsupervisor.FailTask(storeTaskId, depthCheck.error);
+          \t\t\tReportProgress("Retrieve", Json::object({
+          \t\t\t\t{"event", "failed"}, {"worker", true}, {"taskId", storeTaskId},
+          \t\t\t\t{"planTaskId", planTaskId}, {"type", type}, {"error", depthCheck.error},
+          \t\t\t}));
+          \t\t\tcontinue;
+          \t\t}
+
+          \t\tif (type == "Analysis") {
+          \t\t\t// AnalysisタスクはWorkerを起動しない（ReasoningAgentが扱う）。
+          \t\t\tconst Json analysisResult = Json::object({{"note", "handled by ReasoningAgent"}});
+          \t\t\tsupervisor.CompleteTask(storeTaskId, analysisResult);
+          \t\t\tReportProgress("Retrieve", Json::object({
+          \t\t\t\t{"event", "completed"}, {"worker", true}, {"taskId", storeTaskId},
+          \t\t\t\t{"planTaskId", planTaskId}, {"type", type}, {"output", analysisResult},
+          \t\t\t}));
+          \t\t\tcontinue;
+          \t\t}
+          ''')
+          replace_once(path,
+          '''\t\tif (!workerResult) {
+          \t\t\tsupervisor.FailTask(storeTaskId, workerResult.error);
+          \t\t} else {
+          \t\t\tsupervisor.CompleteTask(storeTaskId, summary);
+          \t\t}
+          ''',
+          '''\t\tif (!workerResult) {
+          \t\t\tsupervisor.FailTask(storeTaskId, workerResult.error);
+          \t\t\tReportProgress("Retrieve", Json::object({
+          \t\t\t\t{"event", "failed"}, {"worker", true}, {"taskId", storeTaskId},
+          \t\t\t\t{"planTaskId", planTaskId}, {"type", type}, {"error", workerResult.error},
+          \t\t\t}));
+          \t\t} else {
+          \t\t\tsupervisor.CompleteTask(storeTaskId, summary);
+          \t\t\tReportProgress("Retrieve", Json::object({
+          \t\t\t\t{"event", "completed"}, {"worker", true}, {"taskId", storeTaskId},
+          \t\t\t\t{"planTaskId", planTaskId}, {"type", type}, {"output", summary},
+          \t\t\t}));
+          \t\t}
+          ''')
+          replace_once(path,
+          '''\t\t\tconst TaskId storeTaskId = store_->CreateTask(sessionId, rootTaskId, addType, addSpec, 1);
+          \t\t\tsupervisor.StartTask(storeTaskId);
+          \t\t\tevidenceBuilder.MarkPlannedTask(storeTaskId);
+          ''',
+          '''\t\t\tconst TaskId storeTaskId = store_->CreateTask(sessionId, rootTaskId, addType, addSpec, 1);
+          \t\t\tReportProgress("Repair", Json::object({
+          \t\t\t\t{"event", "started"}, {"worker", true}, {"taskId", storeTaskId},
+          \t\t\t\t{"planTaskId", addSpec.value("taskId", std::string())},
+          \t\t\t\t{"type", addType}, {"taskSpec", addSpec},
+          \t\t\t}));
+          \t\t\tsupervisor.StartTask(storeTaskId);
+          \t\t\tevidenceBuilder.MarkPlannedTask(storeTaskId);
+          ''')
+          replace_once(path,
+          '''\t\t\tif (!wr) {
+          \t\t\t\tsupervisor.FailTask(storeTaskId, wr.error);
+          \t\t\t} else {
+          \t\t\t\tsupervisor.CompleteTask(storeTaskId, summary);
+          \t\t\t}
+          \t\t\t++added;
+          ''',
+          '''\t\t\tif (!wr) {
+          \t\t\t\tsupervisor.FailTask(storeTaskId, wr.error);
+          \t\t\t\tReportProgress("Repair", Json::object({
+          \t\t\t\t\t{"event", "failed"}, {"worker", true}, {"taskId", storeTaskId},
+          \t\t\t\t\t{"planTaskId", addSpec.value("taskId", std::string())},
+          \t\t\t\t\t{"type", addType}, {"error", wr.error},
+          \t\t\t\t}));
+          \t\t\t} else {
+          \t\t\t\tsupervisor.CompleteTask(storeTaskId, summary);
+          \t\t\t\tReportProgress("Repair", Json::object({
+          \t\t\t\t\t{"event", "completed"}, {"worker", true}, {"taskId", storeTaskId},
+          \t\t\t\t\t{"planTaskId", addSpec.value("taskId", std::string())},
+          \t\t\t\t\t{"type", addType}, {"output", summary},
+          \t\t\t\t}));
+          \t\t\t}
+          \t\t\t++added;
+          ''')
+
+          # UI: detailed prompt/output tooltips and a separate worker-agent rail.
+          path = "Source/GameApplication/AgentOS/UI/AgentOSPanel.cpp"
+          marker = '''void DrawAgentStatusRail(
+          \tconst AgentOSService::StateSnapshot& snapshot,
+          \tconst Json& audit,
+          \tconst char* id) {
+          '''
+          helpers = r'''const AgentOSService::AgentExecutionRecord* FindPhaseExecution(
+          	const AgentOSService::StateSnapshot& snapshot,
+          	const char* stage) {
+          	const std::string target = LowerAscii(stage ? stage : "");
+          	for(auto it = snapshot.executionRecords.rbegin(); it != snapshot.executionRecords.rend(); ++it) {
+          		if(!it->worker && LowerAscii(it->stage) == target) return &*it;
+          	}
+          	return nullptr;
+          }
+
+          PhaseState ExecutionPhaseState(const AgentOSService::AgentExecutionRecord& record) {
+          	const std::string status = LowerAscii(record.status);
+          	if(status == "active" || status == "running" || status == "started") return PhaseState::Active;
+          	if(status == "completed" || status == "succeeded" || status == "success") return PhaseState::Complete;
+          	if(status == "failed" || status == "unsatisfied" || status == "error") return PhaseState::Failed;
+          	if(status == "skipped") return PhaseState::Skipped;
+          	return PhaseState::Pending;
+          }
+
+          void DrawExecutionPayload(const char* title, const std::string& text, int id) {
+          	if(text.empty()) return;
+          	ImGui::PushID(id);
+          	ImGui::TextColored(kMutedColor, "%s", title);
+          	const std::string visible = TruncateText(text, 12000);
+          	const float height = std::clamp(
+          		ImGui::CalcTextSize(visible.c_str(), nullptr, false, 500.0f).y + 12.0f,
+          		46.0f,
+          		150.0f);
+          	ImGui::PushStyleColor(ImGuiCol_ChildBg, ImVec4(0.038f, 0.045f, 0.061f, 1.0f));
+          	ImGui::BeginChild("##Payload", ImVec2(520.0f, height), true);
+          	ImGui::TextWrapped("%s", visible.c_str());
+          	ImGui::EndChild();
+          	ImGui::PopStyleColor();
+          	ImGui::PopID();
+          }
+
+          void DrawExecutionTooltip(
+          	const AgentOSService::AgentExecutionRecord& record,
+          	const Json& audit,
+          	const ImVec4& color) {
+
+          	ImGui::TextColored(color, "%s", record.label.empty() ? record.stage.c_str() : record.label.c_str());
+          	ImGui::SameLine();
+          	ImGui::TextDisabled("%s", record.status.c_str());
+          	if(!record.taskType.empty()) ImGui::Text("Task type: %s", record.taskType.c_str());
+          	if(!record.taskId.empty()) ImGui::TextDisabled("Task ID: %s", record.taskId.c_str());
+
+          	const std::string description = FirstDetailValue(
+          		record.detail,
+          		{"description", "goal", "task", "planTaskId", "type"});
+          	if(!description.empty()) ImGui::TextWrapped("%s", description.c_str());
+
+          	for(std::size_t i = 0; i < record.exchanges.size(); ++i) {
+          		const auto& exchange = record.exchanges[i];
+          		ImGui::Separator();
+          		ImGui::TextDisabled(
+          			"LLM %02zu  |  %.1fs  |  %lld -> %lld tk",
+          			i + 1,
+          			static_cast<double>(exchange.elapsedMillis) / 1000.0,
+          			static_cast<long long>(exchange.promptTokens),
+          			static_cast<long long>(exchange.completionTokens));
+          		DrawExecutionPayload("SYSTEM PROMPT", exchange.systemPrompt, static_cast<int>(i * 10 + 1));
+          		DrawExecutionPayload("INPUT PROMPT", exchange.inputPrompt, static_cast<int>(i * 10 + 2));
+          		DrawExecutionPayload(
+          			exchange.status == "active" ? "OUTPUT (GENERATING)" : "OUTPUT",
+          			exchange.output,
+          			static_cast<int>(i * 10 + 3));
+          		if(exchange.status == "active" && exchange.output.empty()) {
+          			ImGui::TextDisabled("出力トークンを待っています...");
+          		}
+          	}
+
+          	bool hasTool = false;
+          	if(!record.taskId.empty() && audit.is_array()) {
+          		for(std::size_t i = 0; i < audit.size(); ++i) {
+          			const Json& entry = audit[i];
+          			if(JsonValueText(entry, "taskId") != record.taskId) continue;
+          			if(!hasTool) {
+          				ImGui::Separator();
+          				ImGui::TextColored(kAccentColor, "ENGINE TOOL");
+          				hasTool = true;
+          			}
+          			ImGui::PushID(static_cast<int>(i));
+          			const std::string tool = entry.value("tool", std::string("Unknown"));
+          			const std::string status = entry.value("status", std::string());
+          			const std::string error = entry.value("error", std::string());
+          			ImGui::Text("%s", tool.c_str());
+          			ImGui::SameLine();
+          			ImGui::TextDisabled("%s", status.c_str());
+          			if(entry.contains("arguments")) {
+          				DrawExecutionPayload("ARGUMENTS", entry.at("arguments").dump(2), 101);
+          			}
+          			if(entry.contains("payload") && !entry.at("payload").empty()) {
+          				DrawExecutionPayload("TOOL OUTPUT", entry.at("payload").dump(2), 102);
+          			}
+          			if(!error.empty()) DrawExecutionPayload("ERROR", error, 103);
+          			ImGui::PopID();
+          		}
+          	}
+
+          	if(record.exchanges.empty() && !record.detail.empty()) {
+          		ImGui::Separator();
+          		DrawExecutionPayload("DETAIL / OUTPUT", record.detail.dump(2), 9001);
+          	}
+          }
+
+          void DrawWorkerAgentRail(
+          	const AgentOSService::StateSnapshot& snapshot,
+          	const Json& audit,
+          	const char* id) {
+
+          	std::vector<const AgentOSService::AgentExecutionRecord*> workers;
+          	for(const auto& record : snapshot.executionRecords) {
+          		if(record.worker) workers.push_back(&record);
+          	}
+          	if(workers.empty()) return;
+
+          	ImGui::PushID(id);
+          	ImGui::TextDisabled("WORKER AGENTS");
+          	ImGui::BeginChild("##WorkerRail", ImVec2(-1.0f, 46.0f), false,
+          		ImGuiWindowFlags_HorizontalScrollbar);
+          	for(std::size_t i = 0; i < workers.size(); ++i) {
+          		const auto& record = *workers[i];
+          		const PhaseState state = ExecutionPhaseState(record);
+          		const ImVec4 color = PhaseColor(state);
+          		const bool active = state == PhaseState::Active;
+          		const float width = active ? 122.0f : 88.0f;
+          		const ImVec2 pos = ImGui::GetCursorScreenPos();
+          		const ImVec2 size(width, 32.0f);
+
+          		ImGui::PushID(record.id.c_str());
+          		ImGui::InvisibleButton("##WorkerAgent", size);
+          		ImDrawList* drawList = ImGui::GetWindowDrawList();
+          		ImVec4 background = color;
+          		background.w = active ? 0.20f : 0.10f;
+          		drawList->AddRectFilled(pos, ImVec2(pos.x + size.x, pos.y + size.y),
+          			ImGui::GetColorU32(background), 7.0f);
+          		drawList->AddRect(pos, ImVec2(pos.x + size.x, pos.y + size.y),
+          			ImGui::GetColorU32(color), 7.0f, 0, active ? 1.4f : 1.0f);
+          		DrawPhaseGlyph(drawList, ImVec2(pos.x + 12.0f, pos.y + 16.0f), state, color, 0.5f);
+          		const std::string label = CompactLabel(
+          			record.label.empty() ? "WORKER" : record.label,
+          			active ? 17 : 12);
+          		drawList->AddText(ImVec2(pos.x + 23.0f, pos.y + 8.0f),
+          			ImGui::GetColorU32(ImVec4(0.93f, 0.97f, 1.0f, 1.0f)), label.c_str());
+
+          		if(ImGui::IsItemHovered()) {
+          			ImGui::SetNextWindowSizeConstraints(ImVec2(430.0f, 180.0f), ImVec2(590.0f, 560.0f));
+          			ImGui::BeginTooltip();
+          			DrawExecutionTooltip(record, audit, color);
+          			ImGui::EndTooltip();
+          		}
+          		ImGui::PopID();
+          		if(i + 1 < workers.size()) ImGui::SameLine();
+          	}
+          	ImGui::EndChild();
+          	ImGui::PopID();
+          }
+
+          '''
+          replace_once(path, marker, helpers + marker)
+          replace_once(path,
+          '''\t\tif(ImGui::IsItemHovered()) {
+          \t\t\tImGui::BeginTooltip();
+          \t\t\tImGui::TextColored(color, "%s", phase.label);
+          \t\t\tImGui::SameLine();
+          \t\t\tImGui::TextDisabled("%s", PhaseStatusText(state));
+          \t\t\tImGui::TextWrapped("%s", phase.caption);
+          \t\t\tif(active) {
+          \t\t\t\tconst std::string operation = CurrentOperationLabel(snapshot, audit);
+          \t\t\t\tif(!operation.empty()) {
+          \t\t\t\t\tImGui::Separator();
+          \t\t\t\t\tImGui::Text("現在: %s", operation.c_str());
+          \t\t\t\t}
+          \t\t\t\tif(snapshot.progressDetail.is_object() &&
+          \t\t\t\t\t!snapshot.progressDetail.empty()) {
+          \t\t\t\t\tImGui::TextDisabled("%s", TruncateText(
+          \t\t\t\t\t\tsnapshot.progressDetail.dump(2), 700).c_str());
+          \t\t\t\t}
+          \t\t\t}
+          \t\t\tImGui::EndTooltip();
+          \t\t}
+          ''',
+          '''\t\tif(ImGui::IsItemHovered()) {
+          \t\t\tImGui::SetNextWindowSizeConstraints(ImVec2(430.0f, 180.0f), ImVec2(590.0f, 560.0f));
+          \t\t\tImGui::BeginTooltip();
+          \t\t\tImGui::TextColored(color, "%s", phase.label);
+          \t\t\tImGui::SameLine();
+          \t\t\tImGui::TextDisabled("%s", PhaseStatusText(state));
+          \t\t\tImGui::TextWrapped("%s", phase.caption);
+          \t\t\tif(active) {
+          \t\t\t\tconst std::string operation = CurrentOperationLabel(snapshot, audit);
+          \t\t\t\tif(!operation.empty()) ImGui::Text("現在: %s", operation.c_str());
+          \t\t\t}
+          \t\t\tif(const auto* execution = FindPhaseExecution(snapshot, phase.stage)) {
+          \t\t\t\tImGui::Separator();
+          \t\t\t\tDrawExecutionTooltip(*execution, audit, color);
+          \t\t\t} else if(active && snapshot.progressDetail.is_object() &&
+          \t\t\t\t!snapshot.progressDetail.empty()) {
+          \t\t\t\tDrawExecutionPayload("DETAIL", snapshot.progressDetail.dump(2), 8001);
+          \t\t\t}
+          \t\t\tImGui::EndTooltip();
+          \t\t}
+          ''')
+          replace_once(path,
+          '''\tDrawAgentStatusRail(snapshot, audit, "LiveAgentStatusRail");
+
+          \tif(finalStage) {
+          ''',
+          '''\tDrawAgentStatusRail(snapshot, audit, "LiveAgentStatusRail");
+          \tDrawWorkerAgentRail(snapshot, audit, "LiveWorkerAgentRail");
+
+          \tif(finalStage) {
+          ''')
+          replace_once(path,
+          '''\tDrawAgentStatusRail(snapshot, audit, "FlowAgentStatusRail");
+          \tImGui::Spacing();
+          \tDrawToolActivity(audit);
+          ''',
+          '''\tDrawAgentStatusRail(snapshot, audit, "FlowAgentStatusRail");
+          \tDrawWorkerAgentRail(snapshot, audit, "FlowWorkerAgentRail");
+          \tImGui::Spacing();
+          \tDrawToolActivity(audit);
+          ''')
+
+          # Remove this one-shot workflow from the resulting source tree.
+          Path(".github/workflows/agentos-ui-tooltip-patch.yml").unlink()
+          PY
+
+      - name: Commit source changes
+        shell: bash
+        run: |
+          git diff --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A
+          git commit -m "Show AgentOS prompts, outputs, and worker agents"
+          git push origin HEAD:llm-agent
