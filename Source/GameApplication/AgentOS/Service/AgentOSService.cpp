@@ -16,6 +16,7 @@
 #include "LlamaLlmBackend.h"
 #include "../Core/Agents/AgentContext.h"
 #include "../Core/Llm/PromptTemplates.h"
+#include "../Core/Logic/ComponentQueryRouting.h"
 #include "../Core/Orchestrator/Orchestrator.h"
 #include "../EngineTools/EngineToolRegistry.h"
 
@@ -144,6 +145,14 @@ struct FastPathRoute {
 };
 
 FastPathRoute ResolveFastPath(const std::string& request) {
+	const componentquery::Route observationRoute = componentquery::Resolve(request);
+	if(observationRoute.IsValid()) {
+		FastPathRoute route;
+		route.kind = FastPathKind::Tool;
+		route.tool = observationRoute.tool;
+		route.arguments = observationRoute.arguments;
+		return route;
+	}
 	if(IsContextDependentRequest(request)) return {};
 
 	const std::string lower = LowerAscii(request);
@@ -480,7 +489,7 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 	m_taskStore.UpdateSessionState(sessionId, "Running");
 
 	const std::string taskType = route.kind == FastPathKind::Tool
-		? "DirectReadToolWithGeneration"
+		? "DirectReadToolDeterministic"
 		: "CapabilityReplyWithGeneration";
 	const TaskId taskId = m_taskStore.CreateTask(
 		sessionId,
@@ -551,6 +560,10 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 
 		if(result.IsOk()){
 			sourcePayload = result.payload;
+			if(!componentquery::PayloadSatisfied(sourcePayload)) {
+				sourceSucceeded = false;
+				sourceError = sourcePayload.value("error", std::string("requested observation was not satisfied"));
+			}
 		} else {
 			sourceSucceeded = false;
 			sourceError = result.error;
@@ -584,13 +597,22 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 	generationContext.sessionId = sessionId;
 
 	std::string report;
-	const Result generationResult = GenerateFastPathReply(
-		generationContext,
-		request,
-		route.tool,
-		sourcePayload,
-		&report
-	);
+	Result generationResult;
+	if(route.kind == FastPathKind::Tool) {
+		componentquery::Route observationRoute{route.tool, route.arguments};
+		report = componentquery::BuildReply(observationRoute, sourcePayload);
+		generationResult = report.empty()
+			? Result::Fail("deterministic tool response formatter returned no reply")
+			: Result::Ok();
+	} else {
+		generationResult = GenerateFastPathReply(
+			generationContext,
+			request,
+			route.tool,
+			sourcePayload,
+			&report
+		);
+	}
 
 	const bool completed = static_cast<bool>(generationResult);
 	Json stopInfo;
@@ -604,10 +626,14 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 			Json::object({
 				{"source", sourcePayload},
 				{"reply", report},
-				{"generatedBy", "local_llm"},
+				{"generatedBy", route.kind == FastPathKind::Tool
+					? "deterministic_formatter"
+					: "local_llm"},
 			})
 		);
-		m_taskStore.UpdateTaskState(taskId, TaskState::Succeeded);
+		m_taskStore.UpdateTaskState(
+			taskId,
+			sourceSucceeded ? TaskState::Succeeded : TaskState::Failed);
 	} else {
 		report = "Fast Pathの最終応答生成に失敗した: " + generationResult.error;
 		if(!sourceError.empty()){
@@ -635,7 +661,9 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 		{{"completed", completed ? "true" : "false"},
 		 {"sessionId", std::to_string(sessionId)},
 		 {"route", "deterministic_route_with_llm_generation"},
-		 {"responseGeneratedBy", "local_llm"}},
+		 {"responseGeneratedBy", route.kind == FastPathKind::Tool
+			 ? "deterministic_formatter"
+			 : "local_llm"}},
 		{{"sourcePayload", TruncateForLog(sourcePayload.dump(2))},
 		 {"report", report},
 		 {"stopInfo", stopInfo.dump(2)}}

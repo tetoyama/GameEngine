@@ -273,6 +273,7 @@ PromptPair Intake(const std::string& userRequest, const Json& conversationContex
 		"- resolvedRequestは履歴を知らない別Agentでも実行できるstandaloneな要求にする。\n"
 		"- turnRelation=newなら過去の未完了トピックを勝手に継続しない。\n"
 		"- 『私/わたし/僕』『あなた』をScene Entity名へ変換しない。\n"
+		"- 『設定を教えて』『値を教えて』は現在値の読み取りだけを意味し、変更手順や変更操作を追加しない。\n"
 		"- 履歴に根拠がない参照は推測せずunresolvedReferencesへ入れる。\n"
 		"requestType: investigation = Engine/Scene実データが必要。"
 		"conversation = 雑談、人物質問、履歴だけで答えられる修正確認。",
@@ -409,6 +410,7 @@ PromptPair Critique(const Json& hypotheses, const Json& builtEvidence) {
 		"- 要求の対象名が誤っている場合はrequestPatchでstandaloneな要求へ修正する。\n"
 		"- 追加調査は必ずtypeをRuntimeObservation/CodeSearch/Traceのいずれかにする。\n"
 		"- 各追加Taskは実行するTool名とargumentsを具体的に指定する。\n"
+		"- argumentsはTool一覧のargumentSchemaにある正式フィールド名だけを使う。\n"
 		"- 修正後要求を満たすために必要なEvidenceを再取得できるTaskを最大2件提案する。",
 		"{\"scores\": {\"evidenceCoverage\": number, \"contradictionHandling\": number, "
 		"\"causalCompleteness\": number, \"testability\": number}, "

@@ -12,6 +12,31 @@
 
 namespace agentos {
 
+namespace {
+
+void NormalizeKnownArgumentAliases(CommandRequest* request) {
+	if(request == nullptr || !request->arguments.is_object()) return;
+	Json& arguments = request->arguments;
+	auto moveStringAlias = [&arguments](const char* alias, const char* canonical) {
+		if(!arguments.contains(alias) || !arguments.at(alias).is_string()) return;
+		if(!arguments.contains(canonical)) arguments[canonical] = arguments.at(alias);
+		arguments.erase(alias);
+	};
+
+	if(request->tool == "ReadComponent") {
+		moveStringAlias("entityId", "entityName");
+		moveStringAlias("name", "entityName");
+		moveStringAlias("componentName", "component");
+		moveStringAlias("componentType", "component");
+	} else if(request->tool == "DescribeEntity") {
+		moveStringAlias("name", "entityName");
+	} else if(request->tool == "FindEntityByName") {
+		moveStringAlias("entityName", "name");
+	}
+}
+
+} // namespace
+
 CommandPipeline::CommandPipeline(CapabilityRegistry* capabilityRegistry, CommandPipelineConfig config)
 	: capabilityRegistry_(capabilityRegistry), config_(config) {}
 
@@ -65,6 +90,7 @@ CommandResult CommandPipeline::Submit(CommandRequest request) {
 	if(request.id == kInvalidId){
 		request.id = nextCommandId_.fetch_add(1);
 	}
+	NormalizeKnownArgumentAliases(&request);
 
 	std::shared_ptr<ICommandExecutor> tool;
 	{
