@@ -14,6 +14,8 @@
 #include <sstream>
 
 #include "LlamaLlmBackend.h"
+#include "../Core/Agents/AgentContext.h"
+#include "../Core/Llm/PromptTemplates.h"
 #include "../Core/Orchestrator/Orchestrator.h"
 #include "../EngineTools/EngineToolRegistry.h"
 
@@ -90,7 +92,7 @@ std::string ModelFingerprint(const std::string& path) {
 
 enum class FastPathKind {
 	None,
-	StaticCapabilities,
+	Capabilities,
 	Tool,
 };
 
@@ -105,7 +107,7 @@ FastPathRoute ResolveFastPath(const std::string& request) {
 
 	if(ContainsAny(request, {"何ができますか", "何ができる", "できること"}) ||
 	   ContainsAny(lower, {"what can you do", "capabilities"})){
-		return {FastPathKind::StaticCapabilities, {}, Json::object()};
+		return {FastPathKind::Capabilities, "CapabilityCatalog", Json::object()};
 	}
 
 	const bool asksList = ContainsAny(request, {"一覧", "列挙", "全部"}) ||
@@ -132,50 +134,64 @@ FastPathRoute ResolveFastPath(const std::string& request) {
 	return {};
 }
 
-std::string CapabilitiesReply() {
-	return
-		"AgentOSは、現在のエンジン状態を読み取り専用で調査できる。\n\n"
-		"- アクティブSceneのEntity一覧とEntity詳細の取得\n"
-		"- Component値の読み取り\n"
-		"- SystemTask、Read/Write宣言、依存関係の確認\n"
-		"- Componentのフレーム間WriteTrace\n"
-		"- 調査結果のEvidence化、仮説生成、Critic検証、監査ログ保存\n\n"
-		"現段階では、Sceneやコードの自動変更は実行しない。Modify系はHuman Approval、"
-		"Compile/Test/Rollbackを接続してから有効化する。";
+Json BuildCapabilityPayload(CommandPipeline* pipeline) {
+	Json payload = Json::object();
+	payload["claim"] = "AgentOSで現在利用可能な能力と制約の一覧。";
+	payload["tools"] = pipeline ? pipeline->DescribeTools() : Json::array();
+	payload["executionPolicy"] = Json::object({
+		{"routing", "C++ deterministic routing"},
+		{"responseGeneration", "local LLM"},
+		{"llmCommandsAreProposals", true},
+		{"modifyEnabled", false},
+		{"humanApprovalRequiredForModify", true},
+	});
+	payload["pipeline"] = Json::array({
+		"Intake",
+		"Plan",
+		"Retrieve",
+		"Evidence",
+		"Reason",
+		"Critic",
+		"Repair",
+		"Synthesize",
+	});
+	return payload;
 }
 
-std::string FormatToolResult(const std::string& tool, const Json& payload) {
-	if(tool == "ListEntities"){
-		const Json entities = payload.value("entities", Json::array());
-		std::ostringstream out;
-		out << "アクティブSceneのEntityを" << entities.size() << "件取得した。\n";
-		for(const Json& entity : entities){
-			out << "- id=" << entity.value("id", 0u)
-				<< " generation=" << entity.value("generation", 0u);
-			const std::string name = entity.value("name", std::string());
-			if(!name.empty()) out << " name=\"" << name << "\"";
-			out << "\n";
-		}
-		return out.str();
+Result GenerateFastPathReply(
+	AgentContext& context,
+	const std::string& userRequest,
+	const std::string& sourceName,
+	const Json& sourcePayload,
+	std::string* reportOut
+) {
+	if(reportOut == nullptr){
+		return Result::Fail("GenerateFastPathReply: reportOut is null");
 	}
 
-	if(tool == "ListSystems"){
-		const Json tasks = payload.value("tasks", Json::array());
-		std::ostringstream out;
-		out << "登録済みSystemTaskは" << payload.value("taskCount", tasks.size()) << "件。\n";
-		for(const Json& task : tasks){
-			out << "- " << task.value("name", std::string("(unnamed)"));
-			const std::string domain = task.value("domain", std::string());
-			const std::string phase = task.value("phase", std::string());
-			if(!domain.empty()) out << " [" << domain;
-			if(!phase.empty()) out << "/" << phase;
-			if(!domain.empty()) out << "]";
-			out << "\n";
-		}
-		return out.str();
+	const PromptPair prompt = prompts::FormatToolResult(
+		userRequest,
+		sourceName,
+		sourcePayload
+	);
+
+	Json generated;
+	Result generationResult = CallLlmJson(context, prompt, &generated);
+	if(!generationResult){
+		return Result::Fail(
+			"fast-path response generation failed: " + generationResult.error);
 	}
 
-	return "Tool " + tool + " の実行結果:\n" + payload.dump(2);
+	if(!generated.is_object() ||
+	   !generated.contains("reply") ||
+	   !generated.at("reply").is_string() ||
+	   generated.at("reply").get<std::string>().empty()){
+		return Result::Fail(
+			"fast-path response generation returned no non-empty reply");
+	}
+
+	*reportOut = generated.at("reply").get<std::string>();
+	return Result::Ok();
 }
 
 } // namespace
@@ -215,7 +231,6 @@ void AgentOSService::Shutdown() {
 	m_shutdownRequested.store(true, std::memory_order_release);
 	SetStage("shutting_down");
 
-	// 待機中のMainThread ToolとLLM生成を先に中断してからjoinする。
 	m_dispatcher.CancelPending();
 	if(m_llmBackend) m_llmBackend->Cancel();
 	if(m_llmAgent) m_llmAgent->Stop();
@@ -282,10 +297,8 @@ void AgentOSService::WorkerMain(std::string request) {
 		return;
 	}
 
-	// 明白な能力質問と単一Read Tool要求はLLMを介さず決定的に処理する。
-	// 実ログの「Entity一覧だけで約11分・9 LLM calls」を防ぐ。
-	if(TryRunDeterministicFastPath(request)) return;
-
+	// Fast Pathでも最終回答は必ずローカルLLMで生成する。
+	// C++側が省略するのはPlanner/Reasoning等の多段経路だけであり、生成自体ではない。
 	if(!EnsureLlmReady()){
 		const bool cancelled = m_shutdownRequested.load(std::memory_order_acquire);
 		SetStage(cancelled ? "cancelled" : "error");
@@ -300,6 +313,8 @@ void AgentOSService::WorkerMain(std::string request) {
 		SetStage("cancelled");
 		return;
 	}
+
+	if(TryRunDeterministicFastPath(request)) return;
 
 	if(!m_orchestrator){
 		OrchestratorConfig config;
@@ -355,10 +370,13 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 	const FastPathRoute route = ResolveFastPath(request);
 	if(route.kind == FastPathKind::None) return false;
 
-	SetStage("direct");
+	SetStage("direct_route");
 
 	const SessionId sessionId = m_taskStore.CreateSession(
-		Json::object({{"userRequest", request}, {"route", "deterministic_fast_path"}}));
+		Json::object({
+			{"userRequest", request},
+			{"route", "deterministic_route_with_llm_generation"},
+		}));
 	if(sessionId == kInvalidId){
 		const std::string report = "決定的Fast PathのSession作成に失敗した。";
 		AppendChat("assistant", report);
@@ -373,27 +391,30 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 	m_taskStore.UpdateSessionState(sessionId, "Running");
 
 	const std::string taskType = route.kind == FastPathKind::Tool
-		? "DirectReadTool"
-		: "DirectReply";
+		? "DirectReadToolWithGeneration"
+		: "CapabilityReplyWithGeneration";
 	const TaskId taskId = m_taskStore.CreateTask(
 		sessionId,
 		kInvalidId,
 		taskType,
-		Json::object({{"request", request}, {"tool", route.tool}}),
+		Json::object({
+			{"request", request},
+			{"source", route.tool},
+			{"arguments", route.arguments},
+		}),
 		0
 	);
 	m_taskStore.UpdateTaskState(taskId, TaskState::Running);
 
-	std::string report;
-	bool completed = true;
-	Json stopInfo = Json::object({{"reason", "deterministic fast path"}});
+	Json sourcePayload;
+	bool sourceSucceeded = true;
+	std::string sourceError;
 
-	if(route.kind == FastPathKind::StaticCapabilities){
-		report = CapabilitiesReply();
-		m_taskStore.SetTaskResult(taskId, Json::object({{"reply", report}}));
-		m_taskStore.UpdateTaskState(taskId, TaskState::Succeeded);
+	CapabilityToken token;
+	if(route.kind == FastPathKind::Capabilities){
+		sourcePayload = BuildCapabilityPayload(m_pipeline.get());
 	} else {
-		const CapabilityToken token = m_capabilityRegistry.IssueToken(
+		token = m_capabilityRegistry.IssueToken(
 			"DeterministicFastPath",
 			{route.tool},
 			PermissionLevel::Read
@@ -409,9 +430,10 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 		const bool hadAuditSink = m_pipeline && m_pipeline->HasAuditSinks();
 		const CommandResult result = m_pipeline
 			? m_pipeline->Submit(command)
-			: CommandResult::Fail(CommandStatus::ExecutionFailed, "command pipeline unavailable");
+			: CommandResult::Fail(
+				CommandStatus::ExecutionFailed,
+				"command pipeline unavailable");
 
-		// 最初のSessionがFast Pathの場合はOrchestratorのSQLite AuditSinkがまだ無い。
 		if(!hadAuditSink){
 			const std::string status = ToString(result.status);
 			const Json storedResult = result.IsOk()
@@ -439,16 +461,81 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 		);
 
 		if(result.IsOk()){
-			report = FormatToolResult(route.tool, result.payload);
-			m_taskStore.SetTaskResult(taskId, result.payload);
-			m_taskStore.UpdateTaskState(taskId, TaskState::Succeeded);
+			sourcePayload = result.payload;
 		} else {
-			completed = false;
-			report = "Tool " + route.tool + " の実行に失敗した: " + result.error;
-			stopInfo = Json::object({{"reason", "deterministic tool failed: " + result.error}});
-			m_taskStore.SetTaskResult(taskId, Json::object({{"error", result.error}}));
-			m_taskStore.UpdateTaskState(taskId, TaskState::Failed);
+			sourceSucceeded = false;
+			sourceError = result.error;
+			sourcePayload = Json::object({
+				{"claim", "要求されたToolの実行に失敗した。"},
+				{"tool", route.tool},
+				{"arguments", route.arguments},
+				{"status", ToString(result.status)},
+				{"error", result.error},
+			});
 		}
+	}
+
+	SetStage("generate_reply");
+
+	Budget fastBudget;
+	fastBudget.maxToolCalls = 1;
+	fastBudget.maxLlmCalls = 2;
+	fastBudget.maxRetries = 1;
+	fastBudget.maxDepth = 1;
+	fastBudget.maxLlmChars = 120000;
+	fastBudget.maxMillis = 300000;
+	BudgetTracker budgetTracker(fastBudget);
+
+	AgentContext generationContext;
+	generationContext.llm = m_loggingBackend.get();
+	generationContext.pipeline = m_pipeline.get();
+	generationContext.store = &m_taskStore;
+	generationContext.budget = &budgetTracker;
+	generationContext.token = token;
+	generationContext.sessionId = sessionId;
+
+	std::string report;
+	const Result generationResult = GenerateFastPathReply(
+		generationContext,
+		request,
+		route.tool,
+		sourcePayload,
+		&report
+	);
+
+	bool completed = static_cast<bool>(generationResult);
+	Json stopInfo;
+	if(completed){
+		stopInfo = Json::object({
+			{"reason", "deterministic route completed with local LLM generation"},
+			{"sourceSucceeded", sourceSucceeded},
+		});
+		m_taskStore.SetTaskResult(
+			taskId,
+			Json::object({
+				{"source", sourcePayload},
+				{"reply", report},
+				{"generatedBy", "local_llm"},
+			})
+		);
+		m_taskStore.UpdateTaskState(taskId, TaskState::Succeeded);
+	} else {
+		report = "Fast Pathの最終応答生成に失敗した: " + generationResult.error;
+		if(!sourceError.empty()){
+			report += " / Tool error: " + sourceError;
+		}
+		stopInfo = Json::object({
+			{"reason", generationResult.error},
+			{"sourceSucceeded", sourceSucceeded},
+		});
+		m_taskStore.SetTaskResult(
+			taskId,
+			Json::object({
+				{"source", sourcePayload},
+				{"generationError", generationResult.error},
+			})
+		);
+		m_taskStore.UpdateTaskState(taskId, TaskState::Failed);
 	}
 
 	m_taskStore.UpdateSessionState(sessionId, completed ? "Completed" : "Stopped");
@@ -457,8 +544,11 @@ bool AgentOSService::TryRunDeterministicFastPath(const std::string& request) {
 		"result",
 		{{"completed", completed ? "true" : "false"},
 		 {"sessionId", std::to_string(sessionId)},
-		 {"route", "deterministic_fast_path"}},
-		{{"report", report}, {"stopInfo", stopInfo.dump(2)}}
+		 {"route", "deterministic_route_with_llm_generation"},
+		 {"responseGeneratedBy", "local_llm"}},
+		{{"sourcePayload", TruncateForLog(sourcePayload.dump(2))},
+		 {"report", report},
+		 {"stopInfo", stopInfo.dump(2)}}
 	);
 
 	AppendChat("assistant", report);
@@ -620,11 +710,12 @@ void AgentOSService::OpenTranscriptForSession() {
 	if(!path.empty()){
 		WriteTranscriptEvent(
 			"session_context",
-			{{"transcriptVersion", "2"},
+			{{"transcriptVersion", "3"},
 			 {"buildRevision", "unknown"},
 			 {"modelPath", m_context.modelPath},
 			 {"dbPath", m_context.dbPath},
-			 {"modelFingerprint", ModelFingerprint(m_context.modelPath)}},
+			 {"modelFingerprint", ModelFingerprint(m_context.modelPath)},
+			 {"fastPathResponsePolicy", "local_llm_generation"}},
 			{}
 		);
 	}
