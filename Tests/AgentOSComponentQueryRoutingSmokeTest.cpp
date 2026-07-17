@@ -73,6 +73,12 @@ void TestRoutes() {
 		assert(route.arguments.at("component") == "TransformComponent");
 	}
 	{
+		// Component名だけからTransform Entityを捏造しない。
+		const auto route = componentquery::Resolve(
+			"TransformComponentの設定を教えて");
+		assert(!route.IsValid());
+	}
+	{
 		// Scene全体の要求はListEntitiesだけに短絡せず、
 		// PlannerのScene Snapshot経路へ渡す。
 		const auto route = componentquery::Resolve("今のシーンの状況を教えて");
