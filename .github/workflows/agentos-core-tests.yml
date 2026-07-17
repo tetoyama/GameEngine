@@ -22,7 +22,6 @@ permissions:
 
 jobs:
   apply-imgui-id-fix:
-    if: github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout llm-agent
