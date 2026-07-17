@@ -24,6 +24,7 @@ void NormalizeStringArray(const Json& raw, const char* key, Json* normalized) {
 				arr.push_back(v.get<std::string>());
 			}
 		}
+	}
 	(*normalized)[key] = std::move(arr);
 }
 
