@@ -49,9 +49,6 @@ namespace agentos {
 class Orchestrator;
 class LlamaLlmBackend;
 
-// ---------------------------------
-// AgentOSServiceContext
-// ---------------------------------
 struct AgentOSServiceContext {
 	SceneManager* sceneManager = nullptr;
 	DebugLogService* debugLog = nullptr;
@@ -60,60 +57,39 @@ struct AgentOSServiceContext {
 	std::string dbPath = "Logs/AgentOS/agentos.db";
 };
 
-// ---------------------------------
-// AgentOSService
-// ---------------------------------
 class AgentOSService : public IService {
 public:
-	// UIへ公開するスナップショット（コピーして返す。mutexで保護）。
 	struct StateSnapshot {
 		bool running = false;
 		std::string stage;
-		std::vector<std::pair<std::string, std::string>> chatLog; // (role, text)
+		std::vector<std::pair<std::string, std::string>> chatLog;
 		std::string lastReport;
-		Json lastHypotheses = Json::object(); // OrchestratorResult::rankedHypotheses と同じ形
+		Json lastHypotheses = Json::object();
 		Json progressDetail = Json::object();
 		std::string errorMessage;
-		// 現在セッションのTranscript（YAML）ファイルパス。共有・デバッグ用。
 		std::string transcriptPath;
 	};
 
 	AgentOSService();
-	// std::unique_ptr<Orchestrator>（前方宣言のみ）をメンバに持つため、
-	// 暗黙destructorをヘッダでインスタンス化させないよう明示的に宣言し、
-	// Orchestrator.hをincludeしたAgentOSService.cpp側で定義する。
-	// （そうしないと、Orchestrator.hを知らない他TU（engineContext.cpp等）が
-	// このクラスをdeleteする際に不完全型エラーになる）。
 	~AgentOSService() override;
 
 	void Initialize(AgentOSServiceContext context);
 	void Shutdown() override;
 
-	// 既にセッション実行中なら何もせず拒否する（IsBusy()参照）。
 	void SubmitRequest(const std::string& text);
-
-	// Editor描画スレッド（Main Thread）から毎フレーム呼ぶ。
-	// MainThreadDispatcherのPumpと、WriteTracerのアクティブ時Sampleを行う。
 	void PumpMainThread(std::int64_t frameCounter);
 
 	StateSnapshot GetSnapshot() const;
-
-	// CommandPipelineの監査ログをJSON化して返す（Auditタブ用）。
 	Json GetAuditSnapshot() const;
-
 	bool IsBusy() const;
 
 private:
 	void WorkerMain(std::string request);
+	bool TryRunDeterministicFastPath(const std::string& request);
 	bool EnsureLlmReady();
 	void AppendChat(const std::string& role, const std::string& text);
 	void SetStage(const std::string& stage);
 
-	// ---- Transcript（YAMLストリーム） ----
-	// セッション単位で Logs/AgentOS/transcript_YYYYMMDD_HHMMSS.yaml を作成し、
-	// user_request / stage / llm_call / result の全イベントを追記する。
-	// 各イベントは "---" 区切りのYAMLドキュメントで、書き込みごとにflushする
-	// （クラッシュしても直前までのログが残る）。
 	void OpenTranscriptForSession();
 	void WriteTranscriptEvent(
 		const std::string& kind,
@@ -131,8 +107,6 @@ private:
 
 	std::shared_ptr<LLAMAAgent> m_llmAgent;
 	std::unique_ptr<LlamaLlmBackend> m_llmBackend;
-	// LlamaLlmBackendを包み、全LLM入出力をTranscriptへ記録するデコレータ。
-	// Orchestratorへはこちらを渡す。
 	std::unique_ptr<LoggingLlmBackend> m_loggingBackend;
 	bool m_llmLoadAttempted = false;
 	bool m_llmReady = false;
@@ -141,6 +115,7 @@ private:
 
 	std::thread m_worker;
 	std::atomic<bool> m_running{false};
+	std::atomic<bool> m_shutdownRequested{false};
 
 	mutable std::mutex m_stateMutex;
 	StateSnapshot m_state;
