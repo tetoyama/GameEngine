@@ -2,9 +2,8 @@
 //
 // AgentOSPanel.h
 //
-// AgentOSのEditor UI。Engine/Editor/UI/BRAIN/BRAIN.cppのImGui構成
-// （チャットログ + 入力欄 + Send/Stopボタン）を踏襲しつつ、
-// Chat / Hypotheses / Audit / Status のタブ構成にする（構想§12）。
+// AgentOSのEditor UI。チャットだけでなく、回答生成中のAgentパイプライン、
+// 現在のTask、Tool活動をMission Control形式で可視化する。
 //
 // EditorServiceはAgentOSServiceへのポインタを持たないため、SetService()で
 // 登録時に明示的に注入する（Docs/AgentOS/02_VS_Integration.md参照）。
@@ -36,6 +35,7 @@ public:
 
 private:
 	void DrawChatTab();
+	void DrawFlowTab();
 	void DrawHypothesesTab();
 	void DrawAuditTab();
 	void DrawStatusTab();
