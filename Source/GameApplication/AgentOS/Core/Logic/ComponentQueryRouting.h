@@ -106,6 +106,20 @@ inline std::string ExtractComponentName(const std::string& request) {
 	return {};
 }
 
+inline std::string ExtractEntityBeforeComponent(
+	const std::string& request,
+	const std::string& component) {
+	if(component.empty()) return {};
+	const std::size_t componentPosition = request.find(component);
+	if(componentPosition == std::string::npos) return {};
+
+	const std::string particle = "の";
+	if(componentPosition < particle.size()) return {};
+	const std::size_t particlePosition = componentPosition - particle.size();
+	if(request.compare(particlePosition, particle.size(), particle) != 0) return {};
+	return AsciiIdentifierBefore(request, particlePosition);
+}
+
 inline std::string EntityFromComponent(const std::string& component) {
 	constexpr const char* suffix = "Component";
 	constexpr std::size_t suffixLength = 9;
@@ -130,6 +144,7 @@ inline Route Resolve(const std::string& request) {
 
 	const std::string component = ExtractComponentName(request);
 	std::string entity = ExtractQuotedEntity(request);
+	if(entity.empty()) entity = ExtractEntityBeforeComponent(request, component);
 	if(entity.empty() && !component.empty()) entity = EntityFromComponent(component);
 	if(entity.empty()) entity = ExtractEntityBeforeParticle(request);
 
