@@ -68,9 +68,7 @@ bool ContainsAny(const std::string& text, std::initializer_list<const char*> nee
 std::string CurrentPlanningText(const Json& intake) {
 	std::string text;
 	if (!intake.is_object()) return text;
-	text = intake.value(
-		"resolvedRequest",
-		intake.value("goal", std::string()));
+	text = intake.value("resolvedRequest", intake.value("goal", std::string()));
 	if (intake.contains("symptoms") && intake.at("symptoms").is_array()) {
 		text += "\n" + intake.at("symptoms").dump();
 	}
@@ -80,8 +78,6 @@ std::string CurrentPlanningText(const Json& intake) {
 	return text;
 }
 
-// Scene snapshot判定には過去のconversationContextを含めない。
-// 履歴に「シーン」があっても、現在のresolvedRequestが別件ならFast Pathへ入れない。
 bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json* planOut) {
 	if (planOut == nullptr || !intake.is_object()) return false;
 
@@ -91,7 +87,13 @@ bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json
 		text, {"現在", "状態", "状況", "概要", "報告", "一覧", "全体"});
 	const bool temporalRequest = ContainsAny(
 		text, {"変化", "推移", "フレーム間", "トレース", "Trace", "trace", "時間経過"});
-	if (!sceneRequest || !snapshotRequest || temporalRequest) return false;
+	const bool narrowedRequest = ContainsAny(text, {
+		"だけ", "のみ", "個別", "特定", "対象外", "除外",
+		"ではなく", "じゃなく", "そうではなく", "そうじゃなく",
+		"詳しく", "絞って", "限定",
+		"only", "instead", "exclude", "specific"
+	});
+	if (!sceneRequest || !snapshotRequest || temporalRequest || narrowedRequest) return false;
 	if (!CatalogHasTool(toolCatalog, "ListEntities") ||
 	    !CatalogHasTool(toolCatalog, "ListSystems")) {
 		return false;
@@ -245,9 +247,7 @@ void NormalizePlan(Json* plan) {
 		}
 		if (task.contains("dependencies") && task["dependencies"].is_array()) {
 			for (Json& dep : task["dependencies"]) {
-				if (dep.is_number_integer()) {
-					dep = std::to_string(dep.get<std::int64_t>());
-				}
+				if (dep.is_number_integer()) dep = std::to_string(dep.get<std::int64_t>());
 			}
 		}
 		const bool hasTools = task.contains("allowedTools") &&
@@ -261,22 +261,16 @@ void NormalizePlan(Json* plan) {
 } // namespace
 
 Result PlannerAgent::Run(AgentContext& ctx, const Json& intake, const Json& toolCatalog, Json* planOut) {
-	if (planOut == nullptr) {
-		return Result::Fail("PlannerAgent: planOut is null");
-	}
+	if (planOut == nullptr) return Result::Fail("PlannerAgent: planOut is null");
 
-	if (TryBuildSceneSnapshotPlan(intake, toolCatalog, planOut)) {
-		return Result::Ok();
-	}
+	if (TryBuildSceneSnapshotPlan(intake, toolCatalog, planOut)) return Result::Ok();
 
 	const PromptPair prompt = prompts::Plan(intake, toolCatalog, kMaxTasks);
-
 	Json raw;
 	Result callResult = CallLlmJson(ctx, prompt, &raw);
 	if (!callResult) return callResult;
 
 	NormalizePlan(&raw);
-
 	std::string validationError;
 	if (ValidatePlan(raw, toolCatalog, &validationError)) {
 		*planOut = std::move(raw);
@@ -293,7 +287,6 @@ Result PlannerAgent::Run(AgentContext& ctx, const Json& intake, const Json& tool
 	if (!retryCallResult) return retryCallResult;
 
 	NormalizePlan(&retryRaw);
-
 	std::string retryValidationError;
 	if (ValidatePlan(retryRaw, toolCatalog, &retryValidationError)) {
 		*planOut = std::move(retryRaw);
