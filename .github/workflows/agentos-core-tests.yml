@@ -38,6 +38,15 @@ jobs:
           sed -n "/python - <<'PY'/,/^          PY$/p" \
             .github/workflows/agentos-ui-tooltip-patch.yml \
             | sed '1d;$d;s/^          //' > /tmp/agentos-ui-patch.py
+          python - <<'PY'
+          from pathlib import Path
+          path = Path('/tmp/agentos-ui-patch.py')
+          text = path.read_text(encoding='utf-8')
+          text = text.replace('\t\t\t\t {{"system"', '\t\t\t\t{{"system"')
+          text = text.replace('\t\t\t\t  {"user"', '\t\t\t\t {"user"')
+          text = text.replace('\t\t\t\t  {"output"', '\t\t\t\t {"output"')
+          path.write_text(text, encoding='utf-8')
+          PY
           python /tmp/agentos-ui-patch.py 2>&1 | tee /tmp/agentos-ui-patch.log
 
       - name: Upload patch diagnostics
