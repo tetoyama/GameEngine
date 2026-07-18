@@ -1,0 +1,7 @@
+Traceback (most recent call last):
+  File "/tmp/apply_agentos_memory_context_fix.py", line 865, in <module>
+    text = replace_once(
+           ^^^^^^^^^^^^^
+  File "/tmp/apply_agentos_memory_context_fix.py", line 13, in replace_once
+    raise RuntimeError(f'{label}: expected one occurrence, got {count}')
+RuntimeError: AgentOS Makefile test: expected one occurrence, got 0
