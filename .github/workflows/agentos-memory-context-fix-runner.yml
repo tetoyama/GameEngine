@@ -19,6 +19,7 @@ jobs:
         with:
           ref: ${{ github.event.pull_request.head.ref }}
           fetch-depth: 0
+          show-progress: false
 
       - name: Extract patch script
         shell: bash
@@ -36,7 +37,12 @@ jobs:
 
       - name: Apply targeted fixes
         shell: bash
-        run: python3 /tmp/apply_agentos_memory_context_fix.py
+        run: |
+          set +e
+          python3 /tmp/apply_agentos_memory_context_fix.py > /tmp/agentos_patch.log 2>&1
+          status=$?
+          cat /tmp/agentos_patch.log
+          exit $status
 
       - name: Build and run AgentOS core tests
         shell: bash
