@@ -40,7 +40,28 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
+          set +e
           python3 /tmp/apply_agentos_memory_context_fix.py > /tmp/agentos_patch.log 2>&1
+          status=$?
+          if [ "$status" -ne 0 ] && grep -q "AgentOS Makefile test: expected one occurrence, got 0" /tmp/agentos_patch.log; then
+            python3 - <<'PY'
+          from pathlib import Path
+          path = Path('Tests/AgentOS/Makefile')
+          text = path.read_text(encoding='utf-8')
+          marker = '        AgentOSAmbiguityAndSynthesisSafetySmokeTest \\\n'
+          if 'AgentOSStructuredConversationContextSmokeTest' not in text:
+              if marker not in text:
+                  raise RuntimeError('Makefile insertion marker not found')
+              text = text.replace(
+                  marker,
+                  marker + '        AgentOSStructuredConversationContextSmokeTest \\\n',
+                  1)
+              path.write_text(text, encoding='utf-8')
+          PY
+            status=$?
+          fi
+          cat /tmp/agentos_patch.log
+          exit $status
 
       - name: Persist patch failure
         if: steps.patch.outcome == 'failure'
