@@ -52,6 +52,12 @@ void LLAMAService::Shutdown(){
 	}
 
 	{
+		std::lock_guard<std::mutex> lock(m_jobMutex);
+		while(!m_modelJobQueue.empty()) m_modelJobQueue.pop();
+		while(!m_agentJobQueue.empty()) m_agentJobQueue.pop();
+	}
+
+	{
 		std::lock_guard<std::mutex> lock(m_completedMutex);
 		while(!m_completedCallbacks.empty()){
 			m_completedCallbacks.pop();

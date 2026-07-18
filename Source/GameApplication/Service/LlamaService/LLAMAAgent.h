@@ -132,11 +132,19 @@ private:
 
 	void WorkerMain();
 
-	// [修正] retryDepth を追加。
-	// コンテキストオーバーフロー時に SummarizeAndReset() を挟んで自分自身を
-	// 再帰呼び出しする経路があるが、要約してもオーバーフローが解消しない
-	// 異常系で無限再帰に陥らないようにするための深度ガード。
-	void RunPromptInternal(const std::string& prompt, int retryDepth = 0);
+	struct CancelSnapshot {
+		std::vector<MessageEntry> history;
+		std::vector<llama_token> pastTokens;
+		int nPast = 0;
+		bool valid = false;
+	};
+
+	// Snapshotはtop-level推論のstack所有。thread_local capacityをWorker終了まで
+	// 保持しない。再帰リトライ時だけ同じSnapshotへの非所有pointerを渡す。
+	void RunPromptInternal(
+		const std::string& prompt,
+		int retryDepth = 0,
+		CancelSnapshot* snapshot = nullptr);
 
 	// ============================
 	// Model / Config

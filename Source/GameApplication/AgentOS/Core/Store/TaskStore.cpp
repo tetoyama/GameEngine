@@ -6,6 +6,7 @@
 #include "TaskStore.h"
 
 #include <string>
+#include <vector>
 
 namespace agentos {
 
@@ -128,7 +129,15 @@ Result TaskStore::CreateSchema() {
 		"  updated_at TEXT NOT NULL DEFAULT (datetime('now'))"
 		");"
 
-		// 古いTurnをPromptへ渡すための累積要約。原文Turnは削除しない。
+		// Promptへ渡すのはRaw assistant本文ではなく、Intakeが確定した構造化状態だけ。
+		"CREATE TABLE IF NOT EXISTS ConversationThreadState("
+		"  session_id INTEGER PRIMARY KEY REFERENCES Session(id),"
+		"  state_json TEXT NOT NULL DEFAULT '{}',"
+		"  created_at TEXT NOT NULL DEFAULT (datetime('now')),"
+		"  updated_at TEXT NOT NULL DEFAULT (datetime('now'))"
+		");"
+
+		// 古いTurnの累積要約は監査・移行互換として保持する。通常Promptへは渡さない。
 		"CREATE TABLE IF NOT EXISTS ConversationMemory("
 		"  id INTEGER PRIMARY KEY CHECK(id=1),"
 		"  summary_text TEXT NOT NULL DEFAULT '',"
@@ -142,7 +151,9 @@ Result TaskStore::CreateSchema() {
 		"CREATE INDEX IF NOT EXISTS idx_task_parent_id ON Task(parent_id);"
 		"CREATE INDEX IF NOT EXISTS idx_evidence_task_id ON Evidence(task_id);"
 		"CREATE INDEX IF NOT EXISTS idx_command_task_id ON Command(task_id);"
-		"CREATE INDEX IF NOT EXISTS idx_conversation_turn_session_id ON ConversationTurn(session_id);";
+		"CREATE INDEX IF NOT EXISTS idx_conversation_turn_session_id ON ConversationTurn(session_id);"
+		"CREATE INDEX IF NOT EXISTS idx_conversation_thread_state_session_id "
+		"ON ConversationThreadState(session_id);";
 
 	return db_.Exec(kSchemaSql);
 }
@@ -243,6 +254,29 @@ Result TaskStore::SetConversationResponse(
 	return tx.Commit();
 }
 
+
+Result TaskStore::SetConversationThreadState(SessionId sessionId, const Json& state) {
+	if (!state.is_object() || state.empty()) {
+		return Result::Fail("SetConversationThreadState: state must be a non-empty object");
+	}
+
+	std::lock_guard<std::mutex> lock(mutex_);
+	Transaction tx(db_);
+	Statement stmt;
+	Result r = db_.Prepare(
+		"INSERT INTO ConversationThreadState(session_id, state_json) VALUES(?1, ?2) "
+		"ON CONFLICT(session_id) DO UPDATE SET state_json=excluded.state_json, "
+		"updated_at=datetime('now');",
+		&stmt);
+	if (!r) return r;
+	stmt.BindInt64(1, sessionId);
+	stmt.BindText(2, state.dump());
+	if (stmt.Step() == Statement::StepResult::Error) {
+		return Result::Fail(sqlite3_errmsg(db_.Handle()));
+	}
+	return tx.Commit();
+}
+
 Json TaskStore::GetConversationContext(SessionId beforeSessionId) {
 	std::lock_guard<std::mutex> lock(mutex_);
 
@@ -291,9 +325,30 @@ Json TaskStore::GetConversationContext(SessionId beforeSessionId) {
 		}
 	}
 
+	Json threadStates = Json::array();
+	std::vector<Json> reversedStates;
+	Statement states;
+	r = db_.Prepare(
+		"SELECT session_id, state_json FROM ConversationThreadState "
+		"WHERE session_id < ?1 ORDER BY session_id DESC LIMIT 8;",
+		&states);
+	if (r) {
+		states.BindInt64(1, beforeSessionId);
+		while (states.Step() == Statement::StepResult::Row) {
+			Json state = Json::parse(states.ColumnText(1), nullptr, false);
+			if (!state.is_object() || state.is_discarded()) continue;
+			state["sessionId"] = states.ColumnInt64(0);
+			reversedStates.push_back(std::move(state));
+		}
+	}
+	for (auto it = reversedStates.rbegin(); it != reversedStates.rend(); ++it) {
+		threadStates.push_back(*it);
+	}
+
 	context["summary"] = summary;
 	context["summarizedThroughSessionId"] = summarizedThrough;
 	context["recentTurns"] = std::move(recentTurns);
+	context["threadStates"] = std::move(threadStates);
 	context["totalTurns"] = totalTurns;
 	return context;
 }

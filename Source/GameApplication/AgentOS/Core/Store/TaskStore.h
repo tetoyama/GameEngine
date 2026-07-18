@@ -48,10 +48,11 @@ public:
 	SessionId CreateSession(const Json& goal);
 	Result UpdateSessionState(SessionId sessionId, const std::string& state);
 	Result SetConversationResponse(SessionId sessionId, const std::string& assistantText);
+	Result SetConversationThreadState(SessionId sessionId, const Json& state);
 
 	// beforeSessionIdより前の全完了Turnを対象にする。
 	// 原文TurnはDBに全件残し、返却Contextは
-	// {summary, summarizedThroughSessionId, recentTurns, totalTurns}。
+	// {summary, summarizedThroughSessionId, recentTurns, threadStates, totalTurns}。
 	Json GetConversationContext(SessionId beforeSessionId);
 	Result UpdateConversationSummary(
 		const std::string& summary,

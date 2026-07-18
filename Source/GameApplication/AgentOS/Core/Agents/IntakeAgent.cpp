@@ -113,7 +113,7 @@ std::string BuildDeterministicSummary(
 	return prompts::Truncate(summary, 4000);
 }
 
-Result CompressStoredConversationIfNeeded(AgentContext& ctx, Json* context) {
+[[maybe_unused]] Result CompressStoredConversationIfNeeded(AgentContext& ctx, Json* context) {
 	if (context == nullptr || ctx.store == nullptr || !NeedsCompression(*context)) {
 		return Result::Ok();
 	}
@@ -368,65 +368,131 @@ bool IsExplicitCorrection(const std::string& userRequest) {
 	});
 }
 
-Json SelectConversationContext(
-	const Json& fullContext,
-	const std::string& relation,
-	const Json& referencedSessionIds) {
+bool IsContinuationReferenceInput(const std::string& userRequest) {
+	if (userRequest.empty() || userRequest.size() > 320) return false;
+	return ContainsAny(userRequest, {
+		"続けて", "続き", "それ", "これ", "この件", "前の", "さっき", "先ほど",
+		"もう一度", "どういうこと", "同じ", "引き続き", "その"
+	});
+}
 
+bool RequiresPriorThreadContext(const std::string& userRequest) {
+	return IsExplicitCorrection(userRequest) || IsContinuationReferenceInput(userRequest);
+}
+
+Json EmptyStructuredContext(const std::string& policy, const Json& fullContext = Json::object()) {
 	Json selected = Json::object();
 	selected["summary"] = "";
 	selected["summarizedThroughSessionId"] =
 		fullContext.value("summarizedThroughSessionId", kInvalidId);
 	selected["totalTurns"] = fullContext.value("totalTurns", 0);
 	selected["recentTurns"] = Json::array();
-	selected["selectionPolicy"] = relation;
-	if (fullContext.contains("contextDegraded")) selected["contextDegraded"] = fullContext.at("contextDegraded");
-	if (fullContext.contains("contextDegradedReason")) {
-		selected["contextDegradedReason"] = fullContext.at("contextDegradedReason");
+	selected["threadStates"] = Json::array();
+	selected["selectionPolicy"] = policy;
+	selected["memoryPolicy"] = "structured_thread_state_only";
+	return selected;
+}
+
+Json UserOnlyTurn(const Json& turn) {
+	Json result = Json::object();
+	if (!turn.is_object()) return result;
+	if (turn.contains("sessionId")) result["sessionId"] = turn.at("sessionId");
+	result["user"] = prompts::Truncate(turn.value("user", std::string()), 600);
+	return result;
+}
+
+Json BuildIntakePromptContext(const std::string& userRequest, const Json& fullContext) {
+	if (IsSimpleConversationInput(userRequest)) {
+		return EmptyStructuredContext("active_turn_only", fullContext);
+	}
+	if (IsFreshRuntimeRequest(userRequest)) {
+		return EmptyStructuredContext("fresh_runtime_observation", fullContext);
+	}
+	if (!RequiresPriorThreadContext(userRequest)) {
+		return EmptyStructuredContext("active_turn_only", fullContext);
 	}
 
-	// new/refreshは履歴を保存したまま生成Contextから隔離する。
-	// refreshは「今のシーン」等の再観測要求であり、過去assistant回答を
-	// 現在RuntimeのEvidenceとして再利用してはならない。
+	Json selected = EmptyStructuredContext("structured_thread_reference", fullContext);
+	if (fullContext.contains("threadStates") && fullContext.at("threadStates").is_array()) {
+		const Json& states = fullContext.at("threadStates");
+		const std::size_t begin = states.size() > 3 ? states.size() - 3 : 0;
+		for (std::size_t i = begin; i < states.size(); ++i) {
+			if (states[i].is_object()) selected["threadStates"].push_back(states[i]);
+		}
+	}
+
+	// 既存DBにThread Stateがまだ無い場合だけ、user本文のみを短く渡す。
+	// assistant本文は過去の誤答・Tool出力・巨大一覧を再注入するため絶対に渡さない。
+	if (selected["threadStates"].empty() && fullContext.contains("recentTurns") &&
+	    fullContext.at("recentTurns").is_array()) {
+		const Json& turns = fullContext.at("recentTurns");
+		const std::size_t begin = turns.size() > 2 ? turns.size() - 2 : 0;
+		for (std::size_t i = begin; i < turns.size(); ++i) {
+			const Json userOnly = UserOnlyTurn(turns[i]);
+			if (!userOnly.empty()) selected["recentTurns"].push_back(userOnly);
+		}
+		selected["selectionPolicy"] = "legacy_user_text_fallback";
+	}
+	return selected;
+}
+
+Json SelectConversationContext(
+	const Json& promptContext,
+	const std::string& relation,
+	const Json& referencedSessionIds) {
+
 	if (relation == "new" || relation == "refresh") {
-		selected["selectionPolicy"] = relation == "refresh"
-			? "fresh_runtime_observation"
-			: "active_turn_only";
-		return selected;
+		return EmptyStructuredContext(
+			relation == "refresh" ? "fresh_runtime_observation" : "active_turn_only",
+			promptContext);
 	}
 
-	selected["summary"] = fullContext.value("summary", std::string());
-	if (!fullContext.contains("recentTurns") || !fullContext.at("recentTurns").is_array()) {
-		return selected;
-	}
-	const Json& turns = fullContext.at("recentTurns");
-
+	Json selected = EmptyStructuredContext("structured_" + relation, promptContext);
 	std::unordered_set<SessionId> referenced;
 	if (referencedSessionIds.is_array()) {
 		for (const Json& id : referencedSessionIds) {
 			if (id.is_number_integer()) referenced.insert(id.get<SessionId>());
 		}
 	}
-	if (!referenced.empty()) {
-		for (const Json& turn : turns) {
-			if (turn.is_object() && turn.contains("sessionId") &&
-			    turn.at("sessionId").is_number_integer() &&
-			    referenced.count(turn.at("sessionId").get<SessionId>()) != 0) {
-				selected["recentTurns"].push_back(turn);
-			}
-		}
-		if (!selected["recentTurns"].empty()) {
-			selected["selectionPolicy"] = "explicit_session_reference";
-			return selected;
-		}
-	}
 
-	std::size_t keep = relation == "refer" ? 3 : 2;
-	if (relation == "clarify") keep = 3;
-	const std::size_t begin = turns.size() > keep ? turns.size() - keep : 0;
-	for (std::size_t i = begin; i < turns.size(); ++i) selected["recentTurns"].push_back(turns[i]);
-	selected["selectionPolicy"] = "recent_related_" + relation;
+	auto appendMatching = [&](const Json& values, const char* destination) {
+		if (!values.is_array()) return;
+		for (const Json& value : values) {
+			if (!value.is_object()) continue;
+			if (!referenced.empty()) {
+				if (!value.contains("sessionId") || !value.at("sessionId").is_number_integer() ||
+				    referenced.count(value.at("sessionId").get<SessionId>()) == 0) continue;
+			}
+			selected[destination].push_back(value);
+		}
+	};
+
+	if (promptContext.contains("threadStates")) {
+		appendMatching(promptContext.at("threadStates"), "threadStates");
+	}
+	if (selected["threadStates"].empty() && promptContext.contains("recentTurns")) {
+		appendMatching(promptContext.at("recentTurns"), "recentTurns");
+	}
+	if (!referenced.empty()) selected["selectionPolicy"] = "explicit_structured_session_reference";
 	return selected;
+}
+
+Json BuildThreadState(SessionId sessionId, const Json& intake) {
+	Json state = Json::object();
+	state["sessionId"] = sessionId;
+	state["goal"] = intake.value("goal", std::string());
+	state["resolvedRequest"] = intake.value("resolvedRequest", std::string());
+	state["turnRelation"] = intake.value("turnRelation", std::string("new"));
+	state["requestType"] = intake.value("requestType", std::string("investigation"));
+	state["targets"] = Json::object({
+		{"kind", intake.value("targetKind", std::string("unknown"))},
+		{"concept", intake.contains("targetConcept") ? intake.at("targetConcept") : Json(nullptr)},
+		{"entityName", intake.contains("resolvedEntityName") ? intake.at("resolvedEntityName") : Json(nullptr)},
+	});
+	state["constraints"] = intake.value("constraints", Json::array());
+	state["unresolved"] = intake.value("unresolvedReferences", Json::array());
+	state["status"] = intake.value("simpleConversation", false) ? "conversation" : "active";
+	return state;
 }
 
 void CollectIdentifiersFromText(const std::string& text, std::unordered_set<std::string>* out) {
@@ -455,15 +521,20 @@ void CollectIdentifiersFromText(const std::string& text, std::unordered_set<std:
 	}
 }
 
-Json ExtractHistoryIdentifiers(const Json& fullContext) {
+Json ExtractHistoryIdentifiers(const Json& structuredContext) {
 	std::unordered_set<std::string> identifiers;
-	if (fullContext.is_object()) {
-		CollectIdentifiersFromText(fullContext.value("summary", std::string()), &identifiers);
-		if (fullContext.contains("recentTurns") && fullContext.at("recentTurns").is_array()) {
-			for (const Json& turn : fullContext.at("recentTurns")) {
-				if (!turn.is_object()) continue;
-				CollectIdentifiersFromText(turn.value("user", std::string()), &identifiers);
-				CollectIdentifiersFromText(turn.value("assistant", std::string()), &identifiers);
+	if (structuredContext.is_object()) {
+		if (structuredContext.contains("threadStates") && structuredContext.at("threadStates").is_array()) {
+			for (const Json& state : structuredContext.at("threadStates")) {
+				if (!state.is_object()) continue;
+				CollectIdentifiersFromText(state.value("goal", std::string()), &identifiers);
+				CollectIdentifiersFromText(state.value("resolvedRequest", std::string()), &identifiers);
+				if (state.contains("targets")) CollectIdentifiersFromText(state.at("targets").dump(), &identifiers);
+			}
+		}
+		if (structuredContext.contains("recentTurns") && structuredContext.at("recentTurns").is_array()) {
+			for (const Json& turn : structuredContext.at("recentTurns")) {
+				if (turn.is_object()) CollectIdentifiersFromText(turn.value("user", std::string()), &identifiers);
 			}
 		}
 	}
@@ -485,14 +556,49 @@ Result IntakeAgent::Run(
 	prompts::ClearCurrentConversationRequestContext();
 	if (intakeOut == nullptr) return Result::Fail("IntakeAgent: intakeOut is null");
 
-	Json fullContext = conversationContext;
-	if ((!fullContext.is_object() || fullContext.empty()) &&
-	    ctx.store != nullptr && ctx.sessionId != kInvalidId) {
-		fullContext = ctx.store->GetConversationContext(ctx.sessionId);
-		(void)CompressStoredConversationIfNeeded(ctx, &fullContext);
+	// 挨拶は履歴解決を必要としない。LLMへ全Conversation Storeを渡してから
+	// newへ戻す旧順序では、過去の未完了調査が入力を上書きしていた。
+	if (IsSimpleConversationInput(userRequest)) {
+		Json normalized = Json::object({
+			{"goal", "ユーザーの挨拶または短い会話へ応答する"},
+			{"resolvedRequest", "現在のユーザー入力に対して短く自然に会話応答する"},
+			{"rootGoal", "ユーザーの挨拶または短い会話へ応答する"},
+			{"rootResolvedRequest", "現在のユーザー入力に対して短く自然に会話応答する"},
+			{"turnRelation", "new"},
+			{"referencedSessionIds", Json::array()},
+			{"symptoms", Json::array()},
+			{"constraints", Json::array()},
+			{"requiredCapabilities", Json::array()},
+			{"unresolvedReferences", Json::array()},
+			{"memoryDerivedNotes", Json::array()},
+			{"targetKind", "unknown"},
+			{"targetConcept", nullptr},
+			{"resolvedEntityName", nullptr},
+			{"requestType", "conversation"},
+			{"currentUserInput", userRequest},
+			{"requestRevision", 0},
+			{"historyIdentifiers", Json::array()},
+			{"simpleConversation", true},
+		});
+		const Json selectedContext = EmptyStructuredContext("active_turn_only");
+		normalized["conversationContext"] = selectedContext;
+		if (ctx.store != nullptr && ctx.sessionId != kInvalidId) {
+			(void)ctx.store->SetConversationThreadState(ctx.sessionId, BuildThreadState(ctx.sessionId, normalized));
+		}
+		prompts::SetCurrentConversationRequestContext(selectedContext, normalized);
+		*intakeOut = std::move(normalized);
+		return Result::Ok();
 	}
 
-	const PromptPair prompt = prompts::Intake(userRequest, fullContext);
+	Json fullContext = conversationContext;
+	if (RequiresPriorThreadContext(userRequest) &&
+	    (!fullContext.is_object() || fullContext.empty()) &&
+	    ctx.store != nullptr && ctx.sessionId != kInvalidId) {
+		fullContext = ctx.store->GetConversationContext(ctx.sessionId);
+	}
+	const Json promptContext = BuildIntakePromptContext(userRequest, fullContext);
+
+	const PromptPair prompt = prompts::Intake(userRequest, promptContext);
 	Json raw;
 	Result callResult = CallLlmJson(ctx, prompt, &raw);
 	if (!callResult) return callResult;
@@ -519,7 +625,6 @@ Result IntakeAgent::Run(
 
 	normalized["goal"] = goal;
 	normalized["resolvedRequest"] = resolvedRequest;
-	// Root GoalはRepairで置き換えない不変のユーザー目的として保持する。
 	normalized["rootGoal"] = goal;
 	normalized["rootResolvedRequest"] = resolvedRequest;
 	normalized["turnRelation"] = relation;
@@ -531,7 +636,6 @@ Result IntakeAgent::Run(
 	normalized["requestType"] = requestType;
 	normalized["currentUserInput"] = userRequest;
 	normalized["requestRevision"] = 0;
-	normalized["historyIdentifiers"] = ExtractHistoryIdentifiers(fullContext);
 
 	const std::string targetKind = raw.value("targetKind", std::string("unknown"));
 	normalized["targetKind"] = targetKind;
@@ -543,9 +647,11 @@ Result IntakeAgent::Run(
 			? raw.at("resolvedEntityName")
 			: Json(nullptr);
 
-	const bool hasPreviousTurns = fullContext.value("totalTurns", 0) > 0 ||
-		(fullContext.contains("recentTurns") && fullContext.at("recentTurns").is_array() &&
-		 !fullContext.at("recentTurns").empty());
+	const bool hasPreviousTurns =
+		(promptContext.contains("threadStates") && promptContext.at("threadStates").is_array() &&
+		 !promptContext.at("threadStates").empty()) ||
+		(promptContext.contains("recentTurns") && promptContext.at("recentTurns").is_array() &&
+		 !promptContext.at("recentTurns").empty());
 	if (IsFreshRuntimeRequest(userRequest)) {
 		relation = "refresh";
 		requestType = "investigation";
@@ -556,34 +662,22 @@ Result IntakeAgent::Run(
 	normalized["turnRelation"] = relation;
 	normalized["requestType"] = requestType;
 
-	// CHANGE 1: 過去turn由来の失敗記述をsymptoms/constraintsから隔離する
-	// （二次防御。SelectConversationContextによる履歴選択は置き換えない）。
 	ApplyMemoryGroundingFilter(userRequest, resolvedRequest, &normalized);
 
-	const bool simpleConversation = requestType == "conversation" && IsSimpleConversationInput(userRequest);
-	if (simpleConversation) {
-		normalized["goal"] = "ユーザーの挨拶または短い会話へ応答する";
-		normalized["resolvedRequest"] = "現在のユーザー入力に対して短く自然に会話応答する";
-		normalized["turnRelation"] = "new";
-		normalized["symptoms"] = Json::array();
-		normalized["constraints"] = Json::array();
-		normalized["requiredCapabilities"] = Json::array();
-		normalized["unresolvedReferences"] = Json::array();
-		normalized["referencedSessionIds"] = Json::array();
-		normalized["memoryDerivedNotes"] = Json::array();
-		normalized["simpleConversation"] = true;
-		relation = "new";
-	}
-
 	const Json selectedContext = SelectConversationContext(
-		fullContext,
+		promptContext,
 		relation,
 		normalized.value("referencedSessionIds", Json::array()));
+	normalized["historyIdentifiers"] = ExtractHistoryIdentifiers(selectedContext);
 	normalized["conversationContext"] = selectedContext;
 
+	if (ctx.store != nullptr && ctx.sessionId != kInvalidId) {
+		(void)ctx.store->SetConversationThreadState(ctx.sessionId, BuildThreadState(ctx.sessionId, normalized));
+	}
 	prompts::SetCurrentConversationRequestContext(selectedContext, normalized);
 	*intakeOut = std::move(normalized);
 	return Result::Ok();
 }
+
 
 } // namespace agentos

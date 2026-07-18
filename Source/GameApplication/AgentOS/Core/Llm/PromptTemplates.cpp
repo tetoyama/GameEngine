@@ -48,57 +48,50 @@ Json IntakeWithoutRawConversation(const Json& source) {
 	return intake;
 }
 
-// DB原文保存とは分離したPrompt用Context。Context Retrieverで選択済みのTurnを
-// 最新側優先で予算内へ詰める。
+// DB原文保存とは分離したPrompt用Context。
+// Raw assistant本文・Tool一覧全文・累積prose summaryは推論へ再投入せず、
+// Intakeが確定した構造化Thread Stateだけを予算内へ詰める。
 std::string ContextText(const Json& supplied) {
 	const Json& context = supplied.is_object() && !supplied.empty()
 		? supplied
 		: g_conversationContext;
-	if (!context.is_object() || context.empty()) return "(今回の生成に使用する会話履歴なし)";
+	if (!context.is_object() || context.empty()) return "(今回の生成に使用する会話状態なし)";
 
-	constexpr std::size_t kContextBudget = 12000;
+	constexpr std::size_t kContextBudget = 7000;
 	Json packed = Json::object();
-	packed["summary"] = Truncate(context.value("summary", std::string()), 3500);
-	packed["summarizedThroughSessionId"] =
-		context.value("summarizedThroughSessionId", kInvalidId);
 	packed["totalTurns"] = context.value("totalTurns", 0);
-	packed["selectionPolicy"] = context.value("selectionPolicy", std::string("selected"));
-	if (context.contains("contextDegraded")) packed["contextDegraded"] = context.at("contextDegraded");
-	if (context.contains("contextDegradedReason")) {
-		packed["contextDegradedReason"] = context.at("contextDegradedReason");
-	}
+	packed["selectionPolicy"] = context.value("selectionPolicy", std::string("structured"));
+	packed["memoryPolicy"] = "structured_thread_state_only";
 
-	Json selected = Json::array();
-	std::size_t originalCount = 0;
-	if (context.contains("recentTurns") && context.at("recentTurns").is_array()) {
-		const Json& turns = context.at("recentTurns");
-		originalCount = turns.size();
-		for (std::size_t start = turns.size(); start > 0; --start) {
+	Json selectedStates = Json::array();
+	if (context.contains("threadStates") && context.at("threadStates").is_array()) {
+		const Json& states = context.at("threadStates");
+		for (std::size_t start = states.size(); start > 0; --start) {
 			Json candidate = Json::array();
-			for (std::size_t i = start - 1; i < turns.size(); ++i) candidate.push_back(turns[i]);
+			for (std::size_t i = start - 1; i < states.size(); ++i) candidate.push_back(states[i]);
 			Json candidateContext = packed;
-			candidateContext["recentTurns"] = candidate;
-			candidateContext["omittedRecentTurnCount"] = start - 1;
-			if (candidateContext.dump(2).size() <= kContextBudget) {
-				selected = std::move(candidate);
+			candidateContext["threadStates"] = candidate;
+			if (candidateContext.dump().size() <= kContextBudget) {
+				selectedStates = std::move(candidate);
 				continue;
-			}
-
-			if (selected.empty() && !turns.empty() && turns.back().is_object()) {
-				Json latest = turns.back();
-				latest["user"] = Truncate(latest.value("user", std::string()), 3200);
-				latest["assistant"] = Truncate(latest.value("assistant", std::string()), 4200);
-				selected.push_back(std::move(latest));
 			}
 			break;
 		}
 	}
+	packed["threadStates"] = std::move(selectedStates);
 
-	packed["recentTurns"] = std::move(selected);
-	packed["omittedRecentTurnCount"] =
-		originalCount >= packed["recentTurns"].size()
-			? originalCount - packed["recentTurns"].size()
-			: 0;
+	Json userFallback = Json::array();
+	if (packed["threadStates"].empty() && context.contains("recentTurns") &&
+	    context.at("recentTurns").is_array()) {
+		for (const Json& turn : context.at("recentTurns")) {
+			if (!turn.is_object()) continue;
+			Json item = Json::object();
+			if (turn.contains("sessionId")) item["sessionId"] = turn.at("sessionId");
+			item["user"] = Truncate(turn.value("user", std::string()), 600);
+			userFallback.push_back(std::move(item));
+		}
+	}
+	packed["recentUserTurns"] = std::move(userFallback);
 	return packed.dump(2);
 }
 
@@ -302,7 +295,7 @@ PromptPair Intake(const std::string& userRequest, const Json& conversationContex
 		"\"targetConcept\": string|null, \"resolvedEntityName\": string|null, "
 		"\"requestType\": \"conversation\"|\"investigation\"}");
 
-	p.user = "Conversation Storeの履歴:\n" + ContextText(conversationContext) +
+	p.user = "選択済みConversation Thread State:\n" + ContextText(conversationContext) +
 		"\n\n現在のユーザー入力（最優先）:\n" + userRequest +
 		"\n\n今回のturnRelationとstandaloneなresolvedRequestを生成してください。";
 	return p;
@@ -316,9 +309,9 @@ PromptPair DirectReply(
 	PromptPair p;
 	p.system = BuildSystem(
 		"AgentOSの対話窓口として日本語で応答するDirectReply担当。\n"
-		"優先順位は current input/resolvedRequest > selectedTurns > summary。\n"
+		"優先順位は current input/resolvedRequest > structured Thread State。\n"
 		"- turnRelation=newでは過去の話題、固有Entity名、以前の調査結果を継続しない。\n"
-		"- selected contextは補助情報であり、現在要求を上書きしてはならない。\n"
+		"- structured Thread Stateは補助情報であり、現在要求を上書きしてはならない。\n"
 		"- Conversation Memoryのassistant回答をEngine Evidenceとして扱わない。\n"
 		"- 人物情報や『私は誰』をScene Entity検索へ変換しない。\n"
 		"- Toolはゲーム内実データを明示的に求め、1回のRead Toolで完結する場合だけ提案する。\n"
