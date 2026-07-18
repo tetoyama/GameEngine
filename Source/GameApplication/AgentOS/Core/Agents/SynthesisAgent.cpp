@@ -82,10 +82,19 @@ std::unordered_set<long long> AuthoritativeEntityCounts(const Json& builtEvidenc
 bool EntityCountClaimsAreSupported(const std::string& report, const Json& builtEvidence) {
 	const std::unordered_set<long long> counts = AuthoritativeEntityCounts(builtEvidence);
 	if (counts.empty()) return true;
-	static const std::regex countClaim(
-		R"(([0-9]+)\s*(?:件|個|体|つ|Entities|Entity|エンティティ))");
+	static const std::regex countClaim(R"(([0-9]+)\s*(?:件|個|体|つ))");
 	for (auto it = std::sregex_iterator(report.begin(), report.end(), countClaim);
 	     it != std::sregex_iterator(); ++it) {
+		const std::size_t matchPos = static_cast<std::size_t>(it->position());
+		const std::size_t begin = matchPos > 64 ? matchPos - 64 : 0;
+		const std::size_t end = (std::min)(
+			report.size(), matchPos + static_cast<std::size_t>(it->length()) + 64);
+		const std::string context = report.substr(begin, end - begin);
+		if (context.find("Entity") == std::string::npos &&
+		    context.find("Entities") == std::string::npos &&
+		    context.find("エンティティ") == std::string::npos) {
+			continue;
+		}
 		const long long value = std::stoll((*it)[1].str());
 		if (counts.count(value) == 0) return false;
 	}
@@ -241,8 +250,11 @@ Result SynthesisAgent::Run(
 			return Result::Ok();
 		}
 		if (completionSafe) {
+			const Json synthesisStop = Json::object({
+				{"reason", "generated report contradicted current evidence"},
+			});
 			*reportOut = "# 最終回答のEvidence整合性検証に失敗しました\n\n" +
-				BuildFallbackReport(builtEvidence, rankedHypotheses, stopInfo, true);
+				BuildFallbackReport(builtEvidence, rankedHypotheses, synthesisStop, true);
 			PersistFinalResponse(ctx, *reportOut);
 			return Result::Fail("SynthesisAgent: generated report contradicted current evidence");
 		}
