@@ -6,11 +6,13 @@
 #pragma once
 #include "../IRenderPass.h"
 #include <d3d11.h>
+#include <wrl/client.h>
 #include <vector>
 #include <memory>
 
 class IRenderable;
 struct RenderTarget;
+class PostEffectShader;
 
 struct PixelShaderData;
 struct VertexShaderData;
@@ -42,4 +44,9 @@ public:
 	std::unique_ptr<ForwardPass> forwardPass;
 	std::unique_ptr<PostEffectPass> postEffectPass;
 	std::unique_ptr<OverlayUIPass> overlayUIPass;
+
+private:
+	std::unique_ptr<PostEffectShader> m_runtimeUiCopyShader;
+	Microsoft::WRL::ComPtr<ID3D11BlendState> m_runtimeUiBlendState;
+	Microsoft::WRL::ComPtr<ID3D11DepthStencilState> m_runtimeUiDepthState;
 };

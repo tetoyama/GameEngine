@@ -1,0 +1,39 @@
+name: Platformer Tech Demo Build
+
+on:
+  push:
+    branches:
+      - game/platformer-tech-demo
+      - game/all-in
+  pull_request:
+    branches:
+      - refactor/ecs-scheduler-foundation
+  workflow_dispatch:
+
+concurrency:
+  group: platformer-tech-demo-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-debug-x64:
+    runs-on: windows-2022
+    timeout-minutes: 45
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Configure MSBuild
+        uses: microsoft/setup-msbuild@v2
+
+      - name: Build Debug x64
+        shell: pwsh
+        run: >-
+          msbuild GameEngine.sln
+          /m
+          /restore
+          /t:Build
+          /p:Configuration=Debug
+          /p:Platform=x64
+          /p:UseSharedCompilation=false
+          /verbosity:minimal

@@ -1,0 +1,321 @@
+#pragma once
+
+#include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryModel.h"
+
+#include <algorithm>
+#include <cstddef>
+#include <cstdint>
+#include <memory>
+#include <optional>
+#include <stdexcept>
+#include <vector>
+
+namespace MiniGameCollection::ColorTerritory {
+
+enum class TerritoryPaintSource : std::uint8_t {
+    Movement,
+    BombPaint,
+    BombClear
+};
+
+struct TerritoryPaintEvent {
+    TileCoord tile{};
+    PlayerId playerId = InvalidPlayerId;
+    std::int16_t previousOwner = UnclaimedOwner;
+    std::int16_t newOwner = UnclaimedOwner;
+    TerritoryPaintSource source = TerritoryPaintSource::Movement;
+    bool changed = false;
+    bool changedLeader = false;
+};
+
+class ColorTerritoryRules final : public IMiniGameRules {
+public:
+    ColorTerritoryRules(
+        int width = 13,
+        int height = 9,
+        std::size_t playerCount = 4,
+        float durationSeconds = 40.0f
+    )
+        : m_width(width),
+          m_height(height),
+          m_playerCount(playerCount),
+          m_durationSeconds(std::max(1.0f, durationSeconds)) {
+    }
+
+    void Prepare() override {
+        m_board = std::make_unique<TerritoryBoard>(
+            m_width,
+            m_height,
+            m_playerCount
+        );
+        m_currentTiles.assign(m_playerCount, std::nullopt);
+        m_pendingTiles.assign(m_playerCount, std::nullopt);
+        m_candidateTiles.assign(m_playerCount, std::nullopt);
+        m_candidateHoldSeconds.assign(m_playerCount, 0.0f);
+        m_repaintCooldownSeconds.assign(m_playerCount, 0.0f);
+        m_elapsedSeconds = 0.0f;
+        m_started = false;
+        m_finished = false;
+        m_lastLeader = InvalidPlayerId;
+        m_events.clear();
+    }
+
+    void StartGame() override {
+        RequirePrepared();
+        m_started = true;
+    }
+
+    void Tick(float deltaTime) override {
+        if (!m_started || m_finished) {
+            return;
+        }
+
+        const float delta = std::max(0.0f, deltaTime);
+        m_elapsedSeconds = std::min(
+            m_durationSeconds,
+            m_elapsedSeconds + delta
+        );
+
+        for (float& cooldown : m_repaintCooldownSeconds) {
+            cooldown = std::max(0.0f, cooldown - delta);
+        }
+
+        // 同じTileへ複数人が同時に立っている間は、処理順で所有権を往復させない。
+        // 誰か一人だけが残り、短時間安定してから初めて塗りを確定する。
+        std::vector<bool> contestedPlayers(m_pendingTiles.size(), false);
+        for (std::size_t lhs = 0; lhs < m_pendingTiles.size(); ++lhs) {
+            if (!m_pendingTiles[lhs]) {
+                continue;
+            }
+            for (std::size_t rhs = lhs + 1; rhs < m_pendingTiles.size(); ++rhs) {
+                if (m_pendingTiles[rhs] &&
+                    *m_pendingTiles[lhs] == *m_pendingTiles[rhs]) {
+                    contestedPlayers[lhs] = true;
+                    contestedPlayers[rhs] = true;
+                }
+            }
+        }
+
+        for (std::size_t index = 0; index < m_pendingTiles.size(); ++index) {
+            if (!m_pendingTiles[index]) {
+                m_candidateTiles[index].reset();
+                m_candidateHoldSeconds[index] = 0.0f;
+                continue;
+            }
+
+            const PlayerId playerId = static_cast<PlayerId>(index);
+            const TileCoord tile = *m_pendingTiles[index];
+            m_pendingTiles[index].reset();
+
+            if (!m_board->IsInside(tile) || contestedPlayers[index]) {
+                m_candidateTiles[index].reset();
+                m_candidateHoldSeconds[index] = 0.0f;
+                continue;
+            }
+
+            const bool isCurrentTile =
+                m_currentTiles[index] && *m_currentTiles[index] == tile;
+            const bool alreadyOwnsTile =
+                m_board->GetOwner(tile) == static_cast<std::int16_t>(playerId);
+            if (isCurrentTile && alreadyOwnsTile) {
+                m_candidateTiles[index].reset();
+                m_candidateHoldSeconds[index] = 0.0f;
+                continue;
+            }
+
+            if (m_currentTiles[index]) {
+                // 接触解決や壁際の押し合いで座標が境界を往復しても、
+                // 短時間だけ触れたTileへ所有権が連続反転しないようにする。
+                // 爆弾で足元が変化した場合も同じ確認時間を通し、毎Frameの再奪取を防ぐ。
+                if (!m_candidateTiles[index] || *m_candidateTiles[index] != tile) {
+                    m_candidateTiles[index] = tile;
+                    m_candidateHoldSeconds[index] = delta;
+                } else {
+                    m_candidateHoldSeconds[index] += delta;
+                }
+
+                if (m_candidateHoldSeconds[index] < TileSwitchConfirmSeconds ||
+                    m_repaintCooldownSeconds[index] > 0.0f) {
+                    continue;
+                }
+            }
+
+            const PlayerId previousLeader = m_board->FindLeader();
+            const PaintResult paint = m_board->Paint(tile, playerId);
+            m_currentTiles[index] = tile;
+            m_candidateTiles[index].reset();
+            m_candidateHoldSeconds[index] = 0.0f;
+            m_repaintCooldownSeconds[index] = TileRepaintCooldownSeconds;
+            const PlayerId newLeader = m_board->FindLeader();
+
+            if (paint.changed) {
+                m_events.push_back({
+                    .tile = tile,
+                    .playerId = playerId,
+                    .previousOwner = paint.previousOwner,
+                    .newOwner = static_cast<std::int16_t>(playerId),
+                    .source = TerritoryPaintSource::Movement,
+                    .changed = true,
+                    .changedLeader =
+                        previousLeader != newLeader &&
+                        newLeader != InvalidPlayerId
+                });
+            }
+            m_lastLeader = newLeader;
+        }
+
+        if (m_elapsedSeconds >= m_durationSeconds) {
+            m_finished = true;
+        }
+    }
+
+    bool IsFinished() const override {
+        return m_finished;
+    }
+
+    MiniGameResult BuildResult() const override {
+        RequirePrepared();
+        MiniGameResult result;
+        result.gameId = MiniGameId::ColorTerritory;
+        result.players.reserve(m_playerCount);
+        for (std::size_t index = 0; index < m_playerCount; ++index) {
+            result.players.push_back({
+                .playerId = static_cast<PlayerId>(index),
+                .score = m_board->GetScore(static_cast<PlayerId>(index)),
+                .eliminated = false,
+                .finishTimeSeconds = m_durationSeconds
+            });
+        }
+        result.RebuildRanking();
+        return result;
+    }
+
+    void Shutdown() override {
+        m_started = false;
+        m_finished = true;
+        m_currentTiles.clear();
+        m_pendingTiles.clear();
+        m_candidateTiles.clear();
+        m_candidateHoldSeconds.clear();
+        m_repaintCooldownSeconds.clear();
+        m_events.clear();
+        m_board.reset();
+    }
+
+    bool SubmitPlayerTile(PlayerId playerId, TileCoord tile) {
+        if (!m_started || m_finished || playerId >= m_pendingTiles.size()) {
+            return false;
+        }
+        if (!m_board->IsInside(tile)) {
+            return false;
+        }
+        m_pendingTiles[playerId] = tile;
+        return true;
+    }
+
+    std::size_t ApplyBombArea(
+        TileCoord center,
+        int radius,
+        std::optional<PlayerId> owner
+    ) {
+        if (!m_started || m_finished || !m_board || !m_board->IsInside(center)) {
+            return 0;
+        }
+        if (owner && *owner >= m_playerCount) {
+            return 0;
+        }
+
+        const int safeRadius = std::max(0, radius);
+        const PlayerId previousLeader = m_board->FindLeader();
+        const std::size_t firstEvent = m_events.size();
+        std::size_t changedCount = 0;
+
+        for (int y = center.y - safeRadius; y <= center.y + safeRadius; ++y) {
+            for (int x = center.x - safeRadius; x <= center.x + safeRadius; ++x) {
+                const TileCoord tile{x, y};
+                if (!m_board->IsInside(tile)) {
+                    continue;
+                }
+
+                const PaintResult result = owner
+                    ? m_board->Paint(tile, *owner)
+                    : m_board->Clear(tile);
+                if (!result.changed) {
+                    continue;
+                }
+
+                ++changedCount;
+                m_events.push_back({
+                    .tile = tile,
+                    .playerId = owner.value_or(InvalidPlayerId),
+                    .previousOwner = result.previousOwner,
+                    .newOwner = owner
+                        ? static_cast<std::int16_t>(*owner)
+                        : UnclaimedOwner,
+                    .source = owner
+                        ? TerritoryPaintSource::BombPaint
+                        : TerritoryPaintSource::BombClear,
+                    .changed = true,
+                    .changedLeader = false
+                });
+            }
+        }
+
+        const PlayerId newLeader = m_board->FindLeader();
+        if (m_events.size() > firstEvent && previousLeader != newLeader &&
+            newLeader != InvalidPlayerId) {
+            m_events[firstEvent].changedLeader = true;
+        }
+        m_lastLeader = newLeader;
+        return changedCount;
+    }
+
+    std::vector<TerritoryPaintEvent> ConsumePaintEvents() {
+        std::vector<TerritoryPaintEvent> events;
+        events.swap(m_events);
+        return events;
+    }
+
+    const TerritoryBoard* TryGetBoard() const noexcept {
+        return m_board.get();
+    }
+
+    float GetElapsedSeconds() const noexcept { return m_elapsedSeconds; }
+    float GetRemainingSeconds() const noexcept {
+        return std::max(0.0f, m_durationSeconds - m_elapsedSeconds);
+    }
+    float GetRemainingTimeRatio() const noexcept {
+        return m_durationSeconds > 0.0f
+            ? GetRemainingSeconds() / m_durationSeconds
+            : 0.0f;
+    }
+    PlayerId GetLeader() const noexcept { return m_lastLeader; }
+
+private:
+    static constexpr float TileSwitchConfirmSeconds = 0.075f;
+    static constexpr float TileRepaintCooldownSeconds = 0.12f;
+
+    void RequirePrepared() const {
+        if (!m_board) {
+            throw std::logic_error("ColorTerritoryRules is not prepared");
+        }
+    }
+
+    int m_width = 0;
+    int m_height = 0;
+    std::size_t m_playerCount = 0;
+    float m_durationSeconds = 40.0f;
+    float m_elapsedSeconds = 0.0f;
+    bool m_started = false;
+    bool m_finished = false;
+    PlayerId m_lastLeader = InvalidPlayerId;
+    std::unique_ptr<TerritoryBoard> m_board;
+    std::vector<std::optional<TileCoord>> m_currentTiles;
+    std::vector<std::optional<TileCoord>> m_pendingTiles;
+    std::vector<std::optional<TileCoord>> m_candidateTiles;
+    std::vector<float> m_candidateHoldSeconds;
+    std::vector<float> m_repaintCooldownSeconds;
+    std::vector<TerritoryPaintEvent> m_events;
+};
+
+} // namespace MiniGameCollection::ColorTerritory

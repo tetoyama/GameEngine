@@ -1,0 +1,492 @@
+#include "Game/MiniGameCollection/Backshot/BackshotModel.h"
+#include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryItemModel.h"
+#include "Game/MiniGameCollection/ColorTerritory/ColorTerritoryModel.h"
+#include "Game/MiniGameCollection/Core/MiniGameBriefingModel.h"
+#include "Game/MiniGameCollection/Core/MiniGameCollectionManagerModel.h"
+#include "Game/MiniGameCollection/Core/MiniGameCore.h"
+#include "Game/MiniGameCollection/SheepRoundup/SheepRoundupRules.h"
+#include "Game/MiniGameCollection/SheepRoundup/SheepSteeringModel.h"
+
+#include <cassert>
+#include <cmath>
+#include <vector>
+
+namespace {
+
+class DummyRules final : public MiniGameCollection::IMiniGameRules {
+public:
+    void Prepare() override { prepared = true; }
+    void StartGame() override { assert(prepared); started = true; }
+    void Tick(float deltaTime) override { assert(started); elapsed += deltaTime; }
+    bool IsFinished() const override { return elapsed >= 0.1f; }
+
+    MiniGameCollection::MiniGameResult BuildResult() const override {
+        MiniGameCollection::MiniGameResult result;
+        result.gameId = MiniGameCollection::MiniGameId::ColorTerritory;
+        result.players = {
+            {.playerId = 0, .score = 5},
+            {.playerId = 1, .score = 3}
+        };
+        return result;
+    }
+
+    void Shutdown() override { shutdown = true; }
+
+    bool prepared = false;
+    bool started = false;
+    bool shutdown = false;
+    float elapsed = 0.0f;
+};
+
+void TestSessionAndResult() {
+    using namespace MiniGameCollection;
+
+    DummyRules rules;
+    MiniGameSession session;
+    session.BeginLoading(MiniGameId::ColorTerritory, 42);
+    session.AttachRules(rules);
+    session.EnterIntroduction();
+    session.BeginCountdown(1.0f);
+
+    session.Tick(0.0f, 0.4f);
+    assert(session.GetState() == MiniGameState::Countdown);
+    assert(!session.IsInputEnabled());
+
+    session.Tick(0.0f, 0.6f);
+    assert(session.GetState() == MiniGameState::Playing);
+    assert(session.IsInputEnabled());
+
+    session.Tick(0.1f, 0.1f);
+    assert(session.GetState() == MiniGameState::Finishing);
+    assert(!session.IsInputEnabled());
+
+    session.Tick(0.0f, 0.65f);
+    assert(session.GetState() == MiniGameState::Result);
+    assert(session.HasResult());
+    assert(session.TryGetResult()->players.front().playerId == 0);
+    assert(session.TryGetResult()->players.front().rank == 1);
+
+    session.RequestRetry();
+    assert(session.GetState() == MiniGameState::Transition);
+    assert(session.GetTransitionRequest() == TransitionRequest::Retry);
+
+    session.ShutdownRules();
+    assert(rules.shutdown);
+
+    MiniGameResult tie;
+    tie.players = {
+        {.playerId = 1, .score = 8, .finishTimeSeconds = 2.0f},
+        {.playerId = 0, .score = 8, .finishTimeSeconds = 2.0f},
+        {.playerId = 2, .score = 6, .finishTimeSeconds = 1.0f}
+    };
+    tie.RebuildRanking();
+    assert(tie.isTie);
+    assert(tie.players[0].rank == 1);
+    assert(tie.players[1].rank == 1);
+    assert(tie.players[2].rank == 3);
+}
+
+void TestPresentationTimeline() {
+    using namespace MiniGameCollection;
+
+    PresentationTimeline timeline;
+    timeline.Reset(77);
+    timeline.Schedule(PresentationEventType::Countdown3, 0.0f);
+    timeline.Schedule(PresentationEventType::Countdown2, 1.0f);
+    timeline.Schedule(PresentationEventType::Countdown1, 2.0f);
+    timeline.Schedule(PresentationEventType::Go, 3.0f, 1.5f);
+
+    auto fired = timeline.Tick(0.0f);
+    assert(fired.size() == 1);
+    assert(fired[0].type == PresentationEventType::Countdown3);
+
+    fired = timeline.Tick(2.0f);
+    assert(fired.size() == 2);
+    assert(fired[0].type == PresentationEventType::Countdown2);
+    assert(fired[1].type == PresentationEventType::Countdown1);
+
+    timeline.CancelAllForScene(77);
+    assert(timeline.PendingCount() == 0);
+}
+
+void TestBriefingStepOrderAndMinimumDisplay() {
+    using namespace MiniGameCollection;
+
+    MiniGameBriefingModel briefing({
+        {
+            .prompt = "MOVE",
+            .minimumDisplaySeconds = 0.5f,
+            .includedInCompactMode = true
+        },
+        {
+            .prompt = "SPECIAL",
+            .minimumDisplaySeconds = 0.25f,
+            .includedInCompactMode = false
+        },
+        {
+            .prompt = "GOAL",
+            .minimumDisplaySeconds = 0.0f,
+            .includedInCompactMode = true
+        }
+    });
+
+    assert(briefing.Begin(BriefingMode::Full) == BriefingEvent::None);
+    assert(briefing.GetPhase() == BriefingPhase::AwaitingSkipRelease);
+    assert(briefing.GetCurrentPrompt() == "MOVE");
+
+    BriefingEvent events = briefing.Tick(
+        0.0f,
+        {.skipKeyHeld = false}
+    );
+    assert(HasBriefingEvent(events, BriefingEvent::SkipArmed));
+    assert(HasBriefingEvent(events, BriefingEvent::StepStarted));
+    assert(briefing.GetPhase() == BriefingPhase::StepActive);
+
+    events = briefing.Tick(
+        0.2f,
+        {.stepSucceeded = true}
+    );
+    assert(events == BriefingEvent::None);
+    assert(briefing.GetCurrentStepIndex() == 0);
+
+    events = briefing.Tick(
+        0.3f,
+        {.stepSucceeded = true}
+    );
+    assert(HasBriefingEvent(events, BriefingEvent::StepCompleted));
+    assert(HasBriefingEvent(events, BriefingEvent::StepStarted));
+    assert(briefing.GetCurrentStepIndex() == 1);
+    assert(briefing.GetCurrentPrompt() == "SPECIAL");
+
+    events = briefing.Tick(
+        0.25f,
+        {.stepSucceeded = true}
+    );
+    assert(HasBriefingEvent(events, BriefingEvent::StepCompleted));
+    assert(briefing.GetCurrentStepIndex() == 2);
+
+    events = briefing.Tick(
+        0.0f,
+        {.stepSucceeded = true}
+    );
+    assert(HasBriefingEvent(events, BriefingEvent::ReadyReached));
+    assert(briefing.IsReady());
+    assert(!briefing.IsComplete());
+
+    events = briefing.ConfirmReady();
+    assert(HasBriefingEvent(events, BriefingEvent::Completed));
+    assert(briefing.IsComplete());
+}
+
+void TestBriefingResetCompactAndCleanup() {
+    using namespace MiniGameCollection;
+
+    MiniGameBriefingModel briefing({
+        {.prompt = "BASIC", .minimumDisplaySeconds = 0.5f, .includedInCompactMode = true},
+        {.prompt = "DETAIL", .minimumDisplaySeconds = 0.5f, .includedInCompactMode = false},
+        {.prompt = "READY", .minimumDisplaySeconds = 0.0f, .includedInCompactMode = true}
+    });
+
+    briefing.Begin(BriefingMode::Compact);
+    briefing.Tick(0.0f, {.skipKeyHeld = false});
+    assert(briefing.GetStepCount() == 2);
+    assert(briefing.GetCurrentPrompt() == "BASIC");
+
+    briefing.Tick(0.4f, {});
+    assert(briefing.GetStepProgress() > 0.79f);
+    const BriefingEvent reset = briefing.Tick(
+        0.0f,
+        {.resetRequested = true}
+    );
+    assert(HasBriefingEvent(reset, BriefingEvent::StepReset));
+    assert(briefing.GetStepProgress() == 0.0f);
+
+    briefing.Tick(0.5f, {.stepSucceeded = true});
+    assert(briefing.GetCurrentPrompt() == "READY");
+    briefing.Tick(0.0f, {.stepSucceeded = true});
+    assert(briefing.IsReady());
+
+    briefing.Clear();
+    assert(briefing.GetPhase() == BriefingPhase::Inactive);
+    assert(!briefing.IsActive());
+    assert(briefing.GetStepCount() == 0);
+    assert(briefing.GetSkipProgress() == 0.0f);
+}
+
+void TestBriefingEnterHoldReleaseToArm() {
+    using namespace MiniGameCollection;
+
+    MiniGameBriefingModel briefing(
+        {{.prompt = "MOVE", .minimumDisplaySeconds = 0.0f}},
+        {.holdSeconds = 1.0f, .requireReleaseToArm = true}
+    );
+    briefing.Begin(BriefingMode::Full);
+
+    briefing.Tick(2.0f, {.skipKeyHeld = true});
+    assert(briefing.GetPhase() == BriefingPhase::AwaitingSkipRelease);
+    assert(!briefing.IsSkipArmed());
+    assert(briefing.GetSkipProgress() == 0.0f);
+
+    briefing.Tick(0.0f, {.skipKeyHeld = false});
+    assert(briefing.IsSkipArmed());
+    assert(briefing.GetPhase() == BriefingPhase::StepActive);
+
+    briefing.Tick(0.6f, {.skipKeyHeld = true});
+    assert(briefing.GetSkipProgress() > 0.59f);
+    assert(!briefing.IsReady());
+
+    briefing.Tick(0.0f, {.skipKeyHeld = false});
+    assert(briefing.GetSkipProgress() == 0.0f);
+
+    const BriefingEvent skipped = briefing.Tick(
+        1.0f,
+        {.skipKeyHeld = true}
+    );
+    assert(HasBriefingEvent(skipped, BriefingEvent::Skipped));
+    assert(HasBriefingEvent(skipped, BriefingEvent::ReadyReached));
+    assert(briefing.WasSkipped());
+    assert(briefing.IsReady());
+    assert(!briefing.IsComplete());
+
+    briefing.ConfirmReady();
+    assert(briefing.IsComplete());
+}
+
+void TestBriefingSessionProgress() {
+    using namespace MiniGameCollection;
+
+    MiniGameCollectionManagerModel manager;
+    assert(
+        manager.ResolveBriefingMode(MiniGameId::ColorTerritory, false) ==
+        BriefingMode::Full
+    );
+    assert(
+        manager.ResolveBriefingMode(MiniGameId::ColorTerritory, true) ==
+        BriefingMode::Compact
+    );
+
+    manager.MarkBriefingCompleted(MiniGameId::ColorTerritory);
+    assert(manager.HasCompletedBriefing(MiniGameId::ColorTerritory));
+    assert(
+        manager.ResolveBriefingMode(MiniGameId::ColorTerritory, false) ==
+        BriefingMode::Compact
+    );
+    assert(!manager.HasCompletedBriefing(MiniGameId::SheepRoundup));
+
+    manager.ResetBriefingProgress();
+    assert(!manager.HasCompletedBriefing(MiniGameId::ColorTerritory));
+}
+
+void TestColorTerritory() {
+    using namespace MiniGameCollection;
+    using namespace MiniGameCollection::ColorTerritory;
+
+    TerritoryBoard board(5, 5, 3);
+    assert(board.CountUnclaimed() == 25);
+
+    auto paint = board.Paint({2, 2}, 0);
+    assert(paint.changed);
+    assert(board.GetScore(0) == 1);
+
+    paint = board.Paint({2, 2}, 1);
+    assert(paint.changed);
+    assert(paint.previousOwner == 0);
+    assert(board.GetScore(0) == 0);
+    assert(board.GetScore(1) == 1);
+
+    board.Paint({2, 1}, 0);
+    board.Paint({1, 2}, 0);
+    board.Paint({3, 2}, 0);
+    board.Paint({2, 3}, 0);
+    assert(board.FindLeader() == 0);
+
+    CpuTargetContext context;
+    context.self = 1;
+    context.currentTile = {2, 2};
+    context.remainingTimeRatio = 0.05f;
+    context.crowdByTile.resize(board.GetTileCount(), 0);
+
+    const auto decision = TerritoryCpuEvaluator::ChooseTarget(
+        board,
+        context,
+        CpuDifficultyProfile::Hard()
+    );
+    assert(decision.has_value());
+    assert(decision->attacksLeader);
+
+    TerritoryItemConfig itemConfig;
+    TerritoryPlayerPowerState power;
+    power.ActivateStar(itemConfig.starBuffSeconds);
+    assert(power.HasStar());
+    assert(std::abs(power.ResolveSpeedMultiplier(itemConfig) - 1.55f) < 0.0001f);
+    assert(power.TryConsumeStarTouch(1, itemConfig.starTouchCooldownSeconds));
+    assert(!power.HasStar());
+    assert(std::abs(power.ResolveSpeedMultiplier(itemConfig) - 1.0f) < 0.0001f);
+    assert(!power.TryConsumeStarTouch(1, itemConfig.starTouchCooldownSeconds));
+    assert(std::abs(itemConfig.starTouchStunSeconds - 0.45f) < 0.0001f);
+}
+
+void TestSheepSteering() {
+    using namespace MiniGameCollection;
+    using namespace MiniGameCollection::SheepRoundup;
+
+    SheepSteeringInput input;
+    input.position = {-9.7f, 0.0f};
+    input.previousDirection = {-1.0f, 0.0f};
+    input.playerPositions = {{-8.8f, 0.0f}};
+    input.flockPositions = {{-8.0f, 0.5f}, {-8.2f, -0.4f}};
+    input.movementBounds = {{-10.0f, -10.0f}, {10.0f, 10.0f}};
+
+    SheepSteeringConfig config;
+    config.wallAvoidanceWeight = 3.5f;
+    const SheepSteeringOutput output = SheepSteeringModel::Compute(
+        input,
+        config,
+        0.25f
+    );
+
+    assert(output.avoidingWall);
+    assert(output.velocity.x > 0.0f);
+    assert(std::abs(Length(output.direction) - 1.0f) < 0.001f);
+
+    const std::vector<SheepTargetCandidate> sheep = {
+        {.sheepIndex = 0, .sheepPosition = {4.0f, 0.0f}},
+        {.sheepIndex = 1, .sheepPosition = {1.0f, 0.0f}}
+    };
+    SheepCpuContext cpu;
+    cpu.cpuPosition = {0.0f, 0.0f};
+    cpu.ownPenCenter = {-8.0f, 0.0f};
+    const auto target = SheepCpuEvaluator::ChooseSheep(
+        sheep,
+        cpu,
+        CpuDifficultyProfile::Normal()
+    );
+    assert(target.has_value());
+    assert(target->sheepIndex == 1);
+    assert(target->interceptPosition.x > 1.0f);
+}
+
+void TestEndlessGoldenSheep() {
+    using namespace MiniGameCollection;
+    using namespace MiniGameCollection::SheepRoundup;
+
+    SheepRoundupRules rules(
+        2,
+        10.0f,
+        {{-5.0f, -5.0f}, {5.0f, 5.0f}}
+    );
+    rules.SetPens({
+        {.owner = 0, .center = {-4.0f, 0.0f}, .radius = 1.0f},
+        {.owner = 1, .center = {4.0f, 0.0f}, .radius = 1.0f}
+    });
+    rules.SetInitialSheepDefinitions({
+        {.position = {-4.0f, 0.0f}, .golden = true}
+    });
+
+    SheepSpawnConfig spawn;
+    spawn.endlessSpawning = true;
+    spawn.poolCapacity = 6;
+    spawn.earlyTargetActive = 1;
+    spawn.lateTargetActive = 4;
+    spawn.earlySpawnIntervalSeconds = 0.01f;
+    spawn.lateSpawnIntervalSeconds = 0.01f;
+    spawn.earlySpawnBatch = 1;
+    spawn.lateSpawnBatch = 2;
+    spawn.earlyGoldenChance = 1.0f;
+    spawn.lateGoldenChance = 1.0f;
+    rules.SetSpawnConfig(spawn);
+    rules.SetSpawnSeed(12345u);
+
+    rules.Prepare();
+    rules.StartGame();
+    rules.SetPlayerPosition(0, {0.0f, 4.0f});
+    rules.SetPlayerPosition(1, {0.0f, -4.0f});
+    rules.Tick(0.05f);
+
+    assert(!rules.IsFinished());
+    assert(rules.GetScores()[0] == 3);
+    const auto scoreEvents = rules.ConsumeScoreEvents();
+    assert(scoreEvents.size() == 1);
+    assert(scoreEvents[0].golden);
+    assert(scoreEvents[0].pointsAwarded == 3);
+    assert(rules.GetActiveSheepCount() == 1);
+    assert(!rules.ConsumeSpawnEvents().empty());
+
+    rules.Tick(5.0f);
+    rules.Tick(0.02f);
+    assert(rules.IsLateRush());
+    assert(rules.GetActiveSheepCount() >= 3);
+    assert(rules.GetActiveGoldenSheepCount() >= 1);
+    rules.Shutdown();
+}
+
+void TestBackshot() {
+    using namespace MiniGameCollection;
+    using namespace MiniGameCollection::Backshot;
+
+    BackshotConfig config;
+    CombatantSnapshot attacker{
+        .playerId = 0,
+        .position = {0.0f, -2.0f},
+        .forward = {0.0f, 1.0f}
+    };
+    CombatantSnapshot victim{
+        .playerId = 1,
+        .position = {0.0f, 0.0f},
+        .forward = {0.0f, 1.0f}
+    };
+
+    ShotResult result = BackshotHitResolver::Resolve(
+        attacker,
+        victim,
+        true,
+        config
+    );
+    assert(result.resolution == ShotResolution::RearElimination);
+    assert(result.victimRearDot < -0.99f);
+
+    attacker.position = {0.0f, 2.0f};
+    attacker.forward = {0.0f, -1.0f};
+    result = BackshotHitResolver::Resolve(attacker, victim, true, config);
+    assert(result.resolution == ShotResolution::FrontOrSideGuard);
+    assert(result.victimRearDot > 0.99f);
+
+    BackshotCpuContext cpu;
+    cpu.self = {
+        .playerId = 0,
+        .position = {0.0f, -2.0f},
+        .forward = {0.0f, 1.0f}
+    };
+    cpu.candidates = {
+        {
+            .combatant = victim,
+            .hasLineOfSight = true,
+            .isTargetingSelf = false
+        }
+    };
+
+    const auto decision = BackshotCpuEvaluator::Evaluate(
+        cpu,
+        config,
+        CpuDifficultyProfile::Normal()
+    );
+    assert(decision.has_value());
+    assert(decision->target == 1);
+    assert(decision->shouldShoot);
+}
+
+} // namespace
+
+int main() {
+    TestSessionAndResult();
+    TestPresentationTimeline();
+    TestBriefingStepOrderAndMinimumDisplay();
+    TestBriefingResetCompactAndCleanup();
+    TestBriefingEnterHoldReleaseToArm();
+    TestBriefingSessionProgress();
+    TestColorTerritory();
+    TestSheepSteering();
+    TestEndlessGoldenSheep();
+    TestBackshot();
+    return 0;
+}

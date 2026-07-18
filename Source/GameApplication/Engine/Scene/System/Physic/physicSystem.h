@@ -98,6 +98,14 @@ public:
 		return g_pPhysics;
 	}
 
+	physx::PxScene* GetScene(){
+		return g_pScene;
+	}
+
+	const physx::PxScene* GetScene() const{
+		return g_pScene;
+	}
+
 	const physx::PxRenderBuffer& GetRenderBuffer(){
 		return g_pScene->getRenderBuffer();
 	}

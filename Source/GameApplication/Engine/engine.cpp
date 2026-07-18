@@ -224,12 +224,16 @@ void Engine::Run(EngineContext* context){
 	uint64_t completedResizeSerial = 0;
 	double completedResizeCpuTime = 0.0;
 
-	auto initialScene = std::make_shared<Scene>();
+	// Editorや通常の開始Scene経路で既にSceneが開かれている場合はそれを使用する。
+	// 何も供給されていない場合だけ、従来の既定Sceneを生成または読み込む。
+	if(scenes->GetActiveScenes().empty()){
+		auto initialScene = std::make_shared<Scene>();
 #ifdef _DEBUG_BUILD
-	scenes->LoadScene(initialScene);
+		scenes->LoadScene(initialScene);
 #else
-	scenes->LoadFromFilePath(config->appConfig.startSceneFilePath);
+		scenes->LoadFromFilePath(config->appConfig.startSceneFilePath);
 #endif
+	}
 
 	while(!mainWindow->ShouldClose()){
 		time->Tick();
@@ -241,6 +245,9 @@ void Engine::Run(EngineContext* context){
 		time->BeginDeltaUpdate();
 		window->PollEvents();
 		input->Update();
+		// Script/System scheduleから予約されたAdditive Sceneを、
+		// 次フレームのschedule開始前に安全に初期化する。
+		scenes->ProcessQueuedAdditiveSceneLoads();
 		scenes->Update(time->GetDeltaTime());
 		time->EndDeltaUpdate();
 		if(mainWindow->ShouldClose()) break;
@@ -276,6 +283,9 @@ void Engine::Run(EngineContext* context){
 
 		time->BeginDrawSection(DrawTimingSection::RenderSchedule);
 		scenes->Draw();
+		// Runtime UIはRenderSystemのPlayerPass後にSwapChainへ重ねる。
+		// Debug / Editor ImGuiはこの後に描画されるため最前面を維持する。
+		renderer->FlushRuntime2DOverlay();
 		time->EndDrawSection(DrawTimingSection::RenderSchedule);
 
 		time->BeginDrawSection(DrawTimingSection::DebugDraw);

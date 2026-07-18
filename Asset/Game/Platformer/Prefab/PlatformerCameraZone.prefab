@@ -1,0 +1,34 @@
+Entities:
+  - LocalID: 0
+    Components:
+      - Component: NameComponent
+        Name: PlatformerCameraZone
+      - Component: TransformComponent
+        Position: {x: 0, y: 0, z: 0}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 1, y: 1, z: 1}
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: false
+        autoMass: true
+        Mass: 0
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0
+            dynamicFriction: 0
+            restitution: 0
+            collisionLayer: 8
+            lockRotX: false
+            lockRotY: false
+            lockRotZ: false
+            isTrigger: true
+            boneName: ""
+      - Component: PlatformerCameraZone
+        profile: 0
+        exitProfile: 0
+        restoreOnExit: false

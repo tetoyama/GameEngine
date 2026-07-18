@@ -4,7 +4,6 @@
 //
 // =======================================================================
 #pragma once
-
 #include "Interface/IComponent.h"
 #include "Backends/YAMLConverters.h"
 #include "DebugTools/ImGuiSystem.h"
@@ -14,7 +13,10 @@
 #include <atomic>
 #include <cstdint>
 #include <functional>
+#include <memory>
+#include <mutex>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
 #include "Scene.h"
@@ -54,13 +56,13 @@ public:
 	}
 
 	void Update(float dt){
-		if(isInitialized){
+		if(isInitialized && ShouldRunFrameUpdate()){
 			OnUpdate(dt);
 		}
 	}
 
 	void FixedUpdate(float dt){
-		if(isInitialized){
+		if(isInitialized && ShouldRunFixedUpdate()){
 			OnFixedUpdate(dt);
 		}
 	}
@@ -112,6 +114,17 @@ public:
 	virtual void OnEditorUpdate(float dt){}
 	virtual void OnStop(){}
 
+	// Scene内の補助Runtimeが本体の時間進行だけを停止できる共通hook。
+	// DrawとEditorUpdateは継続するため、pause中も説明UIを描画できる。
+	virtual bool ShouldRunFrameUpdate() const {
+		return m_ignoreSceneUpdateSuspension ||
+			!IsSceneUpdateSuspended(m_ref.GetScene());
+	}
+	virtual bool ShouldRunFixedUpdate() const {
+		return m_ignoreSceneUpdateSuspension ||
+			!IsSceneUpdateSuspended(m_ref.GetScene());
+	}
+
 	virtual void OnCollisionEnter(const HitInfo& hit) {}
 	virtual void OnCollisionStay(const HitInfo& hit)  {}
 	virtual void OnCollisionExit(const HitInfo& hit)  {}
@@ -157,6 +170,41 @@ public:
 
 	bool IsInitialized() const{
 		return isInitialized;
+	}
+
+	void SetIgnoreSceneUpdateSuspension(bool ignore) noexcept {
+		m_ignoreSceneUpdateSuspension = ignore;
+	}
+
+	static void SuspendSceneUpdates(SceneContext* context){
+		if(!context) return;
+		std::scoped_lock lock(SceneSuspensionMutex());
+		++SceneSuspensionCounts()[context];
+	}
+
+	static void ResumeSceneUpdates(SceneContext* context){
+		if(!context) return;
+		std::scoped_lock lock(SceneSuspensionMutex());
+		auto found = SceneSuspensionCounts().find(context);
+		if(found == SceneSuspensionCounts().end()) return;
+		if(found->second <= 1){
+			SceneSuspensionCounts().erase(found);
+		}else{
+			--found->second;
+		}
+	}
+
+	static void ClearSceneUpdateSuspension(SceneContext* context){
+		if(!context) return;
+		std::scoped_lock lock(SceneSuspensionMutex());
+		SceneSuspensionCounts().erase(context);
+	}
+
+	static bool IsSceneUpdateSuspended(SceneContext* context){
+		if(!context) return false;
+		std::scoped_lock lock(SceneSuspensionMutex());
+		const auto found = SceneSuspensionCounts().find(context);
+		return found != SceneSuspensionCounts().end() && found->second > 0;
 	}
 
 	// 既存互換の即時取得・追加API。
@@ -257,9 +305,16 @@ public:
 
 	void LoadScene(const std::string& scenePath){
 		auto* ctx = m_ref.GetScene();
-		if(!ctx || !ctx->manager || !ctx->manager->sceneManager) return;
-		auto setScene = ctx->manager->sceneManager->LoadFromFilePath(scenePath);
-		ctx->manager->sceneManager->DeferredLoadScene(setScene);
+		if(!ctx || !ctx->manager || !ctx->manager->sceneManager || scenePath.empty()) return;
+
+		// Script callbacks execute inside the ECS schedule. LoadFromFilePath()
+		// initializes a new Scene immediately, which registers component storage and
+		// therefore violates the structural-change guard. Queue an uninitialized
+		// Scene carrying only its source path; SceneManager applies and initializes
+		// it after the current schedule has completed.
+		auto pendingScene = std::make_shared<Scene>();
+		pendingScene->ScenePath = scenePath;
+		ctx->manager->sceneManager->DeferredLoadScene(std::move(pendingScene));
 	}
 
 	bool GetKeyUp(int keyCode) const{
@@ -296,5 +351,16 @@ protected:
 	EntityRef m_ref;
 
 private:
+	static std::mutex& SceneSuspensionMutex(){
+		static std::mutex mutex;
+		return mutex;
+	}
+
+	static std::unordered_map<SceneContext*, std::size_t>& SceneSuspensionCounts(){
+		static std::unordered_map<SceneContext*, std::size_t> counts;
+		return counts;
+	}
+
 	inline static std::atomic<uint64_t> s_nextRegistrationOrder{1};
+	bool m_ignoreSceneUpdateSuspension = false;
 };

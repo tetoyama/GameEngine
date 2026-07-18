@@ -1,0 +1,76 @@
+Entities:
+  - LocalID: 0
+    Components:
+      - Component: NameComponent
+        Name: PlatformerEnemy
+      - Component: TransformComponent
+        Position: {x: 0, y: 0, z: 0}
+        Rotation: [0, 0, 0, 1]
+        Scale: {x: 0.9, y: 0.9, z: 0.9}
+        Parent: 0
+      - Component: ColliderComponent
+        isDynamic: true
+        autoMass: true
+        Mass: 2
+        colliders:
+          - type: 0
+            size: [1, 1, 1]
+            offset: [0, 0, 0]
+            rotationOffset: [0, 0, 0]
+            radius: 0.5
+            height: 1
+            staticFriction: 0.1
+            dynamicFriction: 0.1
+            restitution: 0
+            collisionLayer: 0
+            lockRotX: true
+            lockRotY: true
+            lockRotZ: true
+            isTrigger: false
+            boneName: ""
+      - Component: MaterialComponent
+        ShaderID: 1
+        Material:
+          BaseColor: {x: 0.84, y: 0.16, z: 0.18, w: 1}
+          Metallic: 0.08
+          Roughness: 0.68
+          AO: 1
+          EmissiveColor: {x: 0.18, y: 0.01, z: 0.01}
+          EmissiveIntensity: 0.35
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
+      - Component: TextureComponent
+        FilePath: Asset\Texture\white.tga
+        UV_Slice_X: 1
+        UV_Slice_Y: 1
+        AnimationNum: 0
+      - Component: ModelRendererComponent
+        FilePath: Asset\Model\cube.obj
+        isBlender: false
+        AnimationTime: 0
+      - Component: ParticleComponent
+        IsLoop: false
+        SpawnInterval: 0.05
+        SpawnCount: 24
+        SpawnTimer: 0
+        ParticleLifeTime: 0.65
+        ParticleSize: 0.16
+        ParticleSpeed: 1
+        SpawnPosition: {x: 0, y: 0, z: 0}
+        SpawnPositionRandom: {x: 0, y: 0, z: 0}
+        StartSpeed: {x: 0, y: 2, z: 0}
+        StartSpeedRandom: {x: 1, y: 1, z: 1}
+        AddSpeed: {x: 0, y: -9, z: 0}
+        MulSpeed: {x: 0.94, y: 0.94, z: 0.94}
+      - Component: AudioComponent
+        FilePath: Asset\Game\Platformer\Sound\Impact.wav
+        Loop: false
+        Volume: 0.14
+        PlayOnStart: false
+      - Component: PlatformerEnemy
+        patrolAxis: {x: 1, y: 0, z: 0}
+        patrolDistance: 2.6
+        patrolSpeed: 1.6
+        stompHeightMargin: 0.35
+        defeatDuration: 0.42

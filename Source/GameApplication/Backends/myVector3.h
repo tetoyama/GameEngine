@@ -1,5 +1,6 @@
 #pragma once
 #include <math.h>
+#include <initializer_list>
 #include <DirectXMath.h>
 class Vector3
 {
@@ -46,6 +47,13 @@ public:
 		DirectX::XMStoreFloat3(reinterpret_cast<DirectX::XMFLOAT3*>(this), v);
 		return *this;
 	}
+	Vector3& operator=(std::initializer_list<float> values) noexcept{
+		auto it = values.begin();
+		x = it != values.end() ? *it++ : 0.0f;
+		y = it != values.end() ? *it++ : 0.0f;
+		z = it != values.end() ? *it++ : 0.0f;
+		return *this;
+	}
 
 	bool operator==(const Vector3& vec3) const{
 		return (x == vec3.x && y == vec3.y && z == vec3.z);
@@ -53,6 +61,10 @@ public:
 
 	bool operator!=(const Vector3& vec3) const{
 		return !(*this == vec3);
+	}
+
+	Vector3 operator-() const{
+		return Vector3(-x, -y, -z);
 	}
 
 	Vector3 operator+(const Vector3& vec3) const{

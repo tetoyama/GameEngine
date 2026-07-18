@@ -5,8 +5,10 @@
 // =======================================================================
 #pragma once
 
-// 既定で読み込む初期シーン
-#define DEFAULT_SCENE "Asset\\Scene\\scene_title.yaml"
+// 既定で読み込む初期シーン。
+// この値はgame/platformer-tech-demoブランチ専用であり、
+// refactor/ecs-scheduler-foundation側の既定Sceneは変更しない。
+#define DEFAULT_SCENE "Asset\\Game\\Platformer\\Scene\\PlatformerTechDemo.scene"
 
 // アセット・設定ファイルの共通パス
 #define ASSET_PATH "Asset/"
@@ -38,4 +40,3 @@
 #define _EDITOR
 
 #endif // _DEBUG
-

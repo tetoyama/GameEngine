@@ -1,0 +1,315 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 320
+    ExpectedTransforms: 240
+    ExpectedRenderables: 96
+    ExpectedCullingComponents: 96
+    ExpectedStaticEntities: 32
+    PreallocatedTransformPages: 0
+    PreallocatedTagPages: 0
+    RenderPacketReserve: 192
+    VisibleEntityReserve: 192
+    StaticBatchReserve: 16
+    AllowRuntimeGrowth: true
+    LogCapacityGrowth: true
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: MiniGamePersistentRuntime
+      - Component: MiniGameCollection::Runtime::MiniGamePersistentRuntime
+        ScriptName: MiniGamePersistentRuntime
+        SelectedIndex: 0
+      - Component: MiniGameCollection::Runtime::MiniGameResponsiveCameraRuntime
+        ScriptName: MiniGameResponsiveCameraRuntime
+        ReferenceAspect: 1.7777778
+        ReferenceVerticalFov: 0.8
+        MaximumVerticalFov: 2.0943952
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: MiniGameCamera
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 13.5
+          z: -15.5
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: CameraComponent
+        isLock: true
+        Target:
+          x: 0
+          y: 0.35
+          z: 0
+        NearClip: 0.05
+        FarClip: 256
+        FOV: 0.8
+        nextLinkId: 11
+        nextPinId: 13
+        PostEffects:
+          - Name: MiniGameBlur
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\Blur.cso
+            InputPins:
+              - 1
+              - 12
+            OutputPin: 2
+            Param:
+              x: 1.15
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 0.5
+            MipLevels: 1
+          - Name: MiniGameBrightPass
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\BrightPass.cso
+            InputPins:
+              - 3
+              - 7
+            OutputPin: 4
+            Param:
+              x: 1.08
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 0.5
+            MipLevels: 1
+          - Name: MiniGameBloomComposite
+            Enabled: true
+            VS: Asset\Shader\PostEffectVS.cso
+            PS: Asset\Shader\CompositeBloom.cso
+            InputPins:
+              - 8
+              - 10
+              - 11
+            OutputPin: 9
+            Param:
+              x: 0
+              y: 0
+              z: 0
+              w: 0
+            ResolutionScale: 1
+            MipLevels: 1
+        PostEffectLinks:
+          - ID: 4
+            StartNode: 0
+            EndNode: 2
+            StartAttr: 2
+            EndAttr: 10
+          - ID: 5
+            StartNode: -1
+            EndNode: 1
+            StartAttr: 5
+            EndAttr: 3
+          - ID: 6
+            StartNode: 2
+            EndNode: -2
+            StartAttr: 9
+            EndAttr: 6
+          - ID: 9
+            StartNode: -1
+            EndNode: 2
+            StartAttr: 5
+            EndAttr: 8
+          - ID: 10
+            StartNode: 1
+            EndNode: 0
+            StartAttr: 4
+            EndAttr: 1
+        ScreenInput:
+          Name: ""
+          NodePos:
+            x: 40
+            y: 50
+          OutputPin: 5
+        ScreenOutput:
+          Name: ""
+          NodePos:
+            x: 500
+            y: 50
+          InputPins:
+            - 6
+  - Entity: 3
+    Components:
+      - Component: NameComponent
+        Name: MiniGameDirectionalLight
+      - Component: TransformComponent
+        Position:
+          x: -8
+          y: 22
+          z: -14
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 1
+        CastShadow: 1
+        Position:
+          x: -8
+          y: 22
+          z: -14
+          w: 0
+        Direction:
+          x: 0.24
+          y: -0.84
+          z: 0.48
+          w: 0
+        Diffuse:
+          x: 1
+          y: 0.94
+          z: 0.86
+          w: 1
+        Ambient:
+          x: 0.16
+          y: 0.2
+          z: 0.28
+          w: 1
+        Param:
+          x: 90
+          y: 0
+          z: 0
+          w: 0
+        ShadowBias:
+          x: 0.02
+          y: 0.008
+          z: 1
+          w: 0
+  - Entity: 4
+    Components:
+      - Component: NameComponent
+        Name: MiniGameScreenFlash
+      - Component: MaterialComponent
+        ShaderID: 0
+        Material:
+          BaseColor:
+            x: 1
+            y: 1
+            z: 1
+            w: 0
+          Metallic: 0
+          Roughness: 1
+          AO: 1
+          EmissiveColor:
+            x: 1
+            y: 1
+            z: 1
+          EmissiveIntensity: 0
+          UseDiffuseTexture: false
+          UseNormalTexture: false
+          UseEnvironmentMap: false
+  - Entity: 5
+    Components:
+      - Component: NameComponent
+        Name: MiniGameBlueFillLight
+      - Component: TransformComponent
+        Position:
+          x: -8
+          y: 4.5
+          z: -4
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 0
+        Position:
+          x: -8
+          y: 4.5
+          z: -4
+          w: 1
+        Direction:
+          x: 0
+          y: -1
+          z: 0
+          w: 0
+        Diffuse:
+          x: 0.16
+          y: 0.34
+          z: 0.58
+          w: 1
+        Ambient:
+          x: 0
+          y: 0
+          z: 0
+          w: 1
+        Param:
+          x: 14
+          y: 0
+          z: 0
+          w: 0
+  - Entity: 6
+    Components:
+      - Component: NameComponent
+        Name: MiniGameWarmFillLight
+      - Component: TransformComponent
+        Position:
+          x: 8
+          y: 4.5
+          z: 4
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: LightComponent
+        Enable: 1
+        LightType: 2
+        CastShadow: 0
+        Position:
+          x: 8
+          y: 4.5
+          z: 4
+          w: 1
+        Direction:
+          x: 0
+          y: -1
+          z: 0
+          w: 0
+        Diffuse:
+          x: 0.5
+          y: 0.24
+          z: 0.1
+          w: 1
+        Ambient:
+          x: 0
+          y: 0
+          z: 0
+          w: 1
+        Param:
+          x: 14
+          y: 0
+          z: 0
+          w: 0

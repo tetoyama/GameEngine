@@ -1,0 +1,25 @@
+SceneSettings:
+  Storage:
+    ExpectedEntities: 16
+    ExpectedTransforms: 8
+    ExpectedRenderables: 0
+    ExpectedCullingComponents: 0
+    ExpectedStaticEntities: 0
+    PreallocatedTransformPages: 0
+    PreallocatedTagPages: 0
+    RenderPacketReserve: 0
+    VisibleEntityReserve: 0
+    StaticBatchReserve: 0
+    AllowRuntimeGrowth: true
+    LogCapacityGrowth: true
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: MiniGameCollectionEntryRuntime
+      - Component: MiniGameCollection::Runtime::MiniGameCollectionEntryRuntime
+        ScriptName: MiniGameCollectionEntryRuntime
+        AdditiveScenePaths:
+          - Asset/Game/MiniGameCollection/Scene/Persistent/MiniGamePersistent.scene
+        UnloadScenesOutsideComposition: true
+        DestroyEntryAfterLoaded: true

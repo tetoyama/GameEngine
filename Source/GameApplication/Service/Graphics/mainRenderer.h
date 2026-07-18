@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <d2d1.h>
 #include <dwrite.h>
+#include <d3d11.h>
 #include <memory>
 #include <string>
 #include <vector>
@@ -38,6 +39,8 @@ public:
 
 	void Shutdown()override {
 		m_gpuPassTimingProfiler.Reset();
+		m_runtime2DCommands.clear();
+		ReleaseRuntime2DOverlayTarget();
 		// GraphicsContextより先にD2DのDevice依存Resourceを破棄する。
 		m_d2dRenderer.reset();
 		m_graphicsContext = nullptr;
@@ -47,7 +50,18 @@ public:
 	void BeginFrame();
 	void EndFrame(bool vsync = true);
 
+	// Runtime 2D描画はRender schedule中には即時実行せず蓄積する。
+	// PlayerPassが最終出力へ合成できる透明Textureへまとめて描画する。
 	void DrawText2D(const std::wstring& text, float x, float y, float fontSize, D2D1::ColorF color);
+	void FillRect2D(float x, float y, float width, float height, D2D1::ColorF color);
+	ID3D11ShaderResourceView* RenderRuntime2DOverlay(UINT width, UINT height);
+
+	// 互換呼出。PlayerPassが消費できなかったCommandをSwapChainへ描かず破棄する。
+	void FlushRuntime2DOverlay();
+
+	bool HasRuntime2DCommands() const noexcept {
+		return !m_runtime2DCommands.empty();
+	}
 	
 	void OnResize(UINT width, UINT height){
 		// WM_SIZEは同じサイズで複数回届くことがある。
@@ -111,10 +125,36 @@ public:
 	}
 
 private:
+	enum class Runtime2DCommandType : uint8_t {
+		Text,
+		FillRect
+	};
+
+	struct Runtime2DCommand {
+		Runtime2DCommandType type = Runtime2DCommandType::Text;
+		std::wstring text;
+		float x = 0.0f;
+		float y = 0.0f;
+		float width = 0.0f;
+		float height = 0.0f;
+		float fontSize = 0.0f;
+		D2D1::ColorF color = D2D1::ColorF(D2D1::ColorF::White);
+	};
+
+	bool EnsureRuntime2DOverlayTarget(UINT width, UINT height);
+	void ReleaseRuntime2DOverlayTarget() noexcept;
+
 	HWND m_hwnd{};
 	GraphicsContext* m_graphicsContext = nullptr;
 	std::unique_ptr<D2DRenderer> m_d2dRenderer;
 	GpuPassTimingProfiler m_gpuPassTimingProfiler;
+	std::vector<Runtime2DCommand> m_runtime2DCommands;
+
+	Microsoft::WRL::ComPtr<ID3D11Texture2D> m_runtime2DOverlayTexture;
+	Microsoft::WRL::ComPtr<ID3D11RenderTargetView> m_runtime2DOverlayRtv;
+	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_runtime2DOverlaySrv;
+	UINT m_runtime2DOverlayWidth = 0;
+	UINT m_runtime2DOverlayHeight = 0;
 
 	UINT m_width = 0;
 	UINT m_height = 0;
