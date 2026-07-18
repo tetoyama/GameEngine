@@ -318,6 +318,114 @@ Evidence MakeFailureEvidence(
 	return evidence;
 }
 
+// ---------------------------------
+// CHANGE 3: SchemaRejectedからの自己修復リトライ。
+//
+// PromptTemplates.cppは別Agentが所有しているため、他Promptと同じ出力契約文字列を
+// ここへインラインで複製する（構想の契約テキストを踏襲。文言はPromptTemplates.cpp
+// のkContractJaと同一にしておくこと）。
+// ---------------------------------
+constexpr const char* kSchemaRepairContractJa =
+	"あなたはAgentOSのサブシステムとして動作するアシスタントです。\n"
+	"出力契約（厳守）:\n"
+	"1. 応答は単一の```json フェンスで囲まれたJSONオブジェクトのみとすること。\n"
+	"2. フェンスの外に文章を書かないこと。指定されたキー以外を追加しないこと。\n"
+	"3. 不確実な点は指定フィールドで表現し、存在しない事実やEvidenceを捏造しないこと。\n";
+
+// 拒否されたCommandと正しいargumentSchemaをLLMへ渡し、同じ意図のCommandを1件だけ
+// 修正させる。GenerateQueriesが提案したCommand（LLMの自由記述）のみを対象とし、
+// Grounding済みのExplicit/Deterministic Commandは対象にしない（呼び出し側で判定）。
+Result RequestSchemaRepairCommand(
+	AgentContext& ctx,
+	const Json& rejectedCommand,
+	const std::string& schemaError,
+	const Json& argumentSchema,
+	Json* repairedCommandOut) {
+
+	if (repairedCommandOut == nullptr) return Result::Fail("RetrievalWorker: repairedCommandOut is null");
+
+	PromptPair prompt;
+	prompt.system = std::string(kSchemaRepairContractJa) +
+		"\n役割: 直前のTool呼び出しが引数スキーマ違反で拒否されたWorker担当。"
+		"エラーと正しいargumentSchemaに従い、同じ意図のTool呼び出しを1件だけ修正して出力する。"
+		"\n出力スキーマ:\n"
+		"{\"commands\": [{\"tool\": string, \"arguments\": object}]}"
+		"\n/no_think\n";
+	prompt.user =
+		"拒否されたCommand:\n" + rejectedCommand.dump(2) +
+		"\n\nスキーマ検証エラー:\n" + schemaError +
+		"\n\n正しいargumentSchema:\n" + argumentSchema.dump(2) +
+		"\n\n同じ意図を保ったまま、正しい引数名・型で1件だけ修正したcommandsを出力してください。";
+
+	Json raw;
+	Result callResult = CallLlmJson(ctx, prompt, &raw);
+	if (!callResult) return callResult;
+	if (!raw.is_object() || !raw.contains("commands") || !raw.at("commands").is_array() ||
+	    raw.at("commands").empty() || !raw.at("commands")[0].is_object()) {
+		return Result::Fail("RetrievalWorker: schema repair response missing commands[0]");
+	}
+	Json repaired = raw.at("commands")[0];
+	if (!repaired.contains("tool") || !repaired.at("tool").is_string() ||
+	    !repaired.contains("arguments") || !repaired.at("arguments").is_object()) {
+		return Result::Fail("RetrievalWorker: schema repair command missing tool/arguments");
+	}
+	*repairedCommandOut = std::move(repaired);
+	return Result::Ok();
+}
+
+// Submit結果を評価してEvidenceを積む共通処理。成功ならtrueを返し、失敗/Unsatisfied
+// ならその種別に応じたEvidenceを積んでfalseを返す（呼び出し側でbreakする）。
+bool EvaluateCommandOutcome(
+	AgentContext& ctx,
+	TaskId storeTaskId,
+	const std::string& toolName,
+	const Json& arguments,
+	const CommandResult& result,
+	std::vector<Evidence>* evidenceOut,
+	int* succeeded,
+	int* failed,
+	int* unsatisfied) {
+
+	if (!result.IsOk()) {
+		++*failed;
+		AddStoredEvidence(ctx, MakeFailureEvidence(
+			ctx, storeTaskId, "ToolError", toolName,
+			"Tool " + toolName + " failed: " + result.error,
+			Json::object({{"status", ToString(result.status)}, {"error", result.error}})), evidenceOut);
+		return false;
+	}
+	if (PayloadRepresentsFailure(result.payload)) {
+		++*failed;
+		AddStoredEvidence(ctx, MakeFailureEvidence(
+			ctx, storeTaskId, "ToolResultError", toolName,
+			"Tool " + toolName + " returned an error result", result.payload), evidenceOut);
+		return false;
+	}
+	if (PayloadRepresentsUnsatisfied(result.payload)) {
+		++*unsatisfied;
+		Json payload = result.payload;
+		payload["unsatisfied"] = true;
+		payload["arguments"] = arguments;
+		AddStoredEvidence(ctx, MakeFailureEvidence(
+			ctx, storeTaskId, "ToolUnsatisfied", toolName,
+			"Tool " + toolName + " completed but did not satisfy the task", payload), evidenceOut);
+		return false;
+	}
+
+	++*succeeded;
+	Evidence evidence;
+	evidence.taskId = storeTaskId;
+	evidence.claim = ExtractClaim(result.payload, toolName);
+	evidence.payload = result.payload;
+	StampRevision(&evidence.payload);
+	evidence.provenance.sourceType = "Tool:" + toolName;
+	evidence.provenance.sourceUri = toolName;
+	evidence.provenance.session = "session_" + std::to_string(ctx.sessionId);
+	evidence.confidence = ExtractConfidenceHint(result.payload);
+	AddStoredEvidence(ctx, std::move(evidence), evidenceOut);
+	return true;
+}
+
 } // namespace
 
 Result RetrievalWorker::Run(
@@ -364,6 +472,9 @@ Result RetrievalWorker::Run(
 	}
 
 	Json commands = ParseExplicitCommands(taskSpec);
+	// CHANGE 3: このCommand列だけがSchemaRejectedからの自己修復リトライ対象となる。
+	// Explicit/Deterministic Commandは既にGrounding済みでLLMの自由記述ではないため対象外。
+	bool commandsFromLlm = false;
 	if (commands.empty()) commands = BuildDeterministicCommands(allowed, filteredCatalog, dependencyEvidence);
 	if (commands.empty()) {
 		Json augmentedTaskSpec = taskSpec;
@@ -377,6 +488,7 @@ Result RetrievalWorker::Run(
 		if (raw.is_object() && raw.contains("commands") && raw.at("commands").is_array()) {
 			commands = raw.at("commands");
 		}
+		commandsFromLlm = true;
 	}
 
 	int attempted = 0;
@@ -384,6 +496,8 @@ Result RetrievalWorker::Run(
 	int failed = 0;
 	int rejected = 0;
 	int unsatisfied = 0;
+	int correctiveRetriesUsed = 0;
+	constexpr int kMaxCorrectiveRetries = 2;
 
 	const std::size_t limit = (std::min<std::size_t>)(commands.size(), 5);
 	for (std::size_t i = 0; i < limit; ++i) {
@@ -412,43 +526,68 @@ Result RetrievalWorker::Run(
 		++attempted;
 
 		const CommandResult result = ctx.pipeline->Submit(request);
-		if (!result.IsOk()) {
-			++failed;
-			AddStoredEvidence(ctx, MakeFailureEvidence(
-				ctx, storeTaskId, "ToolError", toolName,
-				"Tool " + toolName + " failed: " + result.error,
-				Json::object({{"status", ToString(result.status)}, {"error", result.error}})), evidenceOut);
-			break;
-		}
-		if (PayloadRepresentsFailure(result.payload)) {
-			++failed;
-			AddStoredEvidence(ctx, MakeFailureEvidence(
-				ctx, storeTaskId, "ToolResultError", toolName,
-				"Tool " + toolName + " returned an error result", result.payload), evidenceOut);
-			break;
-		}
-		if (PayloadRepresentsUnsatisfied(result.payload)) {
-			++unsatisfied;
-			Json payload = result.payload;
-			payload["unsatisfied"] = true;
-			payload["arguments"] = arguments;
-			AddStoredEvidence(ctx, MakeFailureEvidence(
-				ctx, storeTaskId, "ToolUnsatisfied", toolName,
-				"Tool " + toolName + " completed but did not satisfy the task", payload), evidenceOut);
-			break;
+
+		// CHANGE 3: LLM提案CommandがSchemaRejectedで拒否された場合に限り、即座に
+		// 失敗記録してbreakするのではなく、エラーと正しいargumentSchemaを渡して
+		// 1回だけ修正させる自己修復リトライを試みる（Task全体で最大2回まで）。
+		if (result.status == CommandStatus::SchemaRejected && commandsFromLlm &&
+		    correctiveRetriesUsed < kMaxCorrectiveRetries) {
+			++correctiveRetriesUsed;
+			const Json* descriptor = FindToolDescriptor(filteredCatalog, toolName);
+			Json repairedCommand;
+			Result repairResult = descriptor != nullptr
+				? RequestSchemaRepairCommand(
+					ctx, command, result.error,
+					descriptor->value("argumentSchema", Json::object()), &repairedCommand)
+				: Result::Fail("RetrievalWorker: tool descriptor unavailable for schema repair");
+			Result repairGrounded = repairResult
+				? ValidateGroundedCommand(repairedCommand, allowed, dependencyEvidence)
+				: repairResult;
+
+			if (repairGrounded) {
+				const std::string repairedToolName = repairedCommand.at("tool").get<std::string>();
+				const Json repairedArguments = repairedCommand.at("arguments");
+				CommandRequest retryRequest;
+				retryRequest.taskId = storeTaskId;
+				retryRequest.issuer = "RetrievalWorker";
+				retryRequest.tool = repairedToolName;
+				retryRequest.arguments = repairedArguments;
+				retryRequest.capability = ctx.token;
+				++attempted;
+				const CommandResult retryResult = ctx.pipeline->Submit(retryRequest);
+
+				if (retryResult.IsOk() && !PayloadRepresentsFailure(retryResult.payload) &&
+				    !PayloadRepresentsUnsatisfied(retryResult.payload)) {
+					Evidence retryEvidence;
+					retryEvidence.taskId = storeTaskId;
+					retryEvidence.claim = "schema違反をリトライで修正した: " + repairedToolName;
+					retryEvidence.payload = Json::object({
+						{"originalArguments", arguments},
+						{"correctedArguments", repairedArguments},
+						{"schemaError", result.error},
+					});
+					StampRevision(&retryEvidence.payload);
+					retryEvidence.provenance.sourceType = "SchemaRepair";
+					retryEvidence.provenance.sourceUri = repairedToolName;
+					retryEvidence.provenance.session = "session_" + std::to_string(ctx.sessionId);
+					retryEvidence.confidence = 1.0;
+					AddStoredEvidence(ctx, std::move(retryEvidence), evidenceOut);
+				}
+
+				if (EvaluateCommandOutcome(
+					ctx, storeTaskId, repairedToolName, repairedArguments, retryResult,
+					evidenceOut, &succeeded, &failed, &unsatisfied)) {
+					continue;
+				}
+				break;
+			}
 		}
 
-		++succeeded;
-		Evidence evidence;
-		evidence.taskId = storeTaskId;
-		evidence.claim = ExtractClaim(result.payload, toolName);
-		evidence.payload = result.payload;
-		StampRevision(&evidence.payload);
-		evidence.provenance.sourceType = "Tool:" + toolName;
-		evidence.provenance.sourceUri = toolName;
-		evidence.provenance.session = "session_" + std::to_string(ctx.sessionId);
-		evidence.confidence = ExtractConfidenceHint(result.payload);
-		AddStoredEvidence(ctx, std::move(evidence), evidenceOut);
+		if (!EvaluateCommandOutcome(
+			ctx, storeTaskId, toolName, arguments, result,
+			evidenceOut, &succeeded, &failed, &unsatisfied)) {
+			break;
+		}
 	}
 
 	if (summaryOut != nullptr) {

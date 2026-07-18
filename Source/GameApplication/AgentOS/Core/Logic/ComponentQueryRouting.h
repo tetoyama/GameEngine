@@ -128,6 +128,16 @@ inline std::string KnownDefaultEntityForComponent(
 	return {};
 }
 
+// 抽出したentity候補が「属性フレーズ」（例:「ジャンプ力を」）である可能性を
+// 保守的に検出する。AsciiIdentifierBeforeはASCII識別子しか拾わないため、
+// 現状の抽出パスでentityが「の」「を」を含むことは通常ない。
+// だが将来抽出パスが増えた際に属性フレーズをEntity名として確定Routeしてしまう
+// 事故を防ぐため、含んでいた場合は保守的にbail outする（新しいRouteを増やすのではなく、
+// 誤ったRouteを減らすための防御）。
+inline bool LooksLikeAttributePhrase(const std::string& entity) {
+	return ContainsAny(entity, {"の", "を"});
+}
+
 inline Route Resolve(const std::string& request) {
 	// Scene全体の状況確認は既存のScene Snapshot経路へ渡す。
 	// ここでListEntitiesだけに短絡するとComponent/System観測が欠落する。
@@ -144,6 +154,13 @@ inline Route Resolve(const std::string& request) {
 		entity = KnownDefaultEntityForComponent(component);
 	}
 	if(entity.empty()) entity = ExtractEntityBeforeParticle(request);
+
+	// 「Playerのジャンプ力を教えて」のような属性フレーズ質問をEntity名の
+	// 確定Routeとして誤爆させないための最終ガード。fuzzy解決はここでは行わず
+	// （Orchestrator/Tool経路の責務）、単に確定Routeを諦めてLLM側に委ねる。
+	if(!entity.empty() && LooksLikeAttributePhrase(entity)) {
+		entity.clear();
+	}
 
 	if(!component.empty() && !entity.empty()) {
 		return {

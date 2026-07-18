@@ -12,7 +12,9 @@
 #include <optional>
 #include <string>
 #include <utility>
+#include <vector>
 
+#include "../Core/Logic/FuzzyMatch.h"
 #include "EntityIntrospection.h"
 #include "SystemIntrospection.h"
 
@@ -106,6 +108,37 @@ Json MakeInfrastructureError(const std::string& message) {
 	error["error"] = message;
 	error["infrastructure"] = true;
 	return error;
+}
+
+// ResolveEntityCandidatesの結果を {id, name, matchedBy, score} の配列へ変換する。
+// ResolveEntity Toolのpayloadと、DescribeEntity/ReadComponentの
+// entity-not-foundエラー時の"candidates"添付の両方で共有する。
+Json EntityCandidatesToJson(const std::vector<EntityCandidate>& candidates) {
+	Json array = Json::array();
+	for(const EntityCandidate& candidate : candidates){
+		array.push_back(Json::object({
+			{"id", candidate.entity.GetIndex()},
+			{"name", candidate.name},
+			{"matchedBy", candidate.matchedBy},
+			{"score", candidate.score},
+		}));
+	}
+	return array;
+}
+
+// ResolveComponentCandidatesの結果を {name, matchType, score} の配列へ変換する。
+// ResolveComponent Toolのpayloadと、ReadComponentのunknown-componentエラー時の
+// "componentCandidates"添付の両方で共有する。
+Json ComponentCandidatesToJson(const std::vector<fuzzy::Match>& candidates) {
+	Json array = Json::array();
+	for(const fuzzy::Match& match : candidates){
+		array.push_back(Json::object({
+			{"name", match.candidate},
+			{"matchType", match.matchType},
+			{"score", match.score},
+		}));
+	}
+	return array;
 }
 
 } // namespace
@@ -226,12 +259,98 @@ void RegisterEngineTools(
 	));
 
 	// -----------------------------------------------------------------
+	// ResolveEntity
+	// ユーザー入力は厳密な名称一致とは限らない（「Player」はEntity名かもしれないし、
+	// 名前は違ってもPlayerComponentがアタッチされたEntityかもしれない）。
+	// あいまい一致（Fuzzy Match）でEntity候補を提示する読み取り専用Tool。
+	// -----------------------------------------------------------------
+	pipeline.RegisterTool(std::make_shared<LambdaTool>(
+		ToolDescriptor{
+			"ResolveEntity",
+			"Entity名のあいまい一致（部分一致・大文字小文字無視、"
+			"及びComponent型のアタッチ経由）で候補を列挙する。"
+			"Entity名が不確かな場合はDescribeEntity/ReadComponentの前にまずこれを使うこと。",
+			PermissionLevel::Read,
+			Schema({{"query", StringField(true)}})
+		},
+		[&engineContext, &dispatcher](const Json& args) -> CommandResult {
+			const std::string query = args.at("query").get<std::string>();
+
+			Json payload = dispatcher.RunOnMainThread([&engineContext, query]() -> Json {
+				SceneContext* sceneContext = engineContext.ResolveSceneContext();
+				if(!sceneContext) return MakeInfrastructureError("no active scene");
+
+				Json result = Json::object();
+				result["candidates"] = EntityCandidatesToJson(
+					ResolveEntityCandidates(*sceneContext, query, 5));
+				return result;
+			});
+
+			if(!payload.value("infrastructure", false)){
+				payload["query"] = query;
+				const Json candidates = payload.value("candidates", Json::array());
+				if(candidates.empty()){
+					payload["claim"] = "'" + query + "'の候補は見つからなかった。";
+				} else {
+					const Json& top = candidates.front();
+					payload["claim"] = "'" + query + "'の候補は" + std::to_string(candidates.size())
+						+ "件。最有力は'" + top.value("name", std::string())
+						+ "'（matchedBy=" + top.value("matchedBy", std::string()) + "）。";
+				}
+			}
+			return FinishOrFail(std::move(payload));
+		}
+	));
+
+	// -----------------------------------------------------------------
+	// ResolveComponent
+	// Component型名もあいまい一致（部分一致）で解決したい（例:「Light」→LightComponent）。
+	// -----------------------------------------------------------------
+	pipeline.RegisterTool(std::make_shared<LambdaTool>(
+		ToolDescriptor{
+			"ResolveComponent",
+			"Component名のあいまい一致（部分一致・大文字小文字無視、"
+			"及び\"Component\"接尾辞の有無吸収）で候補を列挙する。"
+			"Component名が不確かな場合はReadComponentの前にまずこれを使うこと。",
+			PermissionLevel::Read,
+			Schema({{"query", StringField(true)}})
+		},
+		[&engineContext, &dispatcher](const Json& args) -> CommandResult {
+			const std::string query = args.at("query").get<std::string>();
+
+			Json payload = dispatcher.RunOnMainThread([&engineContext, query]() -> Json {
+				SceneContext* sceneContext = engineContext.ResolveSceneContext();
+				if(!sceneContext) return MakeInfrastructureError("no active scene");
+
+				Json result = Json::object();
+				result["candidates"] = ComponentCandidatesToJson(
+					ResolveComponentCandidates(*sceneContext, query, 5));
+				return result;
+			});
+
+			if(!payload.value("infrastructure", false)){
+				payload["query"] = query;
+				const Json candidates = payload.value("candidates", Json::array());
+				if(candidates.empty()){
+					payload["claim"] = "'" + query + "'の候補は見つからなかった。";
+				} else {
+					const Json& top = candidates.front();
+					payload["claim"] = "'" + query + "'の候補は" + std::to_string(candidates.size())
+						+ "件。最有力は'" + top.value("name", std::string()) + "'。";
+				}
+			}
+			return FinishOrFail(std::move(payload));
+		}
+	));
+
+	// -----------------------------------------------------------------
 	// FindEntityByName
 	// -----------------------------------------------------------------
 	pipeline.RegisterTool(std::make_shared<LambdaTool>(
 		ToolDescriptor{
 			"FindEntityByName",
-			"NameComponent.nameが一致するEntityを検索する。",
+			"NameComponent.nameが一致するEntityを検索する。"
+			"名前が不確かな場合は先にResolveEntityを使うこと。",
 			PermissionLevel::Read,
 			Schema({{"name", StringField(true)}})
 		},
@@ -268,7 +387,8 @@ void RegisterEngineTools(
 	pipeline.RegisterTool(std::make_shared<LambdaTool>(
 		ToolDescriptor{
 			"DescribeEntity",
-			"名前で指定したEntityが持つ全Componentの値を返す。",
+			"名前で指定したEntityが持つ全Componentの値を返す。"
+			"名前が不確かな場合は先にResolveEntityを使うこと。",
 			PermissionLevel::Read,
 			Schema({{"entityName", StringField(true)}})
 		},
@@ -283,6 +403,10 @@ void RegisterEngineTools(
 				if(!found){
 					Json result = Json::object();
 					result["error"] = "entity not found: " + entityName;
+					// 候補（ResolveEntityCandidates）を添えて、Repair/LLM層が
+					// 名前の揺れやComponent型からの再解決を自己判断できるようにする。
+					result["candidates"] = EntityCandidatesToJson(
+						ResolveEntityCandidates(*sceneContext, entityName, 5));
 					return result;
 				}
 				return DescribeEntity(*sceneContext, *found);
@@ -290,8 +414,15 @@ void RegisterEngineTools(
 
 			if(!payload.value("infrastructure", false)){
 				if(payload.contains("error")){
-					payload["claim"] = "Entity '" + entityName + "' の詳細取得に失敗した: "
+					std::string claim = "Entity '" + entityName + "' の詳細取得に失敗した: "
 						+ payload.value("error", std::string());
+					const Json candidates = payload.value("candidates", Json::array());
+					if(!candidates.empty()){
+						claim += " / 候補" + std::to_string(candidates.size()) + "件: '"
+							+ candidates.front().value("name", std::string()) + "' 等。"
+							"ResolveEntityで確認すること。";
+					}
+					payload["claim"] = claim;
 				} else {
 					const std::size_t componentCount = payload.value("components", Json::array()).size();
 					payload["claim"] = "Entity '" + entityName + "' のComponentを"
@@ -308,7 +439,8 @@ void RegisterEngineTools(
 	pipeline.RegisterTool(std::make_shared<LambdaTool>(
 		ToolDescriptor{
 			"ReadComponent",
-			"名前で指定したEntityの単一Componentの値を読み取る。",
+			"名前で指定したEntityの単一Componentの値を読み取る。"
+			"名前が不確かな場合は先にResolveEntity/ResolveComponentを使うこと。",
 			PermissionLevel::Read,
 			Schema({{"entityName", StringField(true)}, {"component", StringField(true)}})
 		},
@@ -324,6 +456,10 @@ void RegisterEngineTools(
 				if(!found){
 					Json result = Json::object();
 					result["error"] = "entity not found: " + entityName;
+					// 候補（ResolveEntityCandidates）を添えて、Repair/LLM層が
+					// 名前の揺れやComponent型からの再解決を自己判断できるようにする。
+					result["candidates"] = EntityCandidatesToJson(
+						ResolveEntityCandidates(*sceneContext, entityName, 5));
 					return result;
 				}
 				return ReadComponent(*sceneContext, *found, component);
@@ -331,7 +467,20 @@ void RegisterEngineTools(
 
 			if(!payload.value("infrastructure", false)){
 				if(payload.contains("error")){
-					payload["claim"] = "Component読み取りに失敗した: " + payload.value("error", std::string());
+					std::string claim = "Component読み取りに失敗した: " + payload.value("error", std::string());
+					const Json entityCandidates = payload.value("candidates", Json::array());
+					const Json componentCandidates = payload.value("componentCandidates", Json::array());
+					if(!entityCandidates.empty()){
+						claim += " / Entity候補" + std::to_string(entityCandidates.size()) + "件: '"
+							+ entityCandidates.front().value("name", std::string()) + "' 等。"
+							"ResolveEntityで確認すること。";
+					}
+					if(!componentCandidates.empty()){
+						claim += " / Component候補" + std::to_string(componentCandidates.size()) + "件: '"
+							+ componentCandidates.front().value("name", std::string()) + "' 等。"
+							"ResolveComponentで確認すること。";
+					}
+					payload["claim"] = claim;
 				} else {
 					payload["claim"] = "Entity '" + entityName + "' のComponent '" + component + "' を読み取った。";
 				}

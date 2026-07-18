@@ -3557,6 +3557,9 @@
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Logic\LogicGraph.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Logic\FuzzyMatch.h">
+      <Filter>ヘッダー ファイル</Filter>
+    </ClInclude>
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Orchestrator\EarlyStopping.h">
       <Filter>ヘッダー ファイル</Filter>
     </ClInclude>

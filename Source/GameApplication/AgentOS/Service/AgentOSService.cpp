@@ -144,6 +144,14 @@ struct FastPathRoute {
 	Json arguments = Json::object();
 };
 
+// Fast PathはComponentQueryRouting::Resolve()が確定的（厳密一致前提）に
+// entity/componentを抽出できた場合にのみ発火させる。あいまい一致（Fuzzy Match）は
+// 意図的にここへは組み込まない: Fast Pathはtool結果を機械的に整形して即応答する
+// 経路であり、LLMによる根拠検証（Evidence/Critic）を経ないため、あいまいな解決を
+// ここで行うと「なぜその解釈になったか」の監査証跡が残らない。
+// あいまいなEntity/Component解決はResolveEntity/ResolveComponent Tool経由で
+// Orchestrator（Plan/Retrieve/Evidence/Reason/Critic）を通し、根拠が監査可能な
+// 形で残るようにする。
 FastPathRoute ResolveFastPath(const std::string& request) {
 	const componentquery::Route observationRoute = componentquery::Resolve(request);
 	if(observationRoute.IsValid()) {

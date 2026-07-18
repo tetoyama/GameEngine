@@ -8,6 +8,7 @@
 #include <cstdint>
 #include <functional>
 #include <initializer_list>
+#include <regex>
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
@@ -65,17 +66,38 @@ bool ContainsAny(const std::string& text, std::initializer_list<const char*> nee
 	return false;
 }
 
+// 決定的Scene Snapshotルートのトリガー判定にのみ使うテキスト。
+// symptoms/constraintsは過去セッションの汚染語（例: "シーン"/"状態"）を
+// 引きずりやすく、決定的ルートの誤発火（EVIDENCE: 「Playerのジャンプ力を
+// 教えて」がScene Snapshotへ誤ルーティングされた事例）を招くため、
+// resolvedRequest（フォールバックgoal）だけを対象にする。
+// LLM Planner向けプロンプト（prompts::Plan）にはこれまで通りintake全体
+// （symptoms/constraints含む）を渡すため、LLM側の判断材料は変わらない。
 std::string CurrentPlanningText(const Json& intake) {
-	std::string text;
-	if (!intake.is_object()) return text;
-	text = intake.value("resolvedRequest", intake.value("goal", std::string()));
-	if (intake.contains("symptoms") && intake.at("symptoms").is_array()) {
-		text += "\n" + intake.at("symptoms").dump();
-	}
-	if (intake.contains("constraints") && intake.at("constraints").is_array()) {
-		text += "\n" + intake.at("constraints").dump();
-	}
-	return text;
+	if (!intake.is_object()) return {};
+	return intake.value("resolvedRequest", intake.value("goal", std::string()));
+}
+
+// resolvedRequestが特定のEntity/属性を名指ししているかどうかを判定する。
+// 名指しされている場合、Scene全体のSnapshotでは要求を満たせない
+// （EVIDENCE: 「Entity 'Player' の...ジャンプ力の値を読み取る」がSnapshot
+// Planで代替され、JumpForceが一度も調査されないままcritic passedになった）。
+// 決定的な部分文字列/正規表現チェックの一覧（すべて満たせば具体的対象要求）:
+//   1) 単一/二重引用符トークン（例: Entity 'Player'）
+//   2) <ASCII識別子>の<何か>を、のパターン（例: "Playerのジャンプ力を"）
+//   3) 値/設定/パラメータ/プロパティ/Component名 に続く 取得/読/教え
+bool ContainsSpecificTargetRequest(const std::string& text) {
+	static const std::regex kQuotedTokenRe(R"(['"][^'"]+['"])");
+	if (std::regex_search(text, kQuotedTokenRe)) return true;
+
+	static const std::regex kAsciiAttributeReadRe(R"([A-Za-z_][A-Za-z0-9_]*の[^\s、。]*を)");
+	if (std::regex_search(text, kAsciiAttributeReadRe)) return true;
+
+	static const std::regex kValueReadKeywordRe(
+		R"((値|設定|パラメータ|プロパティ|Component名)[^\s、。]*(取得|読|教え))");
+	if (std::regex_search(text, kValueReadKeywordRe)) return true;
+
+	return false;
 }
 
 bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json* planOut) {
@@ -93,7 +115,11 @@ bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json
 		"詳しく", "絞って", "限定",
 		"only", "instead", "exclude", "specific"
 	});
-	if (!sceneRequest || !snapshotRequest || temporalRequest || narrowedRequest) return false;
+	const bool specificTargetRequest = ContainsSpecificTargetRequest(text);
+	if (!sceneRequest || !snapshotRequest || temporalRequest || narrowedRequest ||
+	    specificTargetRequest) {
+		return false;
+	}
 	if (!CatalogHasTool(toolCatalog, "ListEntities") ||
 	    !CatalogHasTool(toolCatalog, "ListSystems")) {
 		return false;

@@ -5,7 +5,11 @@
 // =======================================================================
 #include "CommandPipeline.h"
 
+#include <algorithm>
+#include <cctype>
+#include <string>
 #include <typeinfo>
+#include <vector>
 
 #include "CommandSchema.h"
 #include "../Llm/PromptTemplates.h"
@@ -14,7 +18,13 @@ namespace agentos {
 
 namespace {
 
-void NormalizeKnownArgumentAliases(CommandRequest* request) {
+// CHANGE 2: Tool別の既知argument alias補正 + Schemaベースの大文字小文字補正。
+//
+// argumentSchemaが分かっている場合（Tool解決後の2回目呼び出し）は、それに加えて
+// 「Schema上の正式キーと大文字小文字だけが異なるキー」を機械的に補正する
+// （例: "EntityName" -> "entityName"）。Tool固有テーブルに載っていない
+// 未知Toolでも、Schemaさえあれば単純な大文字小文字揺れは自動で救済される。
+void NormalizeKnownArgumentAliases(CommandRequest* request, const Json& argumentSchema = Json()) {
 	if(request == nullptr || !request->arguments.is_object()) return;
 	Json& arguments = request->arguments;
 	auto moveStringAlias = [&arguments](const char* alias, const char* canonical) {
@@ -22,8 +32,13 @@ void NormalizeKnownArgumentAliases(CommandRequest* request) {
 		if(!arguments.contains(canonical)) arguments[canonical] = arguments.at(alias);
 		arguments.erase(alias);
 	};
+	auto moveAnyAlias = [&arguments](const char* alias, const char* canonical) {
+		if(!arguments.contains(alias)) return;
+		if(!arguments.contains(canonical)) arguments[canonical] = arguments.at(alias);
+		arguments.erase(alias);
+	};
 
-	if(request->tool == "ReadComponent") {
+	if(request->tool == "ReadComponent" || request->tool == "StartWriteTrace") {
 		moveStringAlias("entityId", "entityName");
 		moveStringAlias("name", "entityName");
 		moveStringAlias("componentName", "component");
@@ -32,6 +47,38 @@ void NormalizeKnownArgumentAliases(CommandRequest* request) {
 		moveStringAlias("name", "entityName");
 	} else if(request->tool == "FindEntityByName") {
 		moveStringAlias("entityName", "name");
+	} else if(request->tool == "ListEntities") {
+		moveAnyAlias("max", "maxCount");
+		moveAnyAlias("count", "maxCount");
+		moveAnyAlias("limit", "maxCount");
+	} else if(request->tool == "FindWriters" || request->tool == "FindReaders") {
+		moveStringAlias("componentName", "component");
+		moveStringAlias("componentType", "component");
+	}
+
+	if (!argumentSchema.is_object()) return;
+
+	auto lowerAscii = [](std::string value) {
+		std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+			return static_cast<char>(std::tolower(ch));
+		});
+		return value;
+	};
+
+	std::vector<std::string> currentKeys;
+	for (auto it = arguments.begin(); it != arguments.end(); ++it) currentKeys.push_back(it.key());
+	for (const std::string& key : currentKeys) {
+		if (argumentSchema.contains(key)) continue; // 既に正式キー
+		const std::string lowerKey = lowerAscii(key);
+		for (const auto& schemaItem : argumentSchema.items()) {
+			if (schemaItem.key() != key && lowerAscii(schemaItem.key()) == lowerKey) {
+				if (!arguments.contains(schemaItem.key())) {
+					arguments[schemaItem.key()] = arguments.at(key);
+				}
+				arguments.erase(key);
+				break;
+			}
+		}
 	}
 }
 
@@ -108,6 +155,9 @@ CommandResult CommandPipeline::Submit(CommandRequest request) {
 	}
 
 	const ToolDescriptor& descriptor = tool->Descriptor();
+	// Tool解決後、実Schemaを使った大文字小文字補正パスをもう一度通す
+	// （Tool固有テーブルは1回目の呼び出しで既に適用済みなので冪等）。
+	NormalizeKnownArgumentAliases(&request, descriptor.argumentSchema);
 
 	Result schemaResult = SchemaValidator::Validate(request.arguments, descriptor.argumentSchema);
 	if(!schemaResult){

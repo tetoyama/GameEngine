@@ -2805,6 +2805,7 @@
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Llm\MockLlmBackend.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Llm\PromptTemplates.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Logic\LogicGraph.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Logic\FuzzyMatch.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Orchestrator\EarlyStopping.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Orchestrator\Orchestrator.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Orchestrator\Supervisor.h" />

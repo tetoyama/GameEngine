@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <string>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 namespace agentos {
@@ -165,6 +166,180 @@ bool ContainsAny(const std::string& text, std::initializer_list<const char*> nee
 		if (needle != nullptr && text.find(needle) != std::string::npos) return true;
 	}
 	return false;
+}
+
+std::string Trim(std::string value) {
+	auto isNotSpace = [](unsigned char ch) { return std::isspace(ch) == 0; };
+	value.erase(value.begin(), std::find_if(value.begin(), value.end(), isNotSpace));
+	value.erase(std::find_if(value.rbegin(), value.rend(), isNotSpace).base(), value.end());
+	return value;
+}
+
+// ---------------------------------
+// CHANGE 1: LLM出力に対するsymptoms/constraints Grounding filter。
+//
+// 原則: LLM出力は信頼しない。IntakeのLLMはconversationContext越しに過去turnの
+// 失敗記述（ツールエラー・許可エラー等）を今回turnのsymptoms/constraintsへ
+// 紛れ込ませることがある。これらは今回turnのEvidenceではないため、決定的な
+// Grounding判定で「現在turnに根拠がある」ものだけをsymptoms/constraintsに残し、
+// それ以外の失敗語彙混じりの記述はmemoryDerivedNotesへ隔離する
+// （ルーティング文言・Plannerプロンプト・最終reportへ混入させない）。
+// これはSelectConversationContextによる一次防御（後続Agentへ渡す履歴の絞り込み）を
+// 置き換えるものではなく、IntakeのLLM出力そのものに対する二次防御である。
+// ---------------------------------
+
+constexpr std::size_t kMinIdentifierLen = 3;
+
+bool IsAsciiWordChar(unsigned char ch) {
+	return (std::isalnum(ch) != 0) || ch == '_';
+}
+
+std::size_t Utf8SequenceLength(unsigned char leadByte) {
+	if ((leadByte & 0x80) == 0x00) return 1;
+	if ((leadByte & 0xE0) == 0xC0) return 2;
+	if ((leadByte & 0xF0) == 0xE0) return 3;
+	if ((leadByte & 0xF8) == 0xF0) return 4;
+	return 1; // 不正なバイト列は1バイトずつ読み進めて壊れないようにする。
+}
+
+// U+30A0-U+30FF（カタカナブロック）をUTF-8バイト列から判定する簡易ヒューリスティック。
+bool IsKatakanaUtf8Char(const std::string& text, std::size_t pos, std::size_t len) {
+	if (len != 3 || pos + 3 > text.size()) return false;
+	const unsigned char b0 = static_cast<unsigned char>(text[pos]);
+	const unsigned char b1 = static_cast<unsigned char>(text[pos + 1]);
+	if (b0 != 0xE3) return false;
+	if (b1 == 0x82) return static_cast<unsigned char>(text[pos + 2]) >= 0xA0;
+	if (b1 == 0x83) return static_cast<unsigned char>(text[pos + 2]) <= 0xBF;
+	return false;
+}
+
+// テキストから「識別子候補」を集める:
+//   - ASCIIトークン（英数字/アンダースコア、長さ3以上、小文字化して比較）
+//   - カタカナ連続（長さ3コードポイント以上）
+//   - 引用トークン（"..." '...' `...` 「...」 『...』の中身）
+void CollectDistinctiveIdentifiers(const std::string& text, std::unordered_set<std::string>* out) {
+	std::string asciiToken;
+	auto flushAscii = [&]() {
+		if (asciiToken.size() >= kMinIdentifierLen) {
+			std::string lower = asciiToken;
+			std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+				return static_cast<char>(std::tolower(c));
+			});
+			out->insert(std::move(lower));
+		}
+		asciiToken.clear();
+	};
+
+	std::string katakanaRun;
+	std::size_t katakanaCount = 0;
+	auto flushKatakana = [&]() {
+		if (katakanaCount >= kMinIdentifierLen) out->insert(katakanaRun);
+		katakanaRun.clear();
+		katakanaCount = 0;
+	};
+
+	std::size_t i = 0;
+	while (i < text.size()) {
+		const unsigned char lead = static_cast<unsigned char>(text[i]);
+		const std::size_t len = Utf8SequenceLength(lead);
+		if (len == 1) {
+			flushKatakana();
+			if (IsAsciiWordChar(lead)) {
+				asciiToken.push_back(static_cast<char>(lead));
+			} else {
+				flushAscii();
+			}
+			++i;
+			continue;
+		}
+		flushAscii();
+		if (IsKatakanaUtf8Char(text, i, len)) {
+			katakanaRun.append(text, i, len);
+			++katakanaCount;
+		} else {
+			flushKatakana();
+		}
+		i += len;
+	}
+	flushAscii();
+	flushKatakana();
+
+	static const std::vector<std::pair<std::string, std::string>> kQuotePairs = {
+		{"\"", "\""}, {"'", "'"}, {"`", "`"}, {"「", "」"}, {"『", "』"},
+	};
+	for (const auto& quotePair : kQuotePairs) {
+		std::size_t searchPos = 0;
+		while (true) {
+			const std::size_t start = text.find(quotePair.first, searchPos);
+			if (start == std::string::npos) break;
+			const std::size_t contentStart = start + quotePair.first.size();
+			const std::size_t end = text.find(quotePair.second, contentStart);
+			if (end == std::string::npos) break;
+			const std::string inner = Trim(text.substr(contentStart, end - contentStart));
+			if (!inner.empty()) out->insert(inner);
+			searchPos = end + quotePair.second.size();
+		}
+	}
+}
+
+bool ContainsIdentifierOverlap(const std::string& text, const std::unordered_set<std::string>& currentIdentifiers) {
+	if (currentIdentifiers.empty()) return false;
+	std::unordered_set<std::string> entryIdentifiers;
+	CollectDistinctiveIdentifiers(text, &entryIdentifiers);
+	for (const std::string& identifier : entryIdentifiers) {
+		if (currentIdentifiers.count(identifier) != 0) return true;
+	}
+	return false;
+}
+
+bool ContainsFailureVocabulary(const std::string& text) {
+	static const std::initializer_list<const char*> kJapaneseFailureWords = {
+		"エラー", "失敗", "利用不可", "許可", "ツール実行",
+	};
+	if (ContainsAny(text, kJapaneseFailureWords)) return true;
+
+	std::string lower = text;
+	std::transform(lower.begin(), lower.end(), lower.begin(), [](unsigned char c) {
+		return static_cast<char>(std::tolower(c));
+	});
+	static const std::initializer_list<const char*> kAsciiFailureWords = {
+		"rejected", "failed", "unknown field",
+	};
+	return ContainsAny(lower, kAsciiFailureWords);
+}
+
+// symptoms/constraintsのうち、失敗語彙を含みかつ現在turnに根拠がない記述を
+// memoryDerivedNotesへ退避する。それ以外（根拠があるもの・失敗語彙を含まないもの）は
+// そのまま残す。
+void ApplyMemoryGroundingFilter(
+	const std::string& currentUserInput,
+	const std::string& resolvedRequest,
+	Json* normalized) {
+
+	if (normalized == nullptr) return;
+
+	std::unordered_set<std::string> currentIdentifiers;
+	CollectDistinctiveIdentifiers(currentUserInput, &currentIdentifiers);
+	CollectDistinctiveIdentifiers(resolvedRequest, &currentIdentifiers);
+
+	Json memoryDerivedNotes = Json::array();
+	for (const char* key : {"symptoms", "constraints"}) {
+		if (!normalized->contains(key) || !(*normalized)[key].is_array()) continue;
+		Json kept = Json::array();
+		for (const Json& entry : (*normalized)[key]) {
+			if (!entry.is_string()) continue;
+			const std::string text = entry.get<std::string>();
+			const bool hasFailureVocab = ContainsFailureVocabulary(text);
+			const bool grounded = ContainsIdentifierOverlap(text, currentIdentifiers);
+			if (!hasFailureVocab || grounded) {
+				kept.push_back(text);
+			} else {
+				memoryDerivedNotes.push_back(text);
+			}
+		}
+		(*normalized)[key] = std::move(kept);
+	}
+	(*normalized)["memoryDerivedNotes"] = std::move(memoryDerivedNotes);
 }
 
 bool IsSimpleConversationInput(const std::string& userRequest) {
@@ -337,6 +512,10 @@ Result IntakeAgent::Run(
 	normalized["requestRevision"] = 0;
 	normalized["historyIdentifiers"] = ExtractHistoryIdentifiers(fullContext);
 
+	// CHANGE 1: 過去turn由来の失敗記述をsymptoms/constraintsから隔離する
+	// （二次防御。SelectConversationContextによる履歴選択は置き換えない）。
+	ApplyMemoryGroundingFilter(userRequest, resolvedRequest, &normalized);
+
 	const bool simpleConversation = requestType == "conversation" && IsSimpleConversationInput(userRequest);
 	if (simpleConversation) {
 		normalized["goal"] = "ユーザーの挨拶または短い会話へ応答する";
@@ -347,6 +526,7 @@ Result IntakeAgent::Run(
 		normalized["requiredCapabilities"] = Json::array();
 		normalized["unresolvedReferences"] = Json::array();
 		normalized["referencedSessionIds"] = Json::array();
+		normalized["memoryDerivedNotes"] = Json::array();
 		normalized["simpleConversation"] = true;
 		relation = "new";
 	}

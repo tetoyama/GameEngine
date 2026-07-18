@@ -16,6 +16,25 @@
 
 namespace agentos {
 
+// ---------------------------------
+// critic_internal
+// CriticAgent.cppに実装される内部ヘルパのうち、テストから直接検証したい
+// ものだけをここで公開する（CriticAgent::Run経由の間接検証では抽出ロジック
+// 単体のquoted/ASCII/カタカナ/stoplist分岐を網羅しづらいため）。
+// CriticAgent以外から本番コードとして呼び出すことは想定しない。
+// ---------------------------------
+namespace critic_internal {
+
+// resolvedRequestから「特定の対象を指す語」を抽出する（ゲート#8で使用）。
+// - 単一/二重引用符トークン（例: Entity 'Player' → "Player"）
+// - ASCII識別子（3文字以上。Entity/Component/Scene/System/Tool/the/and等の
+//   一般語はstoplistで除外する。大小無視で重複排除する）
+// - カタカナ連続（3文字以上。UTF-8バイト範囲 E382A0-BF/E383 80-BFで判定。
+//   シーン/コンポーネント/エンティティ/システム/ツール等の一般語はstoplistで除外する）
+std::vector<std::string> ExtractGoalIdentifiers(const std::string& text);
+
+} // namespace critic_internal
+
 struct CriticVerdict {
 	double programmaticScore = 0.0;
 	Json llmScores = Json::object();

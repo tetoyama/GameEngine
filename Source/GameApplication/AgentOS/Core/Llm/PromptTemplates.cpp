@@ -411,10 +411,14 @@ PromptPair Critique(const Json& hypotheses, const Json& builtEvidence) {
 		"- 追加調査は必ずtypeをRuntimeObservation/CodeSearch/Traceのいずれかにする。\n"
 		"- 各追加Taskは実行するTool名とargumentsを具体的に指定する。\n"
 		"- argumentsはTool一覧のargumentSchemaにある正式フィールド名だけを使う。\n"
-		"- 修正後要求を満たすために必要なEvidenceを再取得できるTaskを最大2件提案する。",
+		"- 修正後要求を満たすために必要なEvidenceを再取得できるTaskを最大2件提案する。\n"
+		"- resolvedRequestの目的（例: 特定Entityの特定属性値）が統合Evidenceで実際に"
+		"満たされたかをgoalSatisfiedへ正直に判定し、未達の観点をunmetAspectsへ列挙する"
+		"（goalSatisfiedはadvisoryであり、最終pass判定はプログラム側の決定的ゲートが行う）。",
 		"{\"scores\": {\"evidenceCoverage\": number, \"contradictionHandling\": number, "
 		"\"causalCompleteness\": number, \"testability\": number}, "
 		"\"failures\": [string], "
+		"\"goalSatisfied\": boolean, \"unmetAspects\": [string], "
 		"\"requestPatch\": {\"goal\": string|null, \"resolvedRequest\": string|null, "
 		"\"constraints\": [string]|null, \"reason\": string}|null, "
 		"\"additionalTasksSuggested\": [{"
