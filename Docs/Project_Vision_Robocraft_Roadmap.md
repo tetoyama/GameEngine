@@ -1,16 +1,20 @@
-# Project Vision: Robocraft-Centered Extensible Simulation GameEngine Roadmap
+# Project Vision: Robocraft-Centered Composable Multi-World GameEngine Roadmap
 
 ## 状態
 
 **ビジョン定義・基盤フェーズ進行中（2026-07-18更新）**
 
-この文書は、GameEngineの長期的な設計目標、設計判断の優先順位、実装フェーズ、各フェーズの完了条件を定義する。
+この文書は、GameEngineの長期目標、アーキテクチャ境界、実装順序、各フェーズの完了条件を定義する。
 
-本エンジンは、単一作品専用のコードベースにも、UnityやUnreal Engineの機能数を追う汎用エンジンにもならない。
+本エンジンは、単一作品専用のコードベースにも、UnityやUnreal Engineの機能数を追う巨大な万能エンジンにもならない。
 
-> **Robocraftの「設計した機体を自分で操縦し、破損や性能不足の原因を理解して設計を改善する」体験を中心に置き、Minecraft、Create、Valkyrien Skies 2、Noitaに見られる編集可能世界、機械ネットワーク、可動ローカル世界、物質反応を段階的に統合できる、拡張可能なシミュレーションゲーム基盤を目指す。**
+> **汎用性と拡張性を維持しながら、WorldごとにService、ECS Component / System、Domain Module、Adapterを構成し、3Dアクション、STG、ボードゲーム、ミニゲーム、ボクセル世界、車両戦闘、構造シミュレーションなど、性質の異なるゲームを同じRuntime上で安全に扱えるエンジンを目指す。**
 
-オンライン対戦は、この基盤を利用する実行形態の一つであり、最終目的ではない。シングルプレイ、協力、対戦、サンドボックス、技術デモ、AI実験へ展開可能な構造を維持する。
+その設計品質を最も厳しく検証する統合目標として、次の体験を置く。
+
+> **Robocraftの「設計した機体を自分で操縦し、破損や性能不足の原因を理解して設計を改善する」体験を中心に、Minecraft、Create、Valkyrien Skies 2、Noitaに見られる編集可能世界、機械ネットワーク、可動ローカル世界、物質反応を段階的に統合する。**
+
+Robocraft型ゲームは唯一の用途ではない。最も複雑なVertical Sliceとして、Core、Service、ECS、Physics、保存、Editor、Networkの設計を検証する役割を持つ。
 
 関連資料:
 
@@ -21,11 +25,7 @@
 
 # 0. エグゼクティブサマリー
 
-## 0.1 最終的に作りたいもの
-
-プレイヤーが部品、ブロック、機械、資源を組み合わせて構造物を設計し、その構造が物理・接続・動力・電力・熱・物質・戦闘ルールによって実際に機能するゲームを作る。
-
-中心となる反復は次の通り。
+## 0.1 最終的なプレイヤー体験
 
 ```text
 設計する
@@ -41,11 +41,7 @@
 設計を改善する
 ```
 
-この反復が成立していない段階で、Voxel World、Factory、Material Simulation、Online PvPを広げない。
-
-## 0.2 作品要素は同列ではない
-
-参照作品の機能を均等に混ぜるのではなく、役割を明確に分ける。
+参照作品の役割は同列ではない。
 
 | 参照軸 | 本構想での役割 |
 |---|---|
@@ -57,6 +53,24 @@
 
 Robocraftが中心体験を決め、他の要素はその体験を拡張する。
 
+## 0.2 汎用性は「構成可能性」で得る
+
+「どんなゲームも扱える」とは、すべての機能をCoreへ入れ、すべてのSystemを常時実行することではない。
+
+```text
+小さなEngine Core
+      +
+WorldごとのShared Service
+      +
+必要なECS System Set
+      +
+選択可能なDomain Module
+      +
+Game固有Rule / Adapter / Presentation
+```
+
+必要なのは一つの巨大な万能Worldではなく、**構成可能で相互に隔離された複数World**である。
+
 ## 0.3 最初の大目標
 
 > **20〜100個の部品から機体を組み、走らせ、撃ち、部品が壊れ、複数のConstructへ分裂し、残った構造に応じて操作性と戦闘能力が変わり、Blueprintとして保存・復元できる。**
@@ -65,153 +79,65 @@ Robocraftが中心体験を決め、他の要素はその体験を拡張する�
 
 ---
 
-# 1. プレイヤー体験の設計原則
+# 1. エンジンとしての理想像
 
-## 1.1 設計が実際の挙動を決める
+## 1.1 同じCoreから異なるゲームを構成する
 
-ゲーム側が完成品の乗り物や正解を与えるのではなく、プレイヤーが作った構造をSimulationが解釈する。
+- Platformer: Character Motor、Camera、Animation、Checkpoint
+- STG: Projectile、Encounter、Enemy Spawn、Deterministic Seed
+- Board Game: Turn State、Rule Evaluation、Hidden Information、Replay
+- Minigame: Session、Countdown、Result、Presentation
+- Construct Sandbox: Part Storage、Physics Aggregate、Build Mode
+- Voxel World: Chunk、Streaming、Block Update、Save Diff
+- Factory: Functional Network、物流、加工、制御
+- Material Simulation: Active Region、熱、火、液体、電気
 
-設計結果として変化する対象:
+これらを一つの継承階層や巨大な`GameManager`へ押し込まない。
 
-- 重量
-- 重心
-- 慣性
-- 推力中心
-- 接地性
-- 旋回性
-- 安定性
-- 武器配置
-- 射界
-- 反動
-- 装甲
-- 冗長性
-- 動力経路
-- 電力供給
-- 熱と冷却
-- 破損後の残存能力
+## 1.2 「同時に扱える」の定義
 
-見た目だけ異なる部品配置ではなく、構造そのものが挙動を決める必要がある。
+- 同一Process内に複数のECS Worldを生成できる
+- Worldごとに異なるServiceとSystem Setを登録できる
+- Main Game、Build Preview、Test Drive、AI Simulationを別Worldで動かせる
+- Dedicated SimulationはRender Serviceなしで動作できる
+- UI PreviewはGameplay Physicsなしで動作できる
+- Minigameを独立Sessionとして起動・破棄できる
+- World間で共有するものと隔離するものを明示できる
 
-## 1.2 破壊は後付けしない
+World同士がComponent、Service内部状態、PhysX Actorの生ポインタを直接共有してはならない。連携にはCommand、Message、Snapshot、Stable ID、明示的なBridge Serviceを使う。
 
-部位破壊は演出ではなく、構造設計とSimulation Pipelineの前提とする。
+## 1.3 Coreへ入れるのは「機能」より「追加能力」
 
-初期段階から考慮するもの:
+Construct、Voxel、Material Simulation、Board Game Rule、Platformer Movement RuleをCoreへ無条件に入れない。
 
-- Part単位の識別と耐久
-- Structural Connectivity
-- 接続切断
-- Connected Components
-- Construct Split
-- 質量、重心、慣性の再計算
-- Weapon、Wheel、Thruster、Seatなどの機能喪失
-- 分裂後のPhysicsとRender再生成
-- Damage結果の保存、Replay、Network表現
-
-「完成した機体に後から部位破壊を追加する」順序は採用しない。破壊を前提にしないデータ構造は、後で作り直す可能性が高い。
-
-## 1.3 壊れてもすぐ全損にしない
-
-重要なのはHPを削って機体全体を消すことではない。
-
-- 武器を失う
-- 片側の車輪を失う
-- 推力が偏る
-- 電力経路が切れる
-- 操縦席は残るが移動不能になる
-- 分離した残骸が物理的に残る
-- 不完全な状態でも帰還や反撃が可能になる
-
-この部分的失敗が、設計改善の理由になる。
-
-## 1.4 原因を理解できることを重視する
-
-複雑なSimulationでも、プレイヤーが原因を理解できなければ設計ゲームとして成立しない。
-
-必要な可視化:
-
-- 重心と推力中心
-- 接続強度
-- Damage経路
-- 電力供給
-- 回転速度とトルク
-- 流量と圧力
-- 温度と冷却
-- 操縦入力の伝達先
-- 機能停止理由
-- 分裂予測
-
-Build Mode、HUD、Damage Feedback、Debug Viewは補助機能ではなく、中心体験の一部として設計する。
-
-## 1.5 設計から試験までを速くする
-
-Robocraft型の面白さは、設計と実戦の反復速度に強く依存する。
-
-目指す導線:
-
-```text
-Build
-  ↓
-即時Validation
-  ↓
-Test Drive / Test Fire
-  ↓
-Damage Test
-  ↓
-原因表示
-  ↓
-Buildへ復帰
-```
-
-Scene YAMLやコードを手編集しなければ試せない状態を、完成したBuild Modeとは扱わない。
+Coreは、Moduleを安全に登録、実行、破棄、検証する能力を持つ。
 
 ---
 
 # 2. エンジンとしての成功条件
 
-最終ゲームだけが動いても、他ジャンルを扱えなくなった場合は成功とはしない。
-
-成功条件:
-
 1. Robocraft型の構造Simulationを無理なく実装できる。
-2. Platformer、TPS、STG、ボードゲーム、ミニゲームがConstruct Moduleなしで動作できる。
-3. Worldごとに必要なServiceとDomain Moduleだけを選択できる。
-4. ゲーム固有Adapterを追加してもEngine Coreを汚染しない。
-5. 複数のゲームやSceneで実績を得たAdapterだけを汎用Serviceへ昇格できる。
-6. Authoritative State、Physics、Render、Editor、Save、Networkの責務が混線しない。
-7. プレイヤー生成構造を破壊、保存、複製、検証、再生できる。
-8. 大量Partを1 Part = 1 Entityへ固定せず、用途に応じたStorageで扱える。
+2. Platformer、TPS、STG、Board Game、MinigameがConstruct Moduleなしで動作できる。
+3. Worldごとに必要なService、ECS System Set、Domain Moduleだけを選択できる。
+4. 同一Process内で異なるSimulation ProfileのWorldを同時実行できる。
+5. ゲーム固有Adapterを追加してもEngine Coreを汚染しない。
+6. 実績の取れたAdapterだけをShared Serviceへ昇格できる。
+7. Authoritative State、Physics、Render、Editor、Save、Networkの責務が混線しない。
+8. 大量Partを`1 Part = 1 Entity`へ固定せず、用途に応じたStorageで扱える。
+9. Moduleを使用しないGameへ不要な初期化、Memory、依存を強制しない。
 
-## 2.1 自作エンジンを選ぶ理由
+自作エンジンの価値は、内部コードへアクセスできることではない。
 
-- 完全に把握可能なC++コード
-- ゲーム固有Adapterを自由に追加可能
-- Engine内部まで制約なく変更可能
-- ECS Storage、System Phase、Scheduler、Render Pipeline、Physics連携をゲーム要件に合わせられる
-- 状態の正本、更新順序、保存形式、Network同期単位をゲームの中心概念に合わせて定義できる
-- 失敗した抽象化をCompatibility Layerごと整理し直せる
+> **ゲームの中心概念と複数ゲームの構成方式を、Engine Architectureの中心へ置けることにある。**
 
-> **自作エンジンの価値は、内部コードへアクセスできることではなく、ゲームの中心概念をEngine Architectureの中心へ置けることにある。**
+Unity / Unreal Engineを機能数で追わず、次を優先する。
 
-## 2.2 Unity / Unreal Engineを機能数で追わない
-
-優先しないもの:
-
-- 映画制作向け機能の網羅
-- Hair、Clothなどの全面対応
-- 全Platformへの早期対応
-- 巨大なAsset Store相当
-- 汎用Visual Scriptingの完全再現
-- 全ジャンル向け既製Gameplay Framework
-
-優先するもの:
-
+- World / Service / Moduleの構成能力
 - プレイヤー生成構造
 - 動的な分離と結合
 - 大量部品向けStorage
 - 可動ローカルWorld
 - 構造、機械、電力、流体、熱の連携
-- 部品破壊から機能喪失までの一貫したPipeline
 - Construct差分を前提とした保存、Undo、Replay、Network同期
 - Simulationの原因を理解できるEditorとDebug表示
 
@@ -231,11 +157,12 @@ Engine Core
 
 Optional Shared Services
 ├─ Character Motor
+├─ Physics Query
 ├─ Navigation
 ├─ UI / Localization
 ├─ Feedback
 ├─ Save / Replay
-└─ Network Transport
+└─ Network
 
 Domain Modules
 ├─ Construct
@@ -253,9 +180,40 @@ Game Layer
 └─ Presentation
 ```
 
-すべてのゲームへConstruct、Voxel、Material Simulationを強制しない。
+## 3.2 ECS、Service、Domain Module、Adapterの役割
 
-## 3.2 Service Scope
+すべてをECSへ入れず、すべてをServiceにも入れない。
+
+| 境界 | 適するもの | 適さないもの |
+|---|---|---|
+| ECS Component | Entityごとの小さな状態、並列反復したいデータ | Process全体の外部Resource、巨大Graphの正本 |
+| ECS System | Component集合に対するPhase付き処理 | 所有範囲不明のGlobal処理 |
+| Shared Service | World / Session共有状態、外部Library窓口、明確なLifecycleを持つ機能 | Entityごとの大量データ、Game固有Rule |
+| Domain Module | 独立した正本データとRuleを持つOptionalな機能領域 | 全Game必須の低レベル基盤 |
+| Game Adapter | 実制作で契約を検証する薄い統合層 | 長期的な重複実装 |
+| Presentation | Audio、VFX、Camera、UI | Gameplayの正本状態 |
+
+ECSへ置く条件:
+
+- Entity単位で存在する
+- Storageと並列反復の恩恵がある
+- System Phaseで更新できる
+- Component単位のSerialization契約を作れる
+
+Serviceへ置く条件:
+
+- 複数Entity / Systemが共有する
+- Engine / Session / World / Scene Scopeがある
+- 外部LibraryやOS Resourceの所有者になる
+- CommandやQuery APIとして公開できる
+
+Domain Moduleへ置く条件:
+
+- 独自の正本Storage、Command、Revision、Validationを持つ
+- 未使用Gameでは登録しなくてよい
+- ECS EntityをRuntime Proxyとして利用できる
+
+## 3.3 Service Scope
 
 | Scope | 例 | 原則 |
 |---|---|---|
@@ -265,11 +223,94 @@ Game Layer
 | Scene | Encounter、Level Script、Scene UI | Sceneロードと連動 |
 | Entity | Character、Weapon、高機能Part | ECS Component / Systemで管理 |
 
-Global Singletonを増やさず、`EngineContext`、`WorldContext`、Service Registryから明示的に解決する。
+Global Singletonを増やさず、`EngineContext`、`SessionContext`、`WorldContext`、Service Registryから明示的に解決する。
 
-## 3.3 Adapterの役割
+## 3.4 World Composition Manifest
 
-Adapterは、Engine不足を恒久的に隠す迂回路ではなく、必要条件を実制作で検証するための境界とする。
+Worldの構成を暗黙的な`Get<T>()`呼び出しだけで決めない。
+
+```cpp
+struct WorldComposition {
+    WorldProfileID profile;
+    std::vector<ServiceTypeID> services;
+    std::vector<SystemSetID> systemSets;
+    std::vector<DomainModuleID> modules;
+    std::vector<AdapterID> adapters;
+    WorldCapabilitySet requiredCapabilities;
+    WorldCapabilitySet providedCapabilities;
+};
+```
+
+例:
+
+```text
+PlatformerWorld
+├─ Physics World Service
+├─ Character Motor Service
+├─ Animation / Camera System Set
+├─ UI / Feedback Service
+└─ Platformer Rule Adapter
+
+ConstructSandboxWorld
+├─ Physics World Service
+├─ Construct / Vehicle / Build Mode Module
+├─ Construct Debug Service
+└─ Sandbox Rule Adapter
+
+DedicatedSimulationWorld
+├─ Physics World Service
+├─ Construct / Damage Module
+├─ Network Replication Service
+└─ Render / Editorなし
+```
+
+ManifestはDependency解決、起動時Validation、Debug表示、Automated Testに利用する。
+
+## 3.5 Module Lifecycle
+
+```text
+DescribeCapabilities
+        ↓
+ValidateDependencies
+        ↓
+RegisterComponents / Storage
+        ↓
+RegisterServices / Systems
+        ↓
+InitializeWorldState
+        ↓
+Start
+        ↓
+Stop
+        ↓
+Unregister / Destroy
+```
+
+規則:
+
+- Schedule開始後にComponent Typeを初回登録しない
+- Module依存は宣言し、暗黙的Global探索に依存しない
+- 循環依存を許可しない
+- Optional依存はCapability Queryで確認する
+- Module停止後にCallback、ComponentRef、外部Handleを残さない
+- Serialization VersionとMigration方針をModule単位で持つ
+
+## 3.6 World間Bridge
+
+World間で共有Mutable Stateを直接参照しない。
+
+- Immutable Snapshot
+- Validated Command
+- Event / Message Queue
+- Stable Resource Handle
+- Save / Blueprint Asset
+- Explicit Bridge Service
+
+Build WorldからTest Drive WorldへBlueprintを渡す場合も、ECS StorageやPhysX Actorを共有せず、BlueprintまたはSnapshotを渡す。
+
+---
+
+# 4. Adapterの役割とPlatformerから得た教訓
 
 ```text
 Game Adapterで仮説検証
@@ -285,27 +326,36 @@ Shared Service / Domain Moduleへ昇格
 
 Engineへ昇格する条件:
 
-- 複数のGameまたはSceneで同じ要求が発生した
+- 複数GameまたはSceneで同じ要求が発生した
 - 状態所有者と更新Phaseを定義できる
 - ゲーム固有名称を除去できる
 - Serialization、Debug、Testを含む契約を作れる
-- 外部Libraryの生ポインタをGameplayへ漏らさない
+- World ScopeとLifecycleを定義できる
+- 未使用Gameへの依存を発生させない
 
-Game側へ残すもの:
+Platformer実装では次の問題が発生した。
 
-- ルール固有の勝敗判定
-- 作品固有の操作感
-- 特定の演出タイミング
-- 一つの作品だけで使う特殊データ
-- 汎用化すると契約が複雑になるだけの機能
+- Physics Query Filterが弱く、自己Collider、Trigger、CameraZone、Environmentを誤検出した
+- 複数ScriptがPlayer TransformとPhysX Actorへ書き、坂、落下、Step Assistが相互に回帰した
+- Step AssistをPresentation Componentへ置き、Character Controllerの確定結果を後から上書きした
+- Collider原点と見た目原点の差によりStomp判定が不安定になった
+- Debug Draw不足によりRay、Normal、Trigger、Zoneの誤判定を発見しにくかった
+
+この実績から、次をShared Serviceへ昇格する。
+
+- Physics Query Service
+- Character Motor
+- Collision Contact
+- Gameplay Debug Draw
+- Feedback / Time Domain Service
+
+Boss Arena Boundaryや作品固有のTriple Jump条件はGame Ruleへ残す。
 
 ---
 
-# 4. 状態所有権とSimulation Pipeline
+# 5. 状態所有権とSimulation Pipeline
 
-## 4.1 Construct Stateを正本にする
-
-将来のConstructでは、ECS Entity、PhysX Actor、Render Objectを状態の正本にしない。
+## 5.1 正本と派生表現
 
 ```text
 Authoritative Domain State
@@ -317,31 +367,9 @@ Render Representation
 Audio / VFX / UI / Network Snapshot
 ```
 
-Constructの場合:
+PhysicsやRender表現を破棄しても、正本から再生成できることを不変条件とする。
 
-```text
-Construct State
-├─ Parts
-├─ Structural Graph
-├─ Damage State
-├─ Mass Properties
-├─ Functional Networks
-└─ Local Coordinate Space
-
-        ↓ 派生
-
-Physics Aggregate
-ECS Runtime Proxy
-Render Batch
-Editor Handle
-Network Snapshot
-```
-
-PhysicsやRender表現を破棄しても、Construct Stateから再生成できることを不変条件とする。
-
-## 4.2 単一書き込み所有者
-
-同じ状態を複数Systemが直接変更しない。
+## 5.2 単一書き込み所有者
 
 - Player位置と速度はCharacter Motorだけが最終書き込みする
 - ConstructのPart追加・削除はConstruct Command経由だけで行う
@@ -350,9 +378,18 @@ PhysicsやRender表現を破棄しても、Construct Stateから再生成でき�
 - Render BatchはRender Representation Systemだけが更新する
 - Network受信データは検証済Domain Commandへ変換する
 
-ECSのRead / Write Access宣言だけでは、複数Scriptによる同一PhysX Actorの直接操作を防げない。外部Library操作も所有Systemへ封じる。
+所有者以外は直接書かず、Requestを送る。
 
-## 4.3 標準破壊Pipeline
+```cpp
+motor.AddImpulse(...);
+motor.Teleport(...);
+motor.SetMovementConstraint(...);
+construct.EnqueueOperation(...);
+feedback.Play(...);
+worldBridge.Send(...);
+```
+
+## 5.3 標準破壊Pipeline
 
 ```text
 Input / Network Command
@@ -380,50 +417,16 @@ Render / Feedback / Replication
 
 この順序をSystem PhaseとCommand Bufferで保証する。
 
-## 4.4 RevisionとCommand
-
-Construct変更は、直接配列を書き換えるのではなくOperationとして表現する。
-
-```cpp
-struct ConstructOperation {
-    ConstructID construct;
-    ConstructRevision expectedRevision;
-    OperationType type;
-    OperationPayload payload;
-};
-```
-
-対象:
-
-- Part配置
-- Part削除
-- 回転
-- Damage
-- Repair
-- Paint
-- Docking
-- Split / Merge
-- Blueprint適用
-
-CommandとRevisionを共通単位にすることで、Undo、Redo、Save Diff、Replay、Network同期、AI操作を同じ境界へ揃える。
-
 ---
 
-# 5. Constructを第一級概念にする
+# 6. Constructを第一級概念にする
 
-## 5.1 ConstructはOptional Domain Module
-
-Constructは最終構想の中心だが、すべてのGameへ強制するEngine Core Objectにはしない。
-
-PlatformerやBoard Gameは通常のECS Worldだけで動作する。Vehicle、Ship、Factory、Robocraft型ゲームだけがConstruct Moduleを登録する。
-
-## 5.2 基本データ案
+Constructは最終構想の中心だが、全Gameへ強制するCore Objectにはしない。
 
 ```cpp
 struct Construct {
     ConstructID id;
     ConstructRevision revision;
-
     LocalCoordinateSpace localSpace;
     PartStorage parts;
     StructuralGraph structuralGraph;
@@ -433,17 +436,16 @@ struct Construct {
 };
 ```
 
-Construct Stateに含めるもの:
+Construct Stateへ置くもの:
 
 - Part Type / Stable ID
-- GridまたはSocket上の配置
+- Grid / Socket配置
 - Local Transform
 - 接続Port
 - HP / Damage / Temperature
-- 所有者 / Team
 - Structural Connectivity
 - Mass / Center of Mass / Inertia
-- Mechanical / Electrical / Fluid / Logic / Thermal Network
+- Functional Network
 - Revision
 
 派生表現へ置くもの:
@@ -451,293 +453,147 @@ Construct Stateに含めるもの:
 - PhysX Shape / Actor
 - Render Instance / Mesh Batch
 - Particle / Audio
-- Editor Selection Handle
+- Editor Handle
 - Replication Snapshot
-
-## 5.3 ECSとの関係
 
 `1 Part = 1 Entity`を固定ルールにしない。
 
-- 数十個の高機能PartはECS Entity化できる
-- 数百〜数千個の単純BlockはConstruct専用SoA Storageへ格納する
-- Weapon、Seat、Engine、Sensorなど高機能PartだけEntity Proxyを持てる
-- RenderはConstruct単位のBatch / Instanceへ集約する
+- 高機能PartはECS Entity化できる
+- 数百〜数千の単純BlockはConstruct専用SoA Storageへ格納する
+- ECSはSystem間連携とRuntime Proxy管理に利用する
 - 初期Physicsは`1 Construct = 1 RigidBody`を基本とする
-- 分裂時にConnected Componentごとに新しいConstructを生成する
 
-ECSは万能データ形式ではなく、System間連携とRuntime Proxy管理に使用する。
-
-## 5.4 構造Graphと機能Graphを分ける
-
-一つのGraphへすべての接続を詰め込まない。
-
-```text
-Structural Graph
-Mechanical Graph
-Electrical Graph
-Fluid Graph
-Logic Graph
-Control Graph
-Thermal Graph
-```
-
-Structural Graphは物理的な接続と分裂を決める。Functional GraphはPartのPort種別と接続状態から供給・伝播・停止を計算する。
+Structural GraphとMechanical / Electrical / Fluid / Logic / Control / Thermal Graphを分離する。
 
 ---
 
-# 6. 現在ある基盤
+# 7. 現在ある基盤と不足
 
-## 6.1 Runtime / ECS
+## 7.1 既存基盤
 
-- 世代付きEntity
-- `ComponentRef<T>` / `EntityRef`
+- 世代付きEntity、`ComponentRef<T>` / `EntityRef`
 - Dense / Sparse / DirectPaged / Archetype系Storage
-- System Phase / Priority
-- Read / Write Access宣言
-- Command BufferによるStructural Change
-- Job System / Parallel Schedule Executor
-- `CustomScriptComponent`
-- `EngineContext`によるService管理
+- System Phase、Read / Write Access、Command Buffer
+- Job System / Parallel Scheduler
+- DirectX 11 / HLSL / Deferred Rendering
+- Shadow、Material、Particle、Post Effect、Culling、Static Batch
+- PhysX、Collider、Trigger、Raycast
+- Scene、Prefab、YAML、Reflection、Inspector
+- Resource、Audio、ImGui Editor / Player View
 
-## 6.2 Rendering
+## 7.2 実制作で確認できた強み
 
-- DirectX 11 / HLSL
-- Deferred Rendering
-- Shadow / CSM / Point Shadow
-- Mesh / Model / Sprite / Billboard / Terrain
-- Material / Texture / Normal Map / Environment Map
-- Particle / Effect
-- Post Effect / Bloom / Blur / BrightPass
-- Culling / Static Batching
-- ImGui Editor / Player View
-
-## 6.3 Physics / Scene / Asset
-
-- PhysX
-- Box / Sphere / Capsule / Mesh Collider
-- Static / Dynamic Actor
-- Trigger / Collision Layer
-- Raycast
-- Scene / Prefab / YAML Serialization
-- Reflection / Inspector
-- Resource管理
-- Audio
-
-## 6.4 実制作から確認できたこと
-
-Platformer、Minigame、Board Game、STGなど、異なるGameをGame固有ComponentとAdapterとして追加できている。
-
-確認できた強み:
-
+- Platformer、STG、Board Game、MinigameをGame固有Component / Adapterとして追加できる
 - Game側からRenderWorld、RHI、D3D11 Resourceへ直接依存せず描画できる
-- Game固有AdapterでPhysics QueryやFeedbackの仮説検証ができる
-- Scene / Component駆動でGameを構成できる
+- Game AdapterでPhysics QueryやFeedbackの仮説検証ができる
 - Engine内部を必要に応じて修正できる
 
-確認できた不足:
+## 7.3 先に整えるShared Service
 
-- Physics QueryのFilter契約が不明瞭
-- Character移動の汎用基盤がない
-- Collision Contact情報が不足
-- Gameplay Debug DrawとScene Validationが弱い
-- UI Text、Layout、Localizationが不足
-- Feedback、Particle、Time Domainが分散
-- Scene / Prefabを調整するEditor導線が不足
-- 複数Systemが外部Physics状態を書き換えやすい
+1. Physics Query Filter / Shape Cast
+2. Collision Contact情報
+3. Character Motor
+4. Gameplay Debug Draw / Scene Validation
+5. UI Text / Layout / Localization
+6. Feedback Service / Time Domain
+7. Release Build / Asset Packaging
 
-これらは最終構想とは別の寄り道ではない。Construct、Dynamic Local World、Damage Simulationを安全に実装するための前提である。
+これらはConstruct開発の寄り道ではなく、安全なDynamic Local WorldとDamage Simulationの前提である。
 
 ---
 
-# 7. 最終構想に必要なDomain Module
+# 8. 最終構想のDomain Module
 
-## 7.1 Construct Kernel
+## Construct Kernel
 
-規模: **XL / 最重要**
-
-- Grid / Socket配置
-- Part追加、削除、回転
-- Part Definition
-- Part Storage
-- Structural Graph
-- Connected Components
+- Part Definition / Storage
+- Grid / Socket
+- Structural Graph / Connected Components
 - Split / Merge
 - Revision / Command
-- Mass / Center of Mass / Inertia
-- Blueprint
-- Undo / Redo Operation
+- Mass Property
+- Blueprint / Undo / Redo
 - Runtime Representation生成
 
-## 7.2 Build Mode
+## Build Mode
 
-規模: **XL / 中心体験**
-
-- Part Palette
-- Ghost Preview
-- Placement Validation
-- Grid / Socket Snap
-- Symmetry / Mirror
-- Box Select
-- Copy / Paste
-- Paint
-- Undo / Redo
+- Placement / Validation / Snap
+- Symmetry / Selection / Copy / Paste
+- Paint / Undo / Redo
 - Blueprint Library
 - 重量、重心、推力中心、Network可視化
-- Test Drive / Test Fireへの即時遷移
+- Test Driveへの即時遷移
 
-Build Mode UXはEditor補助ではなく、プレイヤー体験そのものである。
+## Vehicle / Control
 
-## 7.3 Vehicle / Control
+- Wheel / Thruster / Hover / Wing
+- Seat / Input Mapping / Stabilization
+- Weapon Mount / Recoil / Control Authority
 
-規模: **L〜XL**
+## Structural Damage
 
-- Wheel
-- Thruster
-- Hover
-- Leg
-- Wing / Control Surface
-- Seat / Controller
-- Input Mapping
-- Stabilization
-- Weapon Mount
-- Recoil
-- Control Authority
-
-## 7.4 Structural Damage
-
-規模: **XL / 中心体験**
-
-- Part HP
-- Armor / Damage Type
-- Penetration
-- Explosion
-- Connection Strength
-- Part Detach
-- Construct Split
-- Debris Policy
+- Part HP / Armor / Penetration / Explosion
+- Connection Strength / Part Detach
+- Construct Split / Debris
 - Mass Property再計算
 - Weapon / Movement / Control喪失
 - Damage原因表示
 
-## 7.5 Dynamic Local World
-
-規模: **XL**
+## Dynamic Local World
 
 - Construct Local / World変換
-- Construct上のEntity
-- 動く構造上を歩くCharacter
+- Construct上のEntityとCharacter
 - Local Velocity継承
-- Construct上のRay / Shape Query
-- Docking / Undocking
-- Joint
-- Construct間接触
+- Local Query
+- Docking / Joint
 - Split / Merge時のEntity移行
-- Large World Precision
 
-## 7.6 Functional Network
-
-規模: **XL**
+## Functional Network
 
 - Typed Port
-- Graph Rebuild
-- Dirty Propagation
-- Supply / Demand
-- RPM / Torque
-- Voltage / Current
-- Pressure / Flow
-- Signal
-- Heat / Cooling
-- Failure / Overload
+- Mechanical / Electrical / Fluid / Logic / Control / Thermal Graph
+- Dirty Rebuild
+- Supply / Demand / Overload
 - Debug Visualization
 
-## 7.7 Voxel / Chunk World
+## Voxel / Chunk World
 
-規模: **XL**
-
-- Chunk Storage
-- Block State
-- Palette Compression
-- Neighbor Update
-- Runtime Editing
-- Meshing
-- Collision Rebuild
-- Streaming
-- Save Diff
-- Lighting
-- Replication
+- Chunk Storage / Streaming
+- Block State / Neighbor Update
+- Runtime Editing / Meshing / Collision
+- Save Diff / Replication
 - World BlockとConstruct Partの変換境界
 
-既存Terrain Systemとは別のDomain Moduleとして設計する。
-
-## 7.8 Material Simulation
-
-規模: **XL**
+## Material Simulation
 
 - Solid / Powder / Liquid / Gas
 - Temperature / Pressure
-- Combustion
-- Electricity
-- Corrosion
-- Phase Change
-- Explosion / Chain Reaction
+- Combustion / Electricity / Corrosion
 - Active Simulation Region
+- Construct Damage連携
 
-全Worldを常時高解像度で更新せず、機体内部、破損地点、火災、液体領域など必要な範囲だけをActive Regionとして処理する。
+## Save / Replay / Network
 
-## 7.9 Save / Replay / Diagnostics
-
-- Blueprint
-- Construct Operation Log
-- Revision Snapshot
-- Damage Timeline
-- Replay
-- Deterministic Seed
-- Runtime Audit
-- Failure Reason
-- Performance Counter
-
-設計改善を支えるため、結果だけでなく原因を記録できる構造にする。
-
-## 7.10 Network / Replication
-
-規模: **XL / 最難関の一つ**
-
-- Authoritative Server
-- Entity Replication
-- Construct Operation同期
-- Revision / Diff同期
-- Physics Snapshot
-- Prediction / Reconciliation
-- Interest Management
-- Chunk同期
-- Damage / Split同期
-- Join-in-progress
-- Dedicated Server
-- Mod Compatibility
-
-完全決定論だけへ依存せず、Domain Command、Revision、Snapshot、補正を組み合わせる。
+- Blueprint / Operation Log / Revision Snapshot
+- Damage Timeline / Replay / Runtime Audit
+- Authoritative Command / Snapshot / Prediction
+- Interest Management / Join-in-progress
 
 ---
 
-# 8. フェーズ別ロードマップ
-
-各Phaseは巨大実装として進めず、必ず遊べるか検証できるVertical Sliceを持つ。
+# 9. フェーズ別ロードマップ
 
 ## Phase R0: Foundation Stabilization
 
-目的: 通常Game制作と将来のSimulationで共通して必要な基盤を安定させる。
-
 - [~] ECS / Scheduler / Job System移行
-- [ ] Component外部状態の所有権規則
-- [ ] Physics Query Filter
-- [ ] Raycast / SphereCast / CapsuleCast / Overlap
+- [ ] 外部状態の所有権規則
+- [ ] Physics Query Filter / Shape Cast
 - [ ] Collision Contact情報
 - [ ] Character Motor
-- [ ] Gameplay Debug Draw
-- [ ] Scene Validation
-- [ ] UI Text / Layout基礎
+- [ ] Gameplay Debug Draw / Scene Validation
+- [ ] UI Text / Layout
 - [ ] Feedback Service / Time Domain
-- [ ] Device Lost / Release Build / Asset Packaging
+- [ ] Release Build / Asset Packaging
 
 完了条件:
 
@@ -747,34 +603,37 @@ Build Mode UXはEditor補助ではなく、プレイヤー体験そのもので�
 
 ## Phase R1: Service / World Composition
 
-目的: 異なるGameとSimulationを同一Engineで安全に共存させる。
-
-- [ ] Engine / Session / World / Scene Service Scope
-- [ ] WorldごとのService Registry
+- [ ] `WorldContext`とWorld単位Service Registry
+- [ ] World Composition Manifest
+- [ ] Capability宣言
 - [ ] Optional Module Lifecycle
+- [ ] Dependency Validation / 循環依存検出
 - [ ] System Set / Simulation Profile
 - [ ] 複数World同時実行
-- [ ] Editor Preview / Player / Automated Test World分離
+- [ ] Explicit World Bridge
+- [ ] Preview / Player / Automated Test World分離
 - [ ] Adapter昇格・廃止規則
 
 完了条件:
 
 - Platformer Worldと別ジャンルのWorldを同一Processで独立実行できる
-- 不要なDomain Moduleを登録せずGameを起動できる
+- Main、Preview、Test Worldが状態を混線させない
+- 不要なModuleを登録せずGameを起動できる
+- World破棄後にService、Callback、外部Handleが残らない
+
+Vertical Slice:
+
+> Platformer World、Construct Preview World、AI Test Worldを同一Processで生成し、異なるService / System Setで動かし、SnapshotだけをBridgeで交換する。
 
 ## Phase R2: Construct Kernel Prototype
 
-目的: 最終構想の正本データを確立する。
-
-- [ ] Part Definition
+- [ ] Part Definition / Storage
 - [ ] Grid / Socket
-- [ ] Part Storage
-- [ ] Structural Graph
-- [ ] Connected Components
+- [ ] Structural Graph / Connected Components
 - [ ] Revision / Command
 - [ ] Mass / Center of Mass / Inertia
 - [ ] `1 Construct = 1 PhysX RigidBody`
-- [ ] Render Instance / Batch生成
+- [ ] Render Batch生成
 - [ ] Blueprint Save / Load
 
 Vertical Slice:
@@ -785,125 +644,50 @@ Vertical Slice:
 
 - [ ] 配置 / 削除 / 回転
 - [ ] Ghost Preview / Validation
-- [ ] Symmetry / Mirror
-- [ ] Selection / Copy / Paste
+- [ ] Symmetry / Selection / Copy / Paste
 - [ ] Undo / Redo
 - [ ] 性能、質量、重心表示
 - [ ] Blueprint Library
 - [ ] Test Driveへの即時遷移
 
-完了条件:
-
-- CodeやYAMLを手編集せず機体を完成できる
-- 不正接続や浮遊Partを配置時に理解できる
-- BuildとTestを短い導線で反復できる
-
 ## Phase R4: Small Robocraft Vertical Slice
 
-目的: 中心体験を最小構成で成立させる。
-
-- [ ] Wheel / Thruster / Hoverのうち最低2種類
+- [ ] 移動方式を最低2種類
 - [ ] Seat / Input Mapping
-- [ ] Weapon / Projectile / Hitscan
-- [ ] Part HP / Damage
+- [ ] Weapon
+- [ ] Part Damage
 - [ ] Structural Graph再計算
 - [ ] Construct Split
 - [ ] 分裂後のPhysics再生成
-- [ ] 推進、武器、操縦能力の喪失
+- [ ] 機能喪失
 - [ ] Damage原因表示
-- [ ] Feedback / Camera / Audio連携
-- [ ] Buildへ戻り設計を修正する導線
+- [ ] Buildへ戻る導線
 
 Vertical Slice:
 
-> 機体を組み、走らせ、撃ち、部品が壊れ、複数のConstructへ分裂し、残存部品に応じて操作性が変わり、原因を確認して設計を改善する。
+> 機体を組み、走らせ、撃ち、部品が壊れ、複数Constructへ分裂し、残存部品に応じて操作性が変わり、原因を確認して設計を改善する。
 
-この時点を、Robocraft軸の最初の成立点とする。
+## Phase R5以降
 
-## Phase R5: Dynamic Local World / Contraption
+- R5: Dynamic Local World / Contraption
+- R6: Functional Network
+- R7: Voxel / Chunk World
+- R8: Material Simulation
+- R9: Network / Replication
+- R10: Integrated Game Loop
 
-- [ ] Construct Local Space
-- [ ] Construct上のEntity
-- [ ] Moving Construct上のCharacter
-- [ ] Local Query
-- [ ] Docking / Joint
-- [ ] Split / Merge時のEntity移行
-- [ ] 回転・往復するContraption
-
-Vertical Slice:
-
-> 移動する船上を歩き、別Constructへ乗り移り、Dockingして一つの構造として動かす。
-
-## Phase R6: Functional Network
-
-- [ ] Typed Port
-- [ ] Electrical Graph
-- [ ] Mechanical Graph
-- [ ] Logic / Control Graph
-- [ ] Dirty Rebuild
-- [ ] Debug Visualization
-- [ ] Overload / Failure
-
-Vertical Slice:
-
-> GeneratorからCableを通してMotorとWeaponへ電力を供給し、途中のPart破壊で機能が停止する。
-
-## Phase R7: Voxel / Chunk World
-
-- [ ] Chunk Storage / Streaming
-- [ ] Block Placement / Mining
-- [ ] Meshing / Collision
-- [ ] Neighbor Update
-- [ ] Save Diff
-- [ ] Construct化 / World化の境界
-
-Vertical Slice:
-
-> WorldからBlockを採掘し、機体へ搭載し、移動後もWorldとConstructの状態を保存できる。
-
-## Phase R8: Material Simulation
-
-- [ ] Material Cell
-- [ ] Active Region
-- [ ] Heat / Fire
-- [ ] Liquid / Gas
-- [ ] Electricity
-- [ ] Corrosion / Explosion
-- [ ] Construct Damage連携
-
-Vertical Slice:
-
-> 冷却系が破損し、液体漏れ、過熱、引火、電力喪失がSimulationから連鎖する。
-
-## Phase R9: Network / Replication
-
-- [ ] Session / Room
-- [ ] Authoritative Command
-- [ ] Construct Revision同期
-- [ ] Physics Snapshot / Prediction
-- [ ] Damage / Split同期
-- [ ] Interest Management
-- [ ] Chunk / Material Region同期
-- [ ] Join-in-progress
-
-オンライン対戦だけでなく、協力、Dedicated Simulation、AI Clientにも利用できるNetwork基盤とする。
-
-## Phase R10: Integrated Game Loop
-
-- [ ] 探索 / 資源
-- [ ] 製造 / Factory
-- [ ] Build / Repair
-- [ ] Vehicle / Ship運用
-- [ ] Combat / Encounter
-- [ ] Progression
-- [ ] Single / Co-op / Versus Rule Set
-- [ ] Mod / Content Extension
+各Phaseは必ず遊べるVertical Sliceを持つ。
 
 ---
 
-# 9. フェーズゲート
+# 10. フェーズゲート
 
-機能数ではなく、次のGateを通過したかで進捗を判断する。
+## Gate 0: 複数Gameを構成できる
+
+- World Compositionを明示できる
+- 不要なService / Moduleを外して起動できる
+- 複数Worldで状態が混線しない
+- Module LifecycleとDependencyをValidationできる
 
 ## Gate A: Constructを保存できる
 
@@ -912,7 +696,7 @@ Vertical Slice:
 - Blueprintへ保存・復元できる
 - PhysicsとRenderを正本から再生成できる
 
-## Gate B: プレイヤーがコードなしで設計できる
+## Gate B: コードなしで設計できる
 
 - Build Modeだけで機体を完成できる
 - 配置不可能な理由を理解できる
@@ -934,58 +718,29 @@ Vertical Slice:
 
 Gate Dまで通過して初めて、Robocraft軸の中心ループが成立したと判断する。
 
-## Gate E: 可動ローカル世界が成立する
+---
 
-- Construct上をCharacterが歩ける
-- Local / World Queryが一貫する
-- Docking、Split、MergeでEntityが正しく移行する
+# 11. 設計上の不変条件
 
-## Gate F: 接続から機能が生まれる
-
-- Port接続から電力、機械、論理Networkが構築される
-- 破壊でNetworkが再計算される
-- 停止理由を可視化できる
-
-## Gate G: Worldと物質が統合される
-
-- Voxel Worldを編集、保存、Streamingできる
-- World BlockとConstruct Partを移動できる
-- Active Region内で物質反応が動く
-- Material結果がConstruct Damageへ接続される
+1. **汎用性は巨大な万能Coreではなく、Service、ECS System Set、Domain Moduleの構成可能性で得る。**
+2. **Robocraft型の設計・操作・破壊・再設計ループを最上位の統合判断基準にする。**
+3. **Robocraft固有機能を他Gameへ強制されるEngine Coreへ入れない。**
+4. **Domain ModuleはOptionalとする。**
+5. **WorldごとにService ScopeとSimulation Profileを明示する。**
+6. **状態の正本を一つにし、PhysicsとRenderを派生表現として扱う。**
+7. **外部Library操作を所有Service / Systemへ封じる。**
+8. **構造変更はCommand / Revisionを経由する。**
+9. **Adapterは検証用境界とし、恒久的な重複実装にしない。**
+10. **汎用化は利用実績と失敗条件を得てから行う。**
+11. **ECS化、Service化自体を設計目的にしない。**
+12. **保存、Debug、Editor、Testを後付けにしない。**
+13. **World間で共有Mutable Stateや外部Handleを直接共有しない。**
+14. **Online、Voxel、Material Simulationを中心ループ成立前の逃げ道にしない。**
+15. **Unity / Unrealの機能数ではなく、このゲーム群への適合性で優先順位を決める。**
 
 ---
 
-# 10. 設計上の不変条件
-
-1. **Robocraft型の設計・操作・破壊・再設計ループを最上位の判断基準にする。**
-2. **破壊を後付け機能として扱わない。**
-3. **Game固有機能を理由なくEngine Coreへ入れない。**
-4. **Domain ModuleはOptionalであり、未使用Gameへ依存を強制しない。**
-5. **状態の正本を一つにし、PhysicsとRenderを派生表現として扱う。**
-6. **外部Libraryの生ポインタ操作を所有Systemへ封じる。**
-7. **構造変更はCommand / Revisionを経由する。**
-8. **Adapterは検証用境界であり、恒久的な重複実装にしない。**
-9. **汎用化は利用実績と失敗条件を得てから行う。**
-10. **ECS Entity数を増やすこと自体を設計目的にしない。**
-11. **保存、Debug、Editor、TestをRuntime機能の後付けにしない。**
-12. **複雑さを増やす機能は、中心ループを強化する場合だけ導入する。**
-13. **Online、Voxel、Material Simulationを中心ループ成立前の逃げ道にしない。**
-14. **Unity / Unrealの機能数ではなく、このゲーム群への適合性で優先順位を決める。**
-
-Construct Module固有の不変条件:
-
-- Construct StateがPart状態の唯一の正本
-- Part追加・削除はConstruct Command経由のみ
-- Physics Aggregateは再生成可能な派生キャッシュ
-- Render Representationは再生成可能な派生キャッシュ
-- Split / MergeはStructural Phaseだけで確定
-- Functional NetworkはStructural Revisionへ追従
-- NetworkはDomain CommandとRevisionを検証して適用
-- Build Mode、Save、Undo、Replay、AIが同じOperation境界を利用する
-
----
-
-# 11. 当面の優先順位
+# 12. 当面の優先順位
 
 ## P0: 一般ゲーム制作基盤
 
@@ -999,23 +754,24 @@ Construct Module固有の不変条件:
 
 ## P1: Engine構成能力
 
-1. Service Scope
-2. World単位Service Registry
-3. Optional Domain Module
-4. Simulation Profile
-5. 複数World実行
-6. Adapter昇格ルール
+1. `WorldContext`とWorld単位Service Registry
+2. World Composition Manifest
+3. Capability宣言
+4. Optional Module Lifecycle
+5. Simulation Profile
+6. 複数World実行
+7. Explicit World Bridge
+8. Adapter昇格ルール
 
 ## P2: Construct縦切り
 
-1. Part Definition
-2. Part Storage
-3. Grid / Socket
-4. Structural Graph
-5. Revision / Command
-6. Mass Property / Compound Physics
-7. Blueprint Save / Load
-8. 最小Build Mode
+1. Part Definition / Storage
+2. Grid / Socket
+3. Structural Graph
+4. Revision / Command
+5. Mass Property / Compound Physics
+6. Blueprint Save / Load
+7. 最小Build Mode
 
 ## P3: Robocraft中心ループ
 
@@ -1030,86 +786,67 @@ Construct Module固有の不変条件:
 
 現在の最重要マイルストーン:
 
-> **Construct Kernelと最小Build Modeを作り、20〜100 Partの機体を保存・操作・破壊できるSmall Robocraft Vertical Sliceへ到達する。**
+> **R0で通常ゲーム制作基盤を安定させ、R1で複数Worldの構成能力を確立した上で、Construct Kernelと最小Build Modeを作り、20〜100 Partの機体を保存・操作・破壊できるSmall Robocraft Vertical Sliceへ到達する。**
 
 ---
 
-# 12. 方針判断の基準
+# 13. 方針判断と引き継ぎ
 
-新機能を追加する前に、次を確認する。
+新機能を追加する前に確認する。
 
-1. この機能はRobocraft型の中心ループをどう強化するか。
-2. Engine Core、Shared Service、Domain Module、Game Adapterのどこに属するか。
-3. 正本となる状態は何か。
-4. 誰が書き込みを所有するか。
-5. どのSystem Phaseで確定するか。
-6. 保存、Undo、Replay、Network、Debugでどう表現するか。
-7. 使わないGameへ依存を強制しないか。
-8. 一般Engineの模倣ではなく、実際のGame要件から必要になったか。
-9. 小さなVertical Sliceで価値と失敗条件を検証できるか。
-10. 破壊、分離、再構築を妨げるデータ構造になっていないか。
-11. プレイヤーが結果の原因を理解できるか。
-12. 設計と試験の反復速度を悪化させないか。
+1. 複数Gameの構成能力またはRobocraft中心ループをどう強化するか。
+2. Core、Shared Service、ECS、Domain Module、Game Adapterのどこに属するか。
+3. ECS / Serviceへ置く理由は何か。
+4. 正本と書き込み所有者は何か。
+5. World ScopeとSystem Phaseは何か。
+6. Required / Provided Capabilityは何か。
+7. 保存、Undo、Replay、Network、Debugでどう表現するか。
+8. 未使用Gameへ依存を強制しないか。
+9. Vertical Sliceで価値と失敗条件を検証できるか。
+10. 複数World実行時に状態が混線しないか。
 
----
-
-# 13. 他ブランチ・他担当への引き継ぎ規則
-
-この文書を読む担当者やAIエージェントは、次を前提とする。
+他担当やAIエージェントは次を前提とする。
 
 - 最終目的を「Robocraft風オンライン対戦ゲーム」と短縮しない
+- 最終目的を「何でもCoreへ入れた万能エンジン」と解釈しない
+- 汎用性はWorld CompositionとOptional Moduleで実現する
 - Minecraft、Create、VS2、Noitaの機能を同時に実装し始めない
-- まずRobocraft型の設計・操作・破壊・再設計ループを成立させる
-- Engine Core変更とGame Prototypeを同じ責務で混在させない
 - Game Adapterで失敗条件を取得してから汎用化する
-- Construct State以外を正本にしない
 - Physics ActorやRender Objectへの直接書き込みを増やさない
-- 新しいModuleにはSerialization、Debug、Test、Editor導線を同時に設計する
-- 各作業は現在のPhaseとGateのどこを進めるか明記する
-- 遊べるVertical Sliceへ接続しない巨大基盤実装を続けない
-
-作業報告には最低限、以下を含める。
-
-1. 対象Phase / Gate
-2. 変更した正本データ
-3. 書き込み所有System
-4. Serializationへの影響
-5. Debug / Validation方法
-6. 既存Gameへの互換性
-7. 次のPlayable Verification
+- 新ModuleにはScope、Lifecycle、Dependency、Serialization、Debug、Testを設計する
+- 各作業は対象Phase / Gateと次のPlayable Verificationを明記する
 
 ---
 
 # 14. 進捗評価指標
 
-単純な機能数ではなく、以下を観測する。
+## Game Composition品質
 
-## 14.1 制作反復
+- 新GameをCore変更なしで構成できるか
+- 未使用Moduleを外して起動できるか
+- World起動時に依存不足を検出できるか
+- 複数Worldで状態が混線しないか
+- World破棄後にService、Callback、Resourceが残らないか
 
-- BuildからTestへ移るまでの手順
-- Test結果から原因を特定できるか
-- 設計修正を再試験するまでの手順
+## 制作反復
+
+- BuildからTestへ移る手順
+- 結果から原因を特定できるか
+- 再試験までの手順
 - YAMLやコードの手編集が必要か
+- Adapterの重複が減っているか
 
-## 14.2 Simulation品質
-
-- Part配置が質量、重心、推進、射界へ反映されるか
-- 部分破壊が段階的な能力喪失を生むか
-- Split後も残存Constructが正しく動くか
-- 同じBlueprintとSeedで再現できるか
-
-## 14.3 Architecture品質
+## Architecture品質
 
 - 正本と派生表現が分離されているか
 - 単一書き込み所有者が守られているか
-- 未使用GameへModule依存を強制していないか
+- ECS / Service / Module境界が明示されているか
 - Debug、Save、Replay、Networkへ同じCommandを利用できるか
 
-## 14.4 Scalability
+## Scalability
 
-- Part数に対するCPU、Physics、Render、Memoryの増加
-- Structural Graph再計算範囲
-- Functional NetworkのDirty Rebuild範囲
+- Entity / Part / World数に対するCPU、Physics、Render、Memoryの増加
+- Structural GraphとFunctional Networkの再計算範囲
 - Active Simulation Regionの更新量
 - Network Interest範囲
 
@@ -1117,13 +854,16 @@ Construct Module固有の不変条件:
 
 # 15. 現時点の結論
 
-現在のGameEngineは、描画、ECS、PhysX、Scene、Prefab、Editor、Audioを持ち、複数ジャンルのゲームを実装できる段階にある。一方で、ゲームを作りやすくする共通基盤と、最終構想の中心であるConstruct系Moduleはまだ不足している。
+現在のGameEngineは、描画、ECS、PhysX、Scene、Prefab、Editor、Audioを持ち、複数ジャンルのGameを実装できる段階にある。
 
-したがって、当面は次の二本を並行して進める。
+Platformer、STG、Board Game、Minigameの実制作から、Game固有ComponentとAdapterを追加できる拡張性は確認できた。一方で、Physics Query、Character Motor、Collision Contact、Debug Draw、UI、Feedback、外部状態の所有権は、複数Gameへ共通するShared Serviceとして不足している。
 
-1. Platformerなどの実制作で露出したPhysics Query、Character Motor、Contact、Debug、UI、Feedback、Editorの不足を共通基盤として解消する。
-2. 全機能を先に作ろうとせず、Construct KernelからSmall Robocraft Vertical Sliceまでを段階的に完成させる。
+次に必要なのは、個別Gameの機能をCoreへ増やすことではない。
 
-> **このエンジンの差別化は、何でも作れることだけではない。プレイヤーが作った構造を、操作し、壊し、理解し、改善できることにある。**
+> **Service、ECS System Set、Domain ModuleをWorldごとに安全に構成し、必要な機能だけを選択して複数のGameとSimulationを同じRuntimeで共存させる能力を確立すること。**
 
-この文書は固定仕様ではない。各Vertical Sliceと実制作から得た失敗条件を反映し、設計判断と優先順位を更新し続ける。
+その上でConstructをOptional Domain Moduleとして追加し、Robocraft型の中心ループを最初の高難度Vertical Sliceとして成立させる。
+
+この順序なら、最終構想へ進むほど他ジャンルを扱えなくなるのではなく、最終構想で鍛えたService、ECS、Physics、Editor、Save、Debugの基盤を他のGameへ再利用できる。
+
+この文書は固定仕様ではない。各PhaseのPrototypeと実制作から得た失敗条件を反映し、設計判断と優先順位を更新し続ける。
