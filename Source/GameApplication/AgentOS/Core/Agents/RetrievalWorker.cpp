@@ -275,6 +275,36 @@ Result ValidateGroundedValue(
 	return Result::Ok();
 }
 
+bool IsDiscoveryTool(const std::string& toolName) {
+	static const std::unordered_set<std::string> kDiscoveryTools = {
+		"ResolveEntity", "FindEntityByName", "CodeSearch", "SearchComponent", "SearchField",
+	};
+	return kDiscoveryTools.count(toolName) != 0;
+}
+
+std::string ValidationFailureSourceType(const std::string& error) {
+	if (error.find("tool is not allowed") != std::string::npos) return "ToolAllowlistRejected";
+	if (error.find("dependency evidence") != std::string::npos ||
+	    error.find("ungrounded placeholder") != std::string::npos) {
+		return "GroundingRejected";
+	}
+	return "CommandValidationError";
+}
+
+std::string CommandFailureSourceType(CommandStatus status) {
+	switch (status) {
+	case CommandStatus::SchemaRejected: return "SchemaRejected";
+	case CommandStatus::CapabilityRejected: return "CapabilityRejected";
+	case CommandStatus::BudgetRejected: return "BudgetRejected";
+	case CommandStatus::PreconditionRejected: return "PreconditionRejected";
+	case CommandStatus::ExecutionFailed: return "ExecutionFailed";
+	case CommandStatus::PostconditionFailed: return "PostconditionFailed";
+	case CommandStatus::AwaitingApproval: return "AwaitingApproval";
+	case CommandStatus::Ok: return "ToolResultError";
+	}
+	return "ExecutionFailed";
+}
+
 Result ValidateGroundedCommand(
 	const Json& command,
 	const std::unordered_set<std::string>& allowed,
@@ -292,8 +322,11 @@ Result ValidateGroundedCommand(
 	}
 
 	const bool hasDependencies = dependencyEvidence.is_object() && !dependencyEvidence.empty();
+	// Discovery Toolのqueryは未知対象を見つけるための未確定語なので、既存Evidenceへの
+	// 完全一致を要求しない。Exact Access Toolだけが成功した依存EvidenceへBindingする。
+	const bool requiresDependencyGrounding = hasDependencies && !IsDiscoveryTool(toolName);
 	return ValidateGroundedValue(
-		command.at("arguments"), dependencyEvidence.dump(), hasDependencies, "arguments");
+		command.at("arguments"), dependencyEvidence.dump(), requiresDependencyGrounding, "arguments");
 }
 
 Evidence MakeFailureEvidence(
@@ -388,10 +421,12 @@ bool EvaluateCommandOutcome(
 
 	if (!result.IsOk()) {
 		++*failed;
+		const std::string sourceType = CommandFailureSourceType(result.status);
 		AddStoredEvidence(ctx, MakeFailureEvidence(
-			ctx, storeTaskId, "ToolError", toolName,
-			"Tool " + toolName + " failed: " + result.error,
-			Json::object({{"status", ToString(result.status)}, {"error", result.error}})), evidenceOut);
+			ctx, storeTaskId, sourceType, toolName,
+			"Tool " + toolName + " failed (" + ToString(result.status) + "): " + result.error,
+			Json::object({{"status", ToString(result.status)}, {"error", result.error},
+			              {"failureCategory", sourceType}})), evidenceOut);
 		return false;
 	}
 	if (PayloadRepresentsFailure(result.payload)) {
@@ -508,10 +543,12 @@ Result RetrievalWorker::Run(
 			const std::string toolName = command.is_object()
 				? command.value("tool", std::string("?"))
 				: "?";
+			const std::string validationCategory = ValidationFailureSourceType(grounded.error);
 			AddStoredEvidence(ctx, MakeFailureEvidence(
-				ctx, storeTaskId, "CommandValidationError", toolName,
-				"Tool command rejected before execution: " + grounded.error,
-				Json::object({{"error", grounded.error}, {"command", command}})), evidenceOut);
+				ctx, storeTaskId, validationCategory, toolName,
+				"Tool command rejected before execution (" + validationCategory + "): " + grounded.error,
+				Json::object({{"error", grounded.error}, {"command", command},
+				              {"failureCategory", validationCategory}})), evidenceOut);
 			break;
 		}
 

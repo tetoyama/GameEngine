@@ -47,7 +47,7 @@ std::string NormalizeRelation(const Json& raw) {
 	if (!raw.contains("turnRelation") || !raw.at("turnRelation").is_string()) return "new";
 	const std::string value = raw.at("turnRelation").get<std::string>();
 	if (value == "new" || value == "continue" || value == "correct" ||
-	    value == "clarify" || value == "refer") {
+	    value == "clarify" || value == "refer" || value == "refresh") {
 		return value;
 	}
 	return "new";
@@ -354,6 +354,20 @@ bool IsSimpleConversationInput(const std::string& userRequest) {
 	return greeting && !engineRequest;
 }
 
+bool IsFreshRuntimeRequest(const std::string& userRequest) {
+	return ContainsAny(userRequest, {
+		"今のシーン", "現在のシーン", "最新のシーン", "今の状態", "現在の状態",
+		"今いるEntity", "現在のEntity", "シーンの状況", "runtime state", "current scene"
+	});
+}
+
+bool IsExplicitCorrection(const std::string& userRequest) {
+	return ContainsAny(userRequest, {
+		"違う", "そうじゃなくて", "ではなく", "じゃなく", "正しくは", "訂正",
+		"あるはず", "のはず"
+	});
+}
+
 Json SelectConversationContext(
 	const Json& fullContext,
 	const std::string& relation,
@@ -371,9 +385,13 @@ Json SelectConversationContext(
 		selected["contextDegradedReason"] = fullContext.at("contextDegradedReason");
 	}
 
-	// newは履歴を保存したまま生成Contextから隔離する。
-	if (relation == "new") {
-		selected["selectionPolicy"] = "active_turn_only";
+	// new/refreshは履歴を保存したまま生成Contextから隔離する。
+	// refreshは「今のシーン」等の再観測要求であり、過去assistant回答を
+	// 現在RuntimeのEvidenceとして再利用してはならない。
+	if (relation == "new" || relation == "refresh") {
+		selected["selectionPolicy"] = relation == "refresh"
+			? "fresh_runtime_observation"
+			: "active_turn_only";
 		return selected;
 	}
 
@@ -501,6 +519,9 @@ Result IntakeAgent::Run(
 
 	normalized["goal"] = goal;
 	normalized["resolvedRequest"] = resolvedRequest;
+	// Root GoalはRepairで置き換えない不変のユーザー目的として保持する。
+	normalized["rootGoal"] = goal;
+	normalized["rootResolvedRequest"] = resolvedRequest;
 	normalized["turnRelation"] = relation;
 	NormalizeStringArray(raw, "symptoms", &normalized);
 	NormalizeStringArray(raw, "constraints", &normalized);
@@ -511,6 +532,29 @@ Result IntakeAgent::Run(
 	normalized["currentUserInput"] = userRequest;
 	normalized["requestRevision"] = 0;
 	normalized["historyIdentifiers"] = ExtractHistoryIdentifiers(fullContext);
+
+	const std::string targetKind = raw.value("targetKind", std::string("unknown"));
+	normalized["targetKind"] = targetKind;
+	normalized["targetConcept"] = raw.contains("targetConcept") && raw.at("targetConcept").is_string()
+		? raw.at("targetConcept")
+		: Json(nullptr);
+	normalized["resolvedEntityName"] =
+		raw.contains("resolvedEntityName") && raw.at("resolvedEntityName").is_string()
+			? raw.at("resolvedEntityName")
+			: Json(nullptr);
+
+	const bool hasPreviousTurns = fullContext.value("totalTurns", 0) > 0 ||
+		(fullContext.contains("recentTurns") && fullContext.at("recentTurns").is_array() &&
+		 !fullContext.at("recentTurns").empty());
+	if (IsFreshRuntimeRequest(userRequest)) {
+		relation = "refresh";
+		requestType = "investigation";
+		normalized["referencedSessionIds"] = Json::array();
+	} else if (hasPreviousTurns && IsExplicitCorrection(userRequest)) {
+		relation = "correct";
+	}
+	normalized["turnRelation"] = relation;
+	normalized["requestType"] = requestType;
 
 	// CHANGE 1: 過去turn由来の失敗記述をsymptoms/constraintsから隔離する
 	// （二次防御。SelectConversationContextによる履歴選択は置き換えない）。

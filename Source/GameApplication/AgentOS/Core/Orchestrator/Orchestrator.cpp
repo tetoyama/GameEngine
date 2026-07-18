@@ -585,11 +585,16 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	// --- Synthesis ---
 	ReportProgress("Synthesize", Json::object());
 	std::string report;
-	SynthesisAgent::Run(ctx, builtJson, rankedJson, stopInfo, &report);
+	const Result synthesisResult =
+		SynthesisAgent::Run(ctx, builtJson, rankedJson, stopInfo, &report);
+	const bool completed = verdict.pass && static_cast<bool>(synthesisResult);
+	if (!synthesisResult) {
+		stopInfo = Json::object({{"reason", "synthesis validation failed: " + synthesisResult.error}});
+	}
 
-	store_->UpdateSessionState(sessionId, verdict.pass ? "Completed" : "Stopped");
+	store_->UpdateSessionState(sessionId, completed ? "Completed" : "Stopped");
 
-	sessionResult.completed = verdict.pass;
+	sessionResult.completed = completed;
 	sessionResult.report = report;
 	sessionResult.stopInfo = stopInfo;
 	sessionResult.rankedHypotheses = rankedJson;

@@ -104,7 +104,12 @@ std::string ContextText(const Json& supplied) {
 
 std::string RequestContextText() {
 	const Json intake = IntakeWithoutRawConversation(g_normalizedIntake);
-	return "解決済みIntake（これを最優先）:\n" + Truncate(intake.dump(2), 5500) +
+	const std::string rootGoal = intake.value("rootGoal", intake.value("goal", std::string()));
+	const std::string rootResolved =
+		intake.value("rootResolvedRequest", intake.value("resolvedRequest", std::string()));
+	return "不変のRoot Goal（Repairはこれを置き換えず、達成手段だけを修正する）:\n" +
+		Truncate(rootGoal + "\n" + rootResolved, 1800) +
+		"\n\n解決済みIntake（最新Revision）:\n" + Truncate(intake.dump(2), 5500) +
 		"\n\n選択済みConversation Context（補助情報）:\n" + ContextText(g_conversationContext);
 }
 
@@ -202,6 +207,12 @@ Result ApplyCurrentRequestPatch(const Json& requestPatch, Json* revisedIntakeOut
 	}
 
 	Json revised = g_normalizedIntake;
+	const std::string immutableRootGoal =
+		revised.value("rootGoal", revised.value("goal", std::string()));
+	const std::string immutableRootResolved =
+		revised.value("rootResolvedRequest", revised.value("resolvedRequest", std::string()));
+	revised["rootGoal"] = immutableRootGoal;
+	revised["rootResolvedRequest"] = immutableRootResolved;
 	bool changed = false;
 	for (const char* key : {"goal", "resolvedRequest"}) {
 		if (requestPatch.contains(key) && requestPatch.at(key).is_string() &&
@@ -227,6 +238,10 @@ Result ApplyCurrentRequestPatch(const Json& requestPatch, Json* revisedIntakeOut
 	if (requestPatch.contains("reason") && requestPatch.at("reason").is_string()) {
 		revised["requestRevisionReason"] = requestPatch.at("reason");
 	}
+	// CriticのrequestPatchは対象Bindingや制約を修正できるが、ユーザーが
+	// 最初に依頼したRoot Goal自体は不変として必ず復元する。
+	revised["rootGoal"] = immutableRootGoal;
+	revised["rootResolvedRequest"] = immutableRootResolved;
 	g_normalizedIntake = revised;
 	if (revisedIntakeOut != nullptr) *revisedIntakeOut = revised;
 	return Result::Ok();
@@ -268,7 +283,8 @@ PromptPair Intake(const std::string& userRequest, const Json& conversationContex
 	p.system = BuildSystem(
 		"全Conversation Storeの履歴と現在入力から、今回の要求を単独で意味の通る形へ解決するIntake担当。\n"
 		"- この段階だけは全履歴を参照してよい。後続Agentへ渡す履歴はプログラム側が選択する。\n"
-		"- 『そうじゃなくて』『違う』『それ』『続けて』『前の』『今の』等は履歴を参照する。\n"
+		"- 『そうじゃなくて』『違う』『それ』『続けて』『前の』等は履歴を参照する。\n"
+		"- 『今のシーン』『現在の状態』は過去回答へのreferではなく、fresh Runtimeを再観測するrefreshとする。\n"
 		"- 最新の明示的な訂正・否定は過去の矛盾する条件より必ず優先する。\n"
 		"- resolvedRequestは履歴を知らない別Agentでも実行できるstandaloneな要求にする。\n"
 		"- turnRelation=newなら過去の未完了トピックを勝手に継続しない。\n"
@@ -278,10 +294,12 @@ PromptPair Intake(const std::string& userRequest, const Json& conversationContex
 		"requestType: investigation = Engine/Scene実データが必要。"
 		"conversation = 雑談、人物質問、履歴だけで答えられる修正確認。",
 		"{\"goal\": string, \"resolvedRequest\": string, "
-		"\"turnRelation\": \"new\"|\"continue\"|\"correct\"|\"clarify\"|\"refer\", "
+		"\"turnRelation\": \"new\"|\"continue\"|\"correct\"|\"clarify\"|\"refer\"|\"refresh\", "
 		"\"referencedSessionIds\": [integer], "
 		"\"symptoms\": [string], \"constraints\": [string], "
 		"\"requiredCapabilities\": [string], \"unresolvedReferences\": [string], "
+		"\"targetKind\": \"unknown\"|\"entity\"|\"entityRole\"|\"component\"|\"field\"|\"concept\", "
+		"\"targetConcept\": string|null, \"resolvedEntityName\": string|null, "
 		"\"requestType\": \"conversation\"|\"investigation\"}");
 
 	p.user = "Conversation Storeの履歴:\n" + ContextText(conversationContext) +
@@ -361,7 +379,10 @@ PromptPair Plan(const Json& intake, const Json& toolCatalog, int maxTasks) {
 		"- snapshot観測ではListEntities/ListSystems/DescribeEntity等を使い、"
 		"時間変化が明示されない限りWriteTraceを使わない。\n"
 		"- Toolを実行するTaskはAnalysisにしない。\n"
-		"- Entity名等は先行Taskで取得しdependenciesでGroundingする。",
+		"- ユーザー語が役割・概念（例: プレイヤー、ジャンプ力）なら、Entity名・Component名・Field名へ即断しない。\n"
+		"- 曖昧なEntityはResolveEntity/FindEntityByName等のDiscovery Taskで候補化し、DescribeEntityで実在Componentを確認する。\n"
+		"- FindReaders/FindWritersのcomponent引数へJumpForce等のField/Property概念を入れない。\n"
+		"- Exact Access ToolのEntity名・Component名は先行Taskの成功EvidenceからdependenciesでGroundingする。",
 		"{\"tasks\": [{\"taskId\": string, "
 		"\"type\": \"RuntimeObservation\"|\"CodeSearch\"|\"Trace\"|\"Analysis\", "
 		"\"description\": string, \"dependencies\": [string], "
@@ -378,7 +399,9 @@ PromptPair GenerateQueries(const Json& taskSpec, const Json& toolCatalog) {
 	PromptPair p;
 	p.system = BuildSystem(
 		"Task遂行用Tool呼び出しを最大5件提案するWorker担当。\n"
-		"- dependencyEvidenceのEntity名・Component名等は成功Evidenceの実在文字列を完全一致でコピー。\n"
+		"- ResolveEntity/FindEntityByName/CodeSearch等のDiscovery Toolは、現在要求・searchHints由来の検索語を使ってよい。検索語は未確定Bindingであり、検索結果をEvidenceとして後段で確定する。\n"
+		"- DescribeEntity/ReadComponent等のExact Access Toolでは、dependencyEvidenceのEntity名・Component名を成功Evidenceから完全一致でコピーする。\n"
+		"- Entity/Component/Field/Conceptを区別し、FindReaders/FindWritersのcomponentへField名を渡さない。\n"
 		"- found=false等の負の結果に含まれる検索文字列を正のBindingとして使わない。\n"
 		"- 空文字、主要なEntity、対象Component、TODO等は禁止。\n"
 		"- 必要値をEvidenceから決められない場合はcommandsを空配列にする。\n"
@@ -407,7 +430,7 @@ PromptPair Critique(const Json& hypotheses, const Json& builtEvidence) {
 	p.system = BuildSystem(
 		"最新Request Revisionに対して仮説とEvidenceを検証するCritic担当。\n"
 		"- ToolError、found=false、Unsatisfied等は成功Evidenceとして扱わない。\n"
-		"- 要求の対象名が誤っている場合はrequestPatchでstandaloneな要求へ修正する。\n"
+		"- 要求の対象名が誤っている場合はrequestPatchでBindingを修正する。ただしrootGoal/rootResolvedRequestの目的を、Schema確認・権限調査などの修復サブゴールへ置き換えない。\n"
 		"- 追加調査は必ずtypeをRuntimeObservation/CodeSearch/Traceのいずれかにする。\n"
 		"- 各追加Taskは実行するTool名とargumentsを具体的に指定する。\n"
 		"- argumentsはTool一覧のargumentSchemaにある正式フィールド名だけを使う。\n"
@@ -436,7 +459,7 @@ PromptPair Synthesize(
 	const Json& stopInfo) {
 	PromptPair p;
 	p.system = BuildSystem(
-		"最新Request Revision・選択済み会話Context・Evidence・仮説・停止理由から今回の応答を作る。"
+		"不変のRoot Goalを最終目的とし、最新Request Revision・選択済み会話Context・Evidence・仮説・停止理由から今回の応答を作る。"
 		"最新の訂正を優先し、訂正前へ戻らない。Conversation MemoryをEngine Evidenceとして扱わない。"
 		"Evidence外の断定は禁止。critic passedでない場合は、調査未完了であること、失敗原因、"
 		"確定できていない点を明示し、『確認済み』『存在しないと確定』『調査完了』と書かない。",
