@@ -1,0 +1,61 @@
+name: Run AgentOS memory context patch
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/agentos-memory-context-fix-runner.yml
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+
+      - name: Extract patch script
+        shell: bash
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          import textwrap
+          source = Path('.github/workflows/agentos-memory-context-fix.yml').read_text(encoding='utf-8')
+          marker = "          python3 - <<'PY'\n"
+          start = source.index(marker) + len(marker)
+          end = source.index("\n          PY", start)
+          script = textwrap.dedent(source[start:end])
+          Path('/tmp/apply_agentos_memory_context_fix.py').write_text(script, encoding='utf-8')
+          PY
+
+      - name: Apply targeted fixes
+        shell: bash
+        run: python3 /tmp/apply_agentos_memory_context_fix.py
+
+      - name: Build and run AgentOS core tests
+        shell: bash
+        run: make -f Tests/AgentOS/Makefile -j2
+
+      - name: Commit fixes
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            Source/GameApplication/AgentOS/Core/Store/TaskStore.h \
+            Source/GameApplication/AgentOS/Core/Store/TaskStore.cpp \
+            Source/GameApplication/AgentOS/Core/Agents/IntakeAgent.cpp \
+            Source/GameApplication/AgentOS/Core/Llm/PromptTemplates.cpp \
+            Source/GameApplication/Service/LlamaService/LLAMAAgent.h \
+            Source/GameApplication/Service/LlamaService/LLAMAAgent.cpp \
+            Source/GameApplication/Service/LlamaService/LLAMAService.cpp \
+            Tests/AgentOS/Makefile \
+            Tests/AgentOSStructuredConversationContextSmokeTest.cpp
+          git commit -m "Fix AgentOS memory retention and conversation context"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
