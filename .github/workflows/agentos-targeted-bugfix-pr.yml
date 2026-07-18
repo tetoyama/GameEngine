@@ -25,13 +25,16 @@ jobs:
         run: |
           python3 - <<'PY'
           from pathlib import Path
-          import textwrap
 
           source = Path('.github/workflows/agentos-targeted-bugfix.yml').read_text(encoding='utf-8')
           marker = "          python3 - <<'PY'\n"
           start = source.index(marker) + len(marker)
           end = source.index("\n          PY", start)
-          patch_source = textwrap.dedent(source[start:end])
+          lines = source[start:end].splitlines()
+          patch_source = "\n".join(
+              line[10:] if line.startswith("          ") else line
+              for line in lines
+          ) + "\n"
           Path('/tmp/apply_agentos_bugfix.py').write_text(patch_source, encoding='utf-8')
           PY
           python3 /tmp/apply_agentos_bugfix.py
