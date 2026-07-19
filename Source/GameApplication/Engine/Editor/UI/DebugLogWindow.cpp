@@ -9,6 +9,7 @@
 #include <sceneManager.h>
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
+#include "Editor/UI/ModernImGui/ModernImGui.h"
 
 DebugLogWindow::DebugLogWindow(){
 
@@ -43,17 +44,17 @@ const char* DebugLogWindow::LevelToString(LogLevel level) const{
 std::string DebugLogWindow::LevelFilterString(LogLevel level) const{
 	const size_t index = static_cast<size_t>(level);
 	const int count = index < levelCounts.size() ? levelCounts[index] : 0;
-	return std::string(LevelToString(level)) + "(" + std::to_string(count) + ")";
+	return std::string(LevelToString(level)) + " " + std::to_string(count);
 }
 
 ImVec4 DebugLogWindow::GetColorForLevel(LogLevel level) const{
 	switch(level){
-		case LogLevel::Trace:    return ImVec4(1.0f, 1.0f, 1.0f, 0.7f);
-		case LogLevel::Debug:    return ImVec4(0.8f, 0.8f, 1.0f, 1.0f);
-		case LogLevel::Info:     return ImVec4(0.6f, 1.0f, 0.6f, 1.0f);
-		case LogLevel::Warning:  return ImVec4(1.0f, 1.0f, 0.4f, 1.0f);
-		case LogLevel::Error:    return ImVec4(1.0f, 0.4f, 0.4f, 1.0f);
-		case LogLevel::Critical: return ImVec4(1.0f, 0.2f, 0.2f, 1.0f);
+		case LogLevel::Trace:    return ImVec4(0.72f, 0.74f, 0.78f, 1.0f);
+		case LogLevel::Debug:    return ImVec4(0.56f, 0.66f, 0.96f, 1.0f);
+		case LogLevel::Info:     return ImVec4(0.48f, 0.84f, 0.58f, 1.0f);
+		case LogLevel::Warning:  return ImVec4(0.95f, 0.77f, 0.34f, 1.0f);
+		case LogLevel::Error:    return ImVec4(0.95f, 0.42f, 0.42f, 1.0f);
+		case LogLevel::Critical: return ImVec4(1.00f, 0.28f, 0.32f, 1.0f);
 		default: return ImVec4(1, 1, 1, 1);
 	}
 }
@@ -102,6 +103,7 @@ void DebugLogWindow::Initialize(EditorService* editor){
 }
 
 void DebugLogWindow::Draw(const EditorDrawContext ctx){
+	(void)ctx;
 	bool* showDebugLogWindow = &m_editor->GetUI<MenuBar>()->showConsole;
 	if(!showDebugLogWindow || !*showDebugLogWindow){
 		return;
@@ -117,44 +119,109 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 		return;
 	}
 
-	bool filterChanged = ImGui::InputText("Search", searchBuffer, sizeof(searchBuffer));
+	const MImGui::Theme& theme = MImGui::GetTheme();
+	const float spacing = ImGui::GetStyle().ItemSpacing.x;
+	const float clearWidth = 66.0f;
+	const float autoScrollWidth = 130.0f;
+	const float searchWidth = (std::max)(
+		140.0f,
+		ImGui::GetContentRegionAvail().x - clearWidth - autoScrollWidth - spacing * 2.0f
+	);
+
+	bool filterChanged = MImGui::SearchField(
+		"##LogSearch",
+		"Search messages, functions or files...",
+		searchBuffer,
+		sizeof(searchBuffer),
+		searchWidth
+	);
 	ImGui::SameLine();
-	if(ImGui::Button("Clear") && logSink){
+	if(MImGui::Button(
+		"Clear##LogClear",
+		ImVec2(clearWidth, theme.compactHeight),
+		MImGui::ButtonKind::Ghost
+	) && logSink){
 		logSink->Clear();
 		filterChanged = true;
 	}
 	ImGui::SameLine();
-	ImGui::Checkbox("Auto Scroll", &autoScroll);
-	ImGui::Separator();
+	MImGui::Toggle("Auto Scroll", &autoScroll);
 
-	for(int i = static_cast<int>(LogLevel::Trace); i <= static_cast<int>(LogLevel::Critical); ++i){
-		const LogLevel level = static_cast<LogLevel>(i);
-		bool selected = levelFilter.find(level) != levelFilter.end();
-		if(ImGui::Checkbox(LevelFilterString(level).c_str(), &selected)){
-			if(selected) levelFilter.insert(level);
-			else levelFilter.erase(level);
-			filterChanged = true;
+	ImGui::Dummy(ImVec2(0.0f, 3.0f));
+	if(ImGui::BeginTable(
+		"LogLevelFilters",
+		6,
+		ImGuiTableFlags_SizingStretchSame |
+		ImGuiTableFlags_NoSavedSettings |
+		ImGuiTableFlags_NoPadOuterX
+	)){
+		for(int i = static_cast<int>(LogLevel::Trace); i <= static_cast<int>(LogLevel::Critical); ++i){
+			const LogLevel level = static_cast<LogLevel>(i);
+			bool selected = levelFilter.find(level) != levelFilter.end();
+			ImGui::TableNextColumn();
+			ImGui::PushID(i);
+
+			std::string label = "   " + LevelFilterString(level);
+			if(MImGui::Button(
+				label.c_str(),
+				ImVec2(-1.0f, theme.compactHeight),
+				selected ? MImGui::ButtonKind::Secondary : MImGui::ButtonKind::Ghost
+			)){
+				selected = !selected;
+				if(selected) levelFilter.insert(level);
+				else levelFilter.erase(level);
+				filterChanged = true;
+			}
+
+			const ImVec2 itemMin = ImGui::GetItemRectMin();
+			const ImVec2 itemMax = ImGui::GetItemRectMax();
+			ImGui::GetWindowDrawList()->AddCircleFilled(
+				ImVec2(itemMin.x + 10.0f, (itemMin.y + itemMax.y) * 0.5f),
+				3.0f,
+				ImGui::GetColorU32(GetColorForLevel(level))
+			);
+			ImGui::PopID();
 		}
-		if(i < static_cast<int>(LogLevel::Critical)) ImGui::SameLine();
+		ImGui::EndTable();
 	}
 	if(filterChanged) RefreshCache(true);
 
+	ImGui::Dummy(ImVec2(0.0f, 3.0f));
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, MImGui::WithAlpha(theme.panel, 0.48f));
+	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, theme.cornerRadius);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 7.0f));
 	if(ImGui::BeginChild("LogRegion", ImVec2(0, 0), false)){
 		ImGuiListClipper clipper;
-		clipper.Begin(static_cast<int>(filteredIndices.size()), ImGui::GetTextLineHeightWithSpacing() * 2.0f);
+		clipper.Begin(
+			static_cast<int>(filteredIndices.size()),
+			ImGui::GetTextLineHeightWithSpacing() * 2.25f
+		);
 		while(clipper.Step()){
 			for(int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row){
 				const LogEntry& entry = cachedEntries[filteredIndices[static_cast<size_t>(row)]];
+				ImGui::PushID(row);
+
 				ImGui::PushStyleColor(ImGuiCol_Text, GetColorForLevel(entry.level));
-				ImGui::Text(
-					ToU8String((const char*)u8"[%s] %s\n(関数名 %s,ファイル %s ,行 %d)").c_str(),
-					LevelToString(entry.level),
-					entry.message.c_str(),
+				ImGui::TextUnformatted(LevelToString(entry.level));
+				ImGui::PopStyleColor();
+				ImGui::SameLine(0.0f, 8.0f);
+				ImGui::TextUnformatted(entry.message.c_str());
+
+				ImGui::TextDisabled(
+					"%s  ·  %s:%d",
 					entry.function.c_str(),
 					entry.file.c_str(),
 					entry.line
 				);
-				ImGui::PopStyleColor();
+
+				const ImVec2 lineStart = ImGui::GetCursorScreenPos();
+				ImGui::GetWindowDrawList()->AddLine(
+					ImVec2(lineStart.x, lineStart.y - 2.0f),
+					ImVec2(lineStart.x + ImGui::GetContentRegionAvail().x, lineStart.y - 2.0f),
+					ImGui::GetColorU32(MImGui::WithAlpha(theme.separator, 0.70f)),
+					1.0f
+				);
+				ImGui::PopID();
 			}
 		}
 		if(autoScroll && ImGui::GetScrollY() >= ImGui::GetScrollMaxY() - 10.0f){
@@ -162,5 +229,7 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 		}
 	}
 	ImGui::EndChild();
+	ImGui::PopStyleVar(2);
+	ImGui::PopStyleColor();
 	ImGui::End();
 }
