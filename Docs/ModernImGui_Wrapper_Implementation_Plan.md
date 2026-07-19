@@ -37,44 +37,50 @@ Editor screens
   - `Toggle`
   - `SearchField`
   - `SectionHeader`
+  - `TreeRow`
 
-## Step 2 — Inspector Pilot
+## Completed: Step 2 — Inspector Pilot
 
-Use the Inspector as the first production migration target.
+- Replaced entity deletion with `DangerButton`.
+- Replaced entity-state checkboxes with two-column `Toggle` controls.
+- Replaced component tree headers with `SectionHeader`.
+- Changed component removal to a low-emphasis ghost action.
+- Replaced `+ Add Component` with a full-width wrapper button.
+- Wrapped component search while preserving the existing popup and command flow.
+- Kept component inspection and command-based add/remove behavior unchanged.
 
-- Replace entity deletion with `DangerButton`.
-- Replace entity state checkboxes with `Toggle` controls.
-- Replace component headers with `SectionHeader`.
-- Move component removal into a low-emphasis or contextual action.
-- Replace `+ Add Component` with a full-width wrapper button.
-- Preserve component inspection, undo/redo and popup behavior.
+Runtime validation still required:
 
-Success conditions:
+- verify narrow Inspector widths
+- verify component section state persistence
+- verify add/remove undo and redo
+- verify Japanese text input in the entity name field
 
-- No stock button or checkbox visuals remain in the Inspector header.
-- Component editing behavior is unchanged.
-- Narrow Inspector widths remain usable.
+## Completed: Step 3 — Hierarchy Pilot
 
-## Step 3 — Hierarchy Pilot
+- Replaced the add button and search field with wrapper controls.
+- Added a custom `TreeRow` with animated hover, selection and disclosure state.
+- Removed the permanently visible numeric entity ID from each row.
+- Moved entity IDs and Prefab source paths into delayed tooltips.
+- Rendered Prefab state as a compact badge.
+- Preserved recursive filtering, context menus, inline rename and parenting commands.
+- Registered each entity row as one ImGui item so selection, context menus and drag/drop share the same hit target.
 
-- Replace the add button and search field with wrapper controls.
-- Introduce a custom `TreeRow` wrapper using the existing tree state and drag/drop behavior.
-- Remove the permanently visible numeric entity ID from each row.
-- Render Prefab state as a badge rather than `(Prefab)` text.
-- Preserve selection, rename, parenting and context menus.
+Runtime validation still required:
 
-Success conditions:
+- verify drag source and drop target behavior
+- verify inline rename focus and submission
+- verify context-menu deletion during recursive drawing
+- verify multiple active scenes with overlapping entity IDs
+- verify scene and entity expansion persistence
 
-- Selection and drag targets remain unambiguous.
-- Inline rename and recursive filtering continue to work.
-- Row density remains suitable for large scenes.
-
-## Step 4 — Shared Input Controls
+## Next: Step 4 — Shared Input Controls
 
 - Add wrapped scalar and vector property fields.
 - Integrate with the existing undo-aware functions in `ImGuiFunc`.
 - Add segmented controls and compact icon buttons.
 - Centralize disabled, focused and validation-error states.
+- Move the Inspector name field and common component properties away from stock frame visuals.
 
 ## Step 5 — Assets, Viewport and B.R.A.I.N.
 
