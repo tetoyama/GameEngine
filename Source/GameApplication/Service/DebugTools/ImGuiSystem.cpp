@@ -79,7 +79,29 @@ bool ImGuiService::Initialize(IWindow* window, GraphicsContext* graphics){
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
 	//io.ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
 
+	// Keep the editor dark, but preserve a readable luminance ladder between
+	// the application canvas, docked panels and interactive controls.
+	MImGui::Theme& theme = MImGui::GetTheme();
+	theme.window        = ImVec4(0.072f, 0.078f, 0.090f, 1.000f);
+	theme.panel         = ImVec4(0.096f, 0.104f, 0.120f, 1.000f);
+	theme.raised        = ImVec4(0.135f, 0.145f, 0.166f, 1.000f);
+	theme.hover         = ImVec4(0.185f, 0.198f, 0.226f, 1.000f);
+	theme.pressed       = ImVec4(0.225f, 0.240f, 0.275f, 1.000f);
+	theme.selected      = ImVec4(0.145f, 0.300f, 0.530f, 1.000f);
+	theme.textSecondary = ImVec4(0.720f, 0.745f, 0.790f, 1.000f);
+	theme.textDisabled  = ImVec4(0.480f, 0.500f, 0.545f, 1.000f);
+	theme.separator     = ImVec4(1.000f, 1.000f, 1.000f, 0.135f);
+	theme.outline       = ImVec4(1.000f, 1.000f, 1.000f, 0.180f);
+
 	MImGui::ApplyTheme();
+
+	// Thin strokes clarify panel and field boundaries without returning to the
+	// heavy boxed appearance of stock ImGui.
+	ImGuiStyle& style = ImGui::GetStyle();
+	style.ChildBorderSize = 1.0f;
+	style.FrameBorderSize = 1.0f;
+	style.PopupBorderSize = 1.0f;
+
 	HWND hwnd = window->GetHWND();
 
 	ImGui_ImplWin32_Init(hwnd);
