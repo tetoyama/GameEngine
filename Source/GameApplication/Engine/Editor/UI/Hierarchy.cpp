@@ -15,6 +15,7 @@
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
 #include "Editor/UI/ModernImGui/ModernImGui.h"
+#include "Editor/UI/ModernImGui/EditorIconWidgets.h"
 #include "Editor/Command/EntityCommand.h"
 #include "Editor/Command/PrefabCommand.h"
 #include <scene.h>
@@ -69,6 +70,7 @@ static bool HasMatchingChild(
 }
 
 void Hierarchy::Draw(const EditorDrawContext ctx){
+	(void)ctx;
 
 	ImGuiWindowClass window_class;
 	window_class.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
@@ -92,7 +94,6 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 		SceneContext* context = scenePair.second->GetSceneContext();
 		EntityRegistry* registry = context->entity;
 
-		// PrefabInstantiateCommand の Undo 後に選択状態をリセットする共通コールバック
 		auto onPrefabUndone = [this]() {
 			if(sceneContext && !sceneContext->entity->IsAlive(selectedEntity))
 				selectedEntity = 0;
@@ -120,7 +121,6 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 				ImGui::EndPopup();
 			}
 
-			// .prefab ファイルをヒエラルキーへドラッグアンドドロップ
 			if(ImGui::BeginDragDropTarget()){
 				if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
 					if(payload->DataSize > 0 && context->prefab){
@@ -142,8 +142,15 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 				ImGui::EndDragDropTarget();
 			}
 
-			const float addWidth = 68.0f;
-			if(MImGui::Button("+ Add", ImVec2(addWidth, modernTheme.compactHeight))){
+			const float addWidth = 78.0f;
+			if(MImGui::IconButton(
+				"AddEntity",
+				"Add",
+				m_editor->icons.Get(EditorIcon::Add),
+				ImVec2(addWidth, modernTheme.compactHeight),
+				MImGui::ButtonKind::Secondary,
+				14.0f
+			)){
 				ImGui::OpenPopup("##AddEntityPopup");
 			}
 			if(ImGui::BeginPopup("##AddEntityPopup")){
@@ -227,9 +234,6 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 
 			ImGui::Separator();
 
-			// GetAllAlive() の参照ではなくコピーを取得する。
-			// DrawHierarchyNode 内でエンティティを削除すると EntityRegistry::Destroy() が
-			// m_alive を書き換えるため、参照のままだとイテレータが無効化されクラッシュする。
 			const auto entities = registry->GetAllAlive();
 			HierarchyChildMap children;
 			std::vector<Entity> roots;
@@ -282,9 +286,10 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 		opened = true;
 	}
 
-	const MImGui::TreeRowResult row = MImGui::TreeRow(
+	const MImGui::TreeRowResult row = MImGui::IconTreeRow(
 		"##EntityRow",
 		inRenameMode ? "" : displayName.c_str(),
+		m_editor->icons.Get(EditorIcon::Entity),
 		selected,
 		hasChildren,
 		opened,
@@ -303,7 +308,6 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 		sceneContext = context;
 	}
 
-	// --- Drag & Drop ---
 	if(ImGui::BeginDragDropSource()){
 		ImGui::SetDragDropPayload("ENTITY_DRAG_DROP", &entity, sizeof(Entity));
 		ImGui::Text("Move %s", displayName.c_str());
@@ -323,7 +327,6 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 		ImGui::EndDragDropTarget();
 	}
 
-	// --- 右クリックメニュー ---
 	if(ImGui::BeginPopupContextItem("##NodeContext")){
 
 		if(ImGui::MenuItem("名前変更")){
@@ -450,9 +453,8 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 		ImGui::EndTooltip();
 	}
 
-	// --- 名前変更UI ---
 	if(inRenameMode){
-		const float textX = rowMin.x + (hasChildren ? 24.0f : 8.0f);
+		const float textX = rowMin.x + (hasChildren ? 44.0f : 27.0f);
 		float rightReserve = 8.0f;
 		if(isPrefab){
 			rightReserve += ImGui::CalcTextSize("Prefab").x + 18.0f;
@@ -476,7 +478,6 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 		ImGui::SetCursorPos(cursorAfterRow);
 	}
 
-	// --- 子描画 ---
 	if(opened && hasChildren){
 		ImGui::Indent(18.0f);
 		for(Entity child : childIt->second){
