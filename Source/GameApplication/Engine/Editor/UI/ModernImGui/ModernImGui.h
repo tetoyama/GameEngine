@@ -295,6 +295,45 @@ inline void DrawFocusRing(
 	);
 }
 
+inline void Badge(
+	const char* label,
+	const ImVec4* tint = nullptr
+) {
+	if(!label || !label[0]) return;
+
+	const Theme& theme = GetTheme();
+	const ImVec4 color = tint ? *tint : theme.accent;
+	const ImVec2 textSize = ImGui::CalcTextSize(label);
+	const ImVec2 size(textSize.x + 14.0f, (std::max)(18.0f, textSize.y + 4.0f));
+	const ImVec2 min = ImGui::GetCursorScreenPos();
+	const ImVec2 max(min.x + size.x, min.y + size.y);
+	ImGui::Dummy(size);
+
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	drawList->AddRectFilled(
+		min,
+		max,
+		ImGui::GetColorU32(WithAlpha(color, 0.20f)),
+		size.y * 0.5f
+	);
+	drawList->AddRect(
+		min,
+		max,
+		ImGui::GetColorU32(WithAlpha(color, 0.42f)),
+		size.y * 0.5f,
+		0,
+		1.0f
+	);
+	drawList->AddText(
+		ImVec2(
+			min.x + (size.x - textSize.x) * 0.5f,
+			min.y + (size.y - textSize.y) * 0.5f
+		),
+		ImGui::GetColorU32(Lerp(color, theme.textPrimary, 0.25f)),
+		label
+	);
+}
+
 enum class ButtonKind {
 	Secondary,
 	Primary,
@@ -523,6 +562,57 @@ inline bool Toggle(const char* label, bool* value) {
 		textEnd
 	);
 	return pressed;
+}
+
+inline bool TextField(
+	const char* id,
+	char* buffer,
+	std::size_t bufferSize,
+	ImGuiInputTextFlags flags = 0,
+	float width = -1.0f
+) {
+	Theme& theme = GetTheme();
+	ImGui::PushStyleColor(ImGuiCol_FrameBg, theme.raised);
+	ImGui::PushStyleColor(ImGuiCol_FrameBgHovered, theme.hover);
+	ImGui::PushStyleColor(ImGuiCol_FrameBgActive, theme.pressed);
+	ImGui::PushStyleColor(ImGuiCol_Border, EffectiveOutline());
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, EffectiveStrokeWidth());
+	ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, theme.cornerRadius);
+	ImGui::PushStyleVar(
+		ImGuiStyleVar_FramePadding,
+		ImVec2(theme.horizontalPad, 6.0f)
+	);
+	ImGui::SetNextItemWidth(width);
+	const bool changed = ImGui::InputText(id, buffer, bufferSize, flags);
+	ImGui::PopStyleVar(3);
+	ImGui::PopStyleColor(4);
+
+	const ImVec2 min = ImGui::GetItemRectMin();
+	const ImVec2 max = ImGui::GetItemRectMax();
+	const bool active = ImGui::IsItemActive();
+	const bool focused = ImGui::IsItemFocused();
+	const float focusAmount = Animate(
+		ImGui::GetItemID() ^ 0x195A83C7u,
+		(active || focused) ? 1.0f : 0.0f,
+		22.0f,
+		1.0f
+	);
+
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	DrawMaterialEdge(drawList, min, max, theme.cornerRadius, 0.85f);
+	if(focusAmount > 0.001f){
+		drawList->AddRect(
+			ImVec2(min.x - 1.0f, min.y - 1.0f),
+			ImVec2(max.x + 1.0f, max.y + 1.0f),
+			ImGui::GetColorU32(
+				WithAlpha(theme.accentHover, 0.88f * focusAmount)
+			),
+			theme.cornerRadius + 1.0f,
+			0,
+			1.0f + 0.5f * focusAmount
+		);
+	}
+	return changed;
 }
 
 inline bool SearchField(
