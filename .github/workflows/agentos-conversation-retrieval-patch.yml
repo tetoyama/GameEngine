@@ -1,0 +1,51 @@
+name: Apply AgentOS conversation retrieval redesign
+
+on:
+  pull_request:
+    branches:
+      - master
+    paths:
+      - .github/workflows/agentos-conversation-retrieval-patch.yml
+      - .github/agentos_conversation_patch.py.b64.part*
+
+permissions:
+  contents: write
+
+jobs:
+  patch-test-commit:
+    if: github.event.pull_request.head.repo.full_name == github.repository && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          fetch-depth: 0
+          show-progress: false
+
+      - name: Reconstruct and apply patch
+        shell: bash
+        run: |
+          cat .github/agentos_conversation_patch.py.b64.part* | base64 --decode > /tmp/apply_conversation_retrieval.py
+          python3 -m py_compile /tmp/apply_conversation_retrieval.py
+          python3 /tmp/apply_conversation_retrieval.py
+
+      - name: Build and run AgentOS core tests
+        shell: bash
+        run: make -f Tests/AgentOS/Makefile -j2
+
+      - name: Commit implementation
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add \
+            Source/GameApplication/AgentOS/Core/Store/TaskStore.h \
+            Source/GameApplication/AgentOS/Core/Store/TaskStore.cpp \
+            Source/GameApplication/AgentOS/Core/Agents/IntakeAgent.cpp \
+            Source/GameApplication/AgentOS/Core/Agents/RetrievalWorker.cpp \
+            Source/GameApplication/AgentOS/Core/Orchestrator/Orchestrator.cpp \
+            Tests/AgentOSConversationMemorySmokeTest.cpp \
+            Tests/AgentOSConversationRetrievalReplanSmokeTest.cpp \
+            Tests/AgentOS/Makefile
+          git commit -m "Retrieve conversation context as tool evidence"
+          git push origin HEAD:${{ github.event.pull_request.head.ref }}
