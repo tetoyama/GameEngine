@@ -82,6 +82,8 @@ Reference: `https://github.com/emilkowalski/skills/tree/main/skills/apple-design
 - Replaced permanently visible component remove labels with consistent `...` action menus.
 - Kept component inspection and command-based add/remove behavior unchanged.
 - Removed the Inspector's always-on horizontal scrollbar; individual properties must fit or clip within the available width.
+- Removed the bordered Inspector child surface and separated components with spacing instead of another outer box.
+- Removed the hard separator immediately before `Add Component`.
 
 Runtime validation still required:
 
@@ -110,25 +112,68 @@ Runtime validation still required:
 - verify multiple active scenes with overlapping entity IDs
 - verify scene and entity expansion persistence
 
-## Next: Step 4 — Shared Input Controls
+## Completed: Step 4 — Width-safe Property Controls
 
-- Add wrapped scalar and vector property fields.
-- Integrate with the existing undo-aware functions in `ImGuiFunc`.
-- Add segmented controls and compact icon buttons.
-- Centralize disabled, validation-error and read-only states.
-- Fix width contracts for path fields, suffix buttons and multi-column component inputs.
-- Preserve 1:1 pointer tracking for drags while animating only non-positional presentation feedback.
+- Converted `TextureComponent` fixed cursor offsets into table-based width contracts.
+- Reserved explicit label, stretch field and clear-action columns for texture paths.
+- Made texture previews stack vertically at narrow widths.
+- Removed inner vertical borders from Transform and Collider property tables.
+- Moved Transform uniform-scale lock into a dedicated wrapped toggle row.
+- Removed the Parent input's stock `-` and `+` steppers.
+- Replaced Collider general and trigger checkboxes with wrapped toggles.
+- Preserved Collider toggle undo by emitting `PropertyChangeCommand<bool>` entries.
+- Replaced rotation lock checkboxes with compact selected axis buttons.
+- Replaced Collider add/remove controls with full-width and contextual wrapped actions.
 
-## Step 5 — Assets, Viewport and B.R.A.I.N.
+Remaining shared-input work:
+
+- wrap scalar, vector and slider presentation while retaining existing drag tracking and undo
+- centralize disabled, validation-error and read-only states
+- migrate remaining path fields and suffix buttons
+- replace high-frequency stock combos where selection presentation remains visually dominant
+
+## Completed: Step 5a — Assets Browser
+
+- Wrapped refresh, search and rename actions.
+- Wrapped asset tiles with pointer-down feedback.
+- Reduced paths to supporting metadata.
+- Added full-name tooltips for truncated files.
+- Removed unnecessary horizontal scrolling from browser panes.
+
+Remaining Assets work:
+
+- custom directory rows
+- breadcrumb navigation
+- asset selection state and context actions
+
+## Completed: Step 5b — Viewport Toolbar
+
+- Replaced stock image buttons with a dedicated toolbar material surface.
+- Converted Stop, Play/Pause and Step into consistent wrapped actions.
+- Made Play/Pause the current primary action.
+- Replaced the long render-layer preview string with a concise visible-count summary.
+- Replaced the selected-blue multi-select combo with an anchored popup of wrapped layer toggles.
+- Added explicit Show All and Hide All actions.
+- Reduced camera speed to supporting toolbar metadata.
+
+Runtime validation still required:
+
+- verify toolbar fit at narrow Editor View widths
+- verify layer popup position in docked and floating viewports
+- verify render-layer toggles remain open for repeated changes
+- verify Play/Pause/Stop/Step state transitions and focus behavior
+
+## Next: Step 6 — Remaining High-visibility Surfaces
 
 Migrate in this order:
 
-1. Assets Browser toolbar, search, directory rows and asset cards
-2. Editor/Player View overlays and transport controls
-3. B.R.A.I.N. header, timeline, phase rail and composer
-4. Settings and performance/debug surfaces
+1. remaining stock Combo/Selectable and nested component TreeNode presentation
+2. B.R.A.I.N. header, timeline, phase rail and composer
+3. Performance Monitor and Debug Log controls
+4. Settings surfaces and save feedback
+5. Dock-tab appearance achievable through public style configuration
 
-Debug-only tools may continue to use stock ImGui controls where visual consistency is not material.
+Docking internals remain outside the wrapper-only boundary. Debug-only tools may continue to use stock ImGui controls where visual consistency is not material.
 
 ## Accessibility Contract
 
