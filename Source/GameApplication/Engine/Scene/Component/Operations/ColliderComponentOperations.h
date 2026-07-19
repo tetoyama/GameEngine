@@ -10,12 +10,16 @@
 #include <algorithm>
 #include <cfloat>
 #include <cstring>
+#include <memory>
 #include <string>
 #include <utility>
 #include <vector>
 
 #include "Backends/ImGuiFunc.h"
 #include "Backends/YAMLConverters.h"
+#include "Editor/Command/CommandManager.h"
+#include "Editor/Command/PropertyChangeCommand.h"
+#include "Editor/UI/ModernImGui/ModernImGui.h"
 #include "Scene/scene.h"
 #include "Scene/Registry/componentRegistry.h"
 #include "Scene/Registry/systemRegistry.h"
@@ -183,8 +187,8 @@ inline bool BeginPropertyTable(const char* id){
 		id,
 		2,
 		ImGuiTableFlags_SizingStretchProp |
-		ImGuiTableFlags_NoSavedSettings |
-		ImGuiTableFlags_BordersInnerV
+		ImGuiTableFlags_NoPadOuterX |
+		ImGuiTableFlags_NoSavedSettings
 	)){
 		return false;
 	}
@@ -194,18 +198,68 @@ inline bool BeginPropertyTable(const char* id){
 	return true;
 }
 
+inline bool UndoToggle(const char* id, bool* value, const char* description){
+	if(!value) return false;
+	const bool before = *value;
+	if(!MImGui::Toggle(id, value)) return false;
+
+	if(CommandManager* manager = ImGui::GetCommandManager()){
+		manager->Push(
+			std::make_unique<PropertyChangeCommand<bool>>(
+				value,
+				before,
+				*value,
+				description
+			)
+		);
+	}
+	return true;
+}
+
+inline bool UndoAxisToggle(
+	const char* label,
+	bool* value,
+	const char* description
+){
+	if(!value) return false;
+	const bool before = *value;
+	const MImGui::ButtonKind kind = *value
+		? MImGui::ButtonKind::Primary
+		: MImGui::ButtonKind::Secondary;
+	if(!MImGui::Button(
+		label,
+		ImVec2(42.0f, MImGui::GetTheme().compactHeight),
+		kind
+	)){
+		return false;
+	}
+
+	*value = !*value;
+	if(CommandManager* manager = ImGui::GetCommandManager()){
+		manager->Push(
+			std::make_unique<PropertyChangeCommand<bool>>(
+				value,
+				before,
+				*value,
+				description
+			)
+		);
+	}
+	return true;
+}
+
 inline void DrawGeneralSettings(ColliderComponent& component){
 	bool changed = false;
 
 	if(BeginPropertyTable("ColliderGeneralProperties")){
 		BeginPropertyRow("Dynamic");
-		changed |= ImGui::UndoCheckbox("##Dynamic", &component.isDynamic);
+		changed |= UndoToggle("##Dynamic", &component.isDynamic, "Collider Dynamic");
 
 		BeginPropertyRow("Automatic Mass");
 		if(!component.isDynamic){
 			ImGui::BeginDisabled();
 		}
-		changed |= ImGui::UndoCheckbox("##AutomaticMass", &component.autoMass);
+		changed |= UndoToggle("##AutomaticMass", &component.autoMass, "Collider Automatic Mass");
 		if(!component.isDynamic){
 			ImGui::EndDisabled();
 		}
@@ -348,7 +402,7 @@ inline void DrawShape(
 			}
 
 			BeginPropertyRow("Trigger");
-			changed |= ImGui::UndoCheckbox("##Trigger", &collider.isTrigger);
+			changed |= UndoToggle("##Trigger", &collider.isTrigger, "Collider Trigger");
 
 			BeginPropertyRow("Collision Layer");
 			changed |= DrawCollisionLayer(collider, context);
@@ -423,11 +477,11 @@ inline void DrawShape(
 			);
 
 			BeginPropertyRow("Lock Rotation");
-			changed |= ImGui::UndoCheckbox("X##LockRotation", &collider.lockRotX);
+			changed |= UndoAxisToggle("X##LockRotationX", &collider.lockRotX, "Collider Lock Rotation X");
 			ImGui::SameLine();
-			changed |= ImGui::UndoCheckbox("Y##LockRotation", &collider.lockRotY);
+			changed |= UndoAxisToggle("Y##LockRotationY", &collider.lockRotY, "Collider Lock Rotation Y");
 			ImGui::SameLine();
-			changed |= ImGui::UndoCheckbox("Z##LockRotation", &collider.lockRotZ);
+			changed |= UndoAxisToggle("Z##LockRotationZ", &collider.lockRotZ, "Collider Lock Rotation Z");
 
 			ImGui::EndTable();
 		}
@@ -485,13 +539,16 @@ inline void DrawShape(
 
 inline void Inspect(ColliderComponent& component, SceneContext* context){
 	ImGui::PushID(&component);
-	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(6.0f, 4.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(6.0f, 5.0f));
 
 	DrawGeneralSettings(component);
-	ImGui::Spacing();
+	ImGui::Dummy(ImVec2(0.0f, 5.0f));
 
 	const float addButtonWidth = ImGui::GetContentRegionAvail().x;
-	if(ImGui::Button("+ Add Collider", ImVec2(addButtonWidth, 0.0f))){
+	if(MImGui::Button(
+		"+ Add Collider",
+		ImVec2(addButtonWidth, MImGui::GetTheme().controlHeight)
+	)){
 		ColliderShape shape;
 		if(context && context->system){
 			if(PhysicSystem* physics = context->system->GetSystem<PhysicSystem>()){
@@ -508,33 +565,38 @@ inline void Inspect(ColliderComponent& component, SceneContext* context){
 		ImGui::TextDisabled("No collider shapes.");
 	}
 
+	ImGuiStorage* storage = ImGui::GetStateStorage();
 	for(size_t index = 0; index < component.colliders.size();){
 		ImGui::PushID(static_cast<int>(index));
 
-		bool shapeOpen = false;
+		const ImGuiID openStateID = ImGui::GetID("ColliderOpenState");
+		bool shapeOpen = storage->GetBool(openStateID, true);
 		bool removed = false;
-		if(ImGui::BeginTable(
-			"ColliderHeader",
-			2,
-			ImGuiTableFlags_SizingStretchProp |
-			ImGuiTableFlags_NoSavedSettings
+
+		const float actionWidth = 32.0f;
+		const float headerWidth = (std::max)(
+			80.0f,
+			ImGui::GetContentRegionAvail().x -
+			actionWidth - ImGui::GetStyle().ItemSpacing.x
+		);
+		const std::string label = "Collider " + std::to_string(index + 1);
+		MImGui::SectionHeader(label.c_str(), &shapeOpen, headerWidth);
+		storage->SetBool(openStateID, shapeOpen);
+
+		ImGui::SameLine();
+		if(MImGui::Button(
+			"...##ColliderActions",
+			ImVec2(actionWidth, MImGui::GetTheme().compactHeight),
+			MImGui::ButtonKind::Ghost
 		)){
-			ImGui::TableSetupColumn("Shape", ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("Actions", ImGuiTableColumnFlags_WidthFixed);
-			ImGui::TableNextRow();
-			ImGui::TableSetColumnIndex(0);
+			ImGui::OpenPopup("ColliderActionsPopup");
+		}
 
-			const std::string label =
-				"Collider " + std::to_string(index + 1);
-			shapeOpen = ImGui::TreeNodeEx(
-				label.c_str(),
-				ImGuiTreeNodeFlags_DefaultOpen |
-				ImGuiTreeNodeFlags_SpanAvailWidth |
-				ImGuiTreeNodeFlags_NoTreePushOnOpen
-			);
-
-			ImGui::TableSetColumnIndex(1);
-			if(ImGui::SmallButton("Remove")){
+		if(ImGui::BeginPopup("ColliderActionsPopup")){
+			ImGui::TextDisabled("%s", label.c_str());
+			ImGui::Separator();
+			ImGui::PushStyleColor(ImGuiCol_Text, MImGui::GetTheme().dangerHover);
+			if(ImGui::MenuItem("Remove Collider")){
 				if(context && context->system){
 					if(auto* physics = context->system->GetSystem<PhysicSystem>()){
 						physics->ReleaseColliderShapeRuntime(&component, index);
@@ -544,16 +606,18 @@ inline void Inspect(ColliderComponent& component, SceneContext* context){
 				component.needsUpdate = true;
 				removed = true;
 			}
-			ImGui::EndTable();
+			ImGui::PopStyleColor();
+			ImGui::EndPopup();
 		}
 
 		if(shapeOpen && !removed){
-			ImGui::Indent();
+			ImGui::Indent(8.0f);
+			ImGui::Dummy(ImVec2(0.0f, 3.0f));
 			DrawShape(component, component.colliders[index], context);
-			ImGui::Unindent();
+			ImGui::Unindent(8.0f);
 		}
 
-		ImGui::Separator();
+		ImGui::Dummy(ImVec2(0.0f, 7.0f));
 		ImGui::PopID();
 
 		if(!removed){
