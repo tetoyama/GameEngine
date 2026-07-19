@@ -17,6 +17,7 @@
 
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
+#include "Editor/UI/ModernImGui/ModernImGui.h"
 #include "Editor/Command/EntityCommand.h"
 #include "Editor/Command/ComponentCommand.h"
 #include "Scene/scene.h"
@@ -107,6 +108,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	}
 
 	ComponentRegistry* registry = context->component;
+	const MImGui::Theme& modernTheme = MImGui::GetTheme();
 
 	ImGui::AlignTextToFramePadding();
 	ImGui::TextDisabled("ID: %u", selectedEntity.GetIndex());
@@ -136,13 +138,13 @@ void Inspector::Draw(const EditorDrawContext ctx){
 			ImGui::SameLine();
 			ImGui::TextColored(
 				ImVec4(0.4f, 0.8f, 1.0f, 1.0f),
-				"(Prefab)"
+				"Prefab"
 			);
 		}
 	}
 
-	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60.0f);
-	if(ImGui::Button("- Delete")){
+	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 72.0f);
+	if(MImGui::DangerButton("Delete##EntityDelete", ImVec2(72.0f, modernTheme.compactHeight))){
 		auto command = std::make_unique<EntityDeleteCommand>(
 			context,
 			selectedEntity,
@@ -164,56 +166,68 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	ImGui::Separator();
 	ImGui::PushID("EntityStateHeader");
 
-	bool enabled = !registry->HasComponent<DisabledComponent>(selectedEntity);
-	if(ImGui::Checkbox("Enable", &enabled)){
-		SetEntityHeaderTag<DisabledComponent>(
-			m_editor,
-			context,
-			selectedEntity,
-			"DisabledComponent",
-			!enabled
-		);
-	}
+	if(ImGui::BeginTable(
+		"EntityStateGrid",
+		2,
+		ImGuiTableFlags_SizingStretchSame |
+		ImGuiTableFlags_NoPadOuterX |
+		ImGuiTableFlags_NoSavedSettings
+	)){
+		ImGui::TableNextColumn();
+		bool enabled = !registry->HasComponent<DisabledComponent>(selectedEntity);
+		if(MImGui::Toggle("Enable", &enabled)){
+			SetEntityHeaderTag<DisabledComponent>(
+				m_editor,
+				context,
+				selectedEntity,
+				"DisabledComponent",
+				!enabled
+			);
+		}
 
-	ImGui::SameLine();
-	bool isStatic = registry->HasComponent<StaticEntityComponent>(selectedEntity);
-	if(ImGui::Checkbox("Static", &isStatic)){
-		SetEntityHeaderTag<StaticEntityComponent>(
-			m_editor,
-			context,
-			selectedEntity,
-			"StaticEntityComponent",
-			isStatic
-		);
-	}
+		ImGui::TableNextColumn();
+		bool isStatic = registry->HasComponent<StaticEntityComponent>(selectedEntity);
+		if(MImGui::Toggle("Static", &isStatic)){
+			SetEntityHeaderTag<StaticEntityComponent>(
+				m_editor,
+				context,
+				selectedEntity,
+				"StaticEntityComponent",
+				isStatic
+			);
+		}
 
-	ImGui::SameLine();
-	bool culling = registry->HasComponent<CullingComponent>(selectedEntity);
-	if(ImGui::Checkbox("Culling", &culling)){
-		SetEntityHeaderTag<CullingComponent>(
-			m_editor,
-			context,
-			selectedEntity,
-			"CullingComponent",
-			culling
-		);
-	}
+		ImGui::TableNextRow();
+		ImGui::TableNextColumn();
+		bool culling = registry->HasComponent<CullingComponent>(selectedEntity);
+		if(MImGui::Toggle("Culling", &culling)){
+			SetEntityHeaderTag<CullingComponent>(
+				m_editor,
+				context,
+				selectedEntity,
+				"CullingComponent",
+				culling
+			);
+		}
 
-	ImGui::SameLine();
-	bool visible = !registry->HasComponent<HiddenComponent>(selectedEntity);
-	if(ImGui::Checkbox("Visible", &visible)){
-		SetEntityHeaderTag<HiddenComponent>(
-			m_editor,
-			context,
-			selectedEntity,
-			"HiddenComponent",
-			!visible
-		);
+		ImGui::TableNextColumn();
+		bool visible = !registry->HasComponent<HiddenComponent>(selectedEntity);
+		if(MImGui::Toggle("Visible", &visible)){
+			SetEntityHeaderTag<HiddenComponent>(
+				m_editor,
+				context,
+				selectedEntity,
+				"HiddenComponent",
+				!visible
+			);
+		}
+
+		ImGui::EndTable();
 	}
 
 	ImGui::PopID();
 
-	ImGui::Dummy(ImVec2(0.0f, 10.0f));
+	ImGui::Dummy(ImVec2(0.0f, 4.0f));
 	ImGui::BeginChild(
 		"Child",
 		ImVec2(0.0f, 0.0f),
@@ -224,44 +238,43 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	const std::vector<ComponentView> components =
 		registry->GetInspectorComponentViewsOfEntitySorted(selectedEntity);
 	std::vector<ComponentView> componentsToRemove;
-	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	ImGuiStorage* sectionStorage = ImGui::GetStateStorage();
 
 	for(ComponentView component : components){
 		const std::string componentName =
 			registry->GetComponentName(component);
 		if(componentName.empty()) continue;
 
-		const ImVec2 cursorPosition = ImGui::GetCursorScreenPos();
-		const float fullWidth = ImGui::GetContentRegionAvail().x;
-		const float frameHeight = ImGui::GetFrameHeight();
-		drawList->AddRectFilled(
-			cursorPosition,
-			ImVec2(cursorPosition.x + fullWidth,
-				cursorPosition.y + frameHeight),
-			ImGui::GetColorU32(ImGuiCol_Header)
+		ImGui::PushID(component.data);
+		const ImGuiID openStateID = ImGui::GetID("SectionOpenState");
+		bool open = sectionStorage->GetBool(openStateID, true);
+
+		const float removeWidth = 68.0f;
+		const float headerWidth = (std::max)(
+			80.0f,
+			ImGui::GetContentRegionAvail().x - removeWidth - ImGui::GetStyle().ItemSpacing.x
 		);
 
-		const ImGuiTreeNodeFlags flags =
-			ImGuiTreeNodeFlags_DefaultOpen |
-			ImGuiTreeNodeFlags_NoTreePushOnOpen;
-		const bool open = ImGui::TreeNodeEx(
-			component.data,
-			flags,
-			"%s",
-			componentName.c_str()
-		);
+		MImGui::SectionHeader(componentName.c_str(), &open, headerWidth);
+		sectionStorage->SetBool(openStateID, open);
 
-		ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 60.0f);
-		ImGui::PushID(static_cast<int>(component.typeID));
-		if(ImGui::SmallButton("Remove")){
+		ImGui::SameLine();
+		if(MImGui::Button(
+			"Remove",
+			ImVec2(removeWidth, modernTheme.compactHeight),
+			MImGui::ButtonKind::Ghost
+		)){
 			componentsToRemove.push_back(component);
 		}
 		ImGui::PopID();
 
 		if(open){
+			ImGui::Indent(8.0f);
+			ImGui::Dummy(ImVec2(0.0f, 2.0f));
 			registry->InspectComponent(component, context);
+			ImGui::Unindent(8.0f);
 		}
-		ImGui::Dummy(ImVec2(0.0f, 2.5f));
+		ImGui::Dummy(ImVec2(0.0f, 3.0f));
 	}
 
 	for(ComponentView component : componentsToRemove){
@@ -274,17 +287,22 @@ void Inspector::Draw(const EditorDrawContext ctx){
 	}
 
 	ImGui::Separator();
-	if(ImGui::Button("+ Add Component", ImVec2(-1.0f, 0.0f))){
+	const float addComponentWidth = ImGui::GetContentRegionAvail().x;
+	if(MImGui::Button(
+		"+ Add Component",
+		ImVec2(addComponentWidth, modernTheme.controlHeight)
+	)){
 		ImGui::OpenPopup("AddComponentPopup");
 	}
 
 	if(ImGui::BeginPopup("AddComponentPopup")){
 		static char searchBuffer[128]{};
-		ImGui::InputTextWithHint(
+		MImGui::SearchField(
 			"##ComponentSearch",
 			"Search component...",
 			searchBuffer,
-			sizeof(searchBuffer)
+			sizeof(searchBuffer),
+			-1.0f
 		);
 		ImGui::Separator();
 
