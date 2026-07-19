@@ -449,14 +449,12 @@ inline TreeRowResult TreeRow(
 
 	const char* textEnd = VisibleLabelEnd(label);
 	const ImVec2 textSize = ImGui::CalcTextSize(label, textEnd);
-	const float availableTextWidth = (std::max)(0.0f, textRight - textX);
 	drawList->PushClipRect(ImVec2(textX, min.y), ImVec2(textRight, max.y), true);
 	drawList->AddText(
 		ImVec2(textX, centerY - textSize.y * 0.5f),
-		ImGui::GetColorU32(selected ? theme.textPrimary : theme.textPrimary),
+		ImGui::GetColorU32(theme.textPrimary),
 		label,
-		textEnd,
-		availableTextWidth
+		textEnd
 	);
 	drawList->PopClipRect();
 	return result;
