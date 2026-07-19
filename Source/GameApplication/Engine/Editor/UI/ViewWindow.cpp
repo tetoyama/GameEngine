@@ -8,10 +8,12 @@
 #include "Backends/ImGui/ImGuizmo.h"
 #include "DebugTools/ImGuiSystem.h"
 #include <d3d11.h>
+#include <cstdio>
 #include "scene.h"
 #include "sceneManager.h"
 #include "Service/Graphics/graphicsContext.h"
 #include "Editor/UI/MenuBar.h"
+#include "Editor/UI/ModernImGui/ModernImGui.h"
 #include <Component/RenderLayerComponent.h>
 #include "Registry/systemRegistry.h"
 #include "System/Render/RenderSystem/renderSystem.h"
@@ -60,16 +62,33 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ImGuiWindowFlags toolbar_window_flags = 0;
 	ImGui::Begin("Editor View", showEditor, toolbar_window_flags);
 
-	ControlButton();
-	DrawRenderLayerToggleUI();
-	ImGui::SameLine();
-	std::string speedText = ("CameraSpeed:" + std::to_string(cameraMoveSpeed));
-	ImGui::Text(speedText.c_str());
-
-	ImGui::Separator();
+	const MImGui::Theme& modernTheme = MImGui::GetTheme();
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, modernTheme.panel);
+	ImGui::PushStyleColor(ImGuiCol_Border, MImGui::EffectiveOutline());
+	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, modernTheme.cornerRadius);
+	ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 5.0f));
+	if(ImGui::BeginChild(
+		"ViewportToolbar",
+		ImVec2(0.0f, modernTheme.compactHeight + 10.0f),
+		true,
+		ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
+	)){
+		ControlButton();
+		ImGui::SameLine(0.0f, 12.0f);
+		DrawRenderLayerToggleUI();
+		ImGui::SameLine(0.0f, 12.0f);
+		ImGui::AlignTextToFramePadding();
+		ImGui::TextDisabled("Camera %.2f", cameraMoveSpeed);
+	}
+	ImGui::EndChild();
+	ImGui::PopStyleVar(3);
+	ImGui::PopStyleColor(2);
+	ImGui::Dummy(ImVec2(0.0f, 2.0f));
 
 	ImVec2 avail = ImGui::GetContentRegionAvail(); // ウィンドウ内の利用可能サイズ
 	float availAspect = avail.x / avail.y;
+	(void)availAspect;
 
 	m_editor->sceneManager->GetContext()->EditorScreenSize = Vector2(avail.x, avail.y);
 
@@ -296,7 +315,6 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 			if(hierarchy){
 				// 管理テーブルから安全にコンテキストを復元
 				SceneContext* recoveredContext = m_editor->sceneManager->GetContextFromID(sceneID_val);
-
 				if(recoveredContext){
 					const Entity pickedEntity = recoveredContext->entity->Resolve(objectID_val);
 					if(!pickedEntity) return;
@@ -321,53 +339,54 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 		}
 	}
 }
+
 void ViewWindow::ControlButton() {
+	const MImGui::Theme& theme = MImGui::GetTheme();
+	const SceneManagerState state = m_editor->sceneManager->State;
+	const ImVec2 controlSize(54.0f, theme.compactHeight);
 
-	if (!PlayButtonTexture) {
-		return;
+	if(state == SceneManagerState::Stopped){
+		ImGui::BeginDisabled();
+		MImGui::Button(
+			"Stop##ViewportStop",
+			controlSize,
+			MImGui::ButtonKind::Ghost
+		);
+		ImGui::EndDisabled();
+	} else if(MImGui::Button(
+		"Stop##ViewportStop",
+		controlSize,
+		MImGui::ButtonKind::Secondary
+	)){
+		m_editor->sceneManager->State = SceneManagerState::Stopped;
+		ImGui::SetWindowFocus("Editor View");
 	}
 
-	ImTextureRef Play;
-	Play._TexID = (ImTextureID)PlayButtonTexture.get()->pTexture.Get();
-	ImTextureRef Pause;
-	Pause._TexID = (ImTextureID)PauseButtonTexture.get()->pTexture.Get();
-	ImTextureRef Stop;
-	Stop._TexID = (ImTextureID)StopButtonTexture.get()->pTexture.Get();
-	ImTextureRef Step;
-	Step._TexID = (ImTextureID)StepButtonTexture.get()->pTexture.Get();
-
-	ImVec4 DefaultButtonColor = ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
-	ImVec4 StopButtonColor = ImVec4(1.0f, 1.0f, 1.0f, 0.8f);
-	if (m_editor->sceneManager->State == SceneManagerState::Stopped) {
-		StopButtonColor = ImVec4(0.5f, 0.5f, 0.5f, 1.0f);
-	}
-	ImGui::BeginDisabled(m_editor->sceneManager->State == SceneManagerState::Stopped);
-
-	if (ImGui::ImageButton("Stop", Stop, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), StopButtonColor)) {
-		if (m_editor->sceneManager->State != SceneManagerState::Stopped) {
-
-			m_editor->sceneManager->State = SceneManagerState::Stopped; // シーンの状態をエディタに戻す
-			ImGui::SetWindowFocus("Editor View");
+	ImGui::SameLine(0.0f, 5.0f);
+	if(state == SceneManagerState::Playing){
+		if(MImGui::Button(
+			"Pause##ViewportPause",
+			controlSize,
+			MImGui::ButtonKind::Primary
+		)){
+			m_editor->sceneManager->State = SceneManagerState::Paused;
 		}
+	} else if(MImGui::Button(
+		"Play##ViewportPlay",
+		controlSize,
+		MImGui::ButtonKind::Primary
+	)){
+		m_editor->sceneManager->State = SceneManagerState::Playing;
+		ImGui::SetWindowFocus("Play View");
 	}
-	ImGui::EndDisabled();
 
-	ImGui::SameLine();
-
-	// ツールバー内容
-	if (m_editor->sceneManager->State == SceneManagerState::Playing) {
-		if (ImGui::ImageButton("Pause", Pause, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)) {
-			m_editor->sceneManager->State = SceneManagerState::Paused; // シーンの状態を 一時停止に変更
-		}
-	} else {
-		if (ImGui::ImageButton("Play", Play, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)) {
-			m_editor->sceneManager->State = SceneManagerState::Playing; // シーンの状態を再生中に変更
-			ImGui::SetWindowFocus("Play View");
-		}
-	}
-	ImGui::SameLine();
-	if (ImGui::ImageButton("Step", Step, ImVec2(20, 20), ImVec2(0, 0), ImVec2(1, 1), ImVec4(0, 0, 0, 0), DefaultButtonColor)) {
-		m_editor->sceneManager->State = SceneManagerState::Step; // シーンの状態を ステップに変更
+	ImGui::SameLine(0.0f, 5.0f);
+	if(MImGui::Button(
+		"Step##ViewportStep",
+		controlSize,
+		MImGui::ButtonKind::Secondary
+	)){
+		m_editor->sceneManager->State = SceneManagerState::Step;
 	}
 }
 
@@ -377,26 +396,54 @@ void ViewWindow::DrawRenderLayerToggleUI() {
 		registry ? registry->GetSystem<RenderSystem>() : nullptr;
 	if(!renderSystem) return;
 
-	ImGui::SameLine();
-
-	std::string previewText;
-	for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; ++i) {
-		if (renderSystem->editorRenderLayerVisible[i]) {
-			if (!previewText.empty()) previewText += ", ";
-			previewText += GetRenderLayerName(static_cast<RenderLayer>(i));
-		}
+	const int layerCount = static_cast<int>(RenderLayer::MaxRenderLayer);
+	int visibleCount = 0;
+	for(int index = 0; index < layerCount; ++index){
+		if(renderSystem->editorRenderLayerVisible[index]) ++visibleCount;
 	}
-	if (previewText.empty()) previewText = "None";
 
-	if (ImGui::BeginCombo("##Visible Layers", previewText.c_str())) {
-		for (int i = 0; i < (int)RenderLayer::MaxRenderLayer; ++i) {
-			ImGui::Selectable(
-				GetRenderLayerName(static_cast<RenderLayer>(i)),
-				&renderSystem->editorRenderLayerVisible[i],
-				ImGuiSelectableFlags_DontClosePopups
-			);
+	char preview[64]{};
+	std::snprintf(preview, sizeof(preview), "Layers  %d/%d##ViewportLayers", visibleCount, layerCount);
+	if(MImGui::Button(
+		preview,
+		ImVec2(128.0f, MImGui::GetTheme().compactHeight),
+		MImGui::ButtonKind::Secondary
+	)){
+		ImGui::OpenPopup("ViewportRenderLayersPopup");
+	}
+
+	ImGui::SetNextWindowSizeConstraints(ImVec2(250.0f, 0.0f), ImVec2(360.0f, 520.0f));
+	if(ImGui::BeginPopup("ViewportRenderLayersPopup")){
+		ImGui::TextUnformatted("Editor Render Layers");
+		ImGui::TextDisabled("Choose which passes are visible in this viewport.");
+		ImGui::Separator();
+
+		for(int index = 0; index < layerCount; ++index){
+			ImGui::PushID(index);
+			bool visible = renderSystem->editorRenderLayerVisible[index];
+			if(MImGui::Toggle(
+				GetRenderLayerName(static_cast<RenderLayer>(index)),
+				&visible
+			)){
+				renderSystem->editorRenderLayerVisible[index] = visible;
+			}
+			ImGui::PopID();
 		}
-		ImGui::EndCombo();
+
+		ImGui::Separator();
+		const float halfWidth =
+			(ImGui::GetContentRegionAvail().x - ImGui::GetStyle().ItemSpacing.x) * 0.5f;
+		if(MImGui::Button("Show All", ImVec2(halfWidth, MImGui::GetTheme().compactHeight))){
+			for(int index = 0; index < layerCount; ++index){
+				renderSystem->editorRenderLayerVisible[index] = true;
+			}
+		}
+		ImGui::SameLine();
+		if(MImGui::Button("Hide All", ImVec2(halfWidth, MImGui::GetTheme().compactHeight))){
+			for(int index = 0; index < layerCount; ++index){
+				renderSystem->editorRenderLayerVisible[index] = false;
+			}
+		}
+		ImGui::EndPopup();
 	}
 }
-
