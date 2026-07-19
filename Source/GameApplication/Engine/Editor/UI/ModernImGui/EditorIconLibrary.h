@@ -37,7 +37,7 @@ struct EditorIconImage {
 	ImVec2 uv1{1.0f, 1.0f};
 
 	bool IsValid() const {
-		return texture._TexID != nullptr;
+		return texture._TexID != (ImTextureID)0;
 	}
 };
 
@@ -56,7 +56,7 @@ public:
 
 	EditorIconImage Get(EditorIcon icon) const {
 		EditorIconImage image;
-		if(!m_atlas || !m_atlas->pTexture) return image;
+		if(!m_atlas || !m_atlas->pTexture.Get()) return image;
 
 		constexpr int columns = 4;
 		constexpr int rows = 3;
@@ -67,8 +67,7 @@ public:
 
 		const int column = index % columns;
 		const int row = index / columns;
-		image.texture._TexID =
-			reinterpret_cast<ImTextureID>(m_atlas->pTexture.Get());
+		image.texture._TexID = (ImTextureID)m_atlas->pTexture.Get();
 		image.uv0 = ImVec2(
 			static_cast<float>(column) / static_cast<float>(columns),
 			static_cast<float>(row) / static_cast<float>(rows)
