@@ -11,6 +11,7 @@
 #include "Command/CommandManager.h"
 #include "Runtime/TimeService/timeService.h"
 #include "Graphics/GpuFrameTiming.h"
+#include "UI/ModernImGui/EditorIconLibrary.h"
 
 struct EditorDrawContext;
 class EditorService;
@@ -61,6 +62,7 @@ public:
 	LLAMAService*    llamaService    = nullptr;
 	AnalyzerManager* analyzer = nullptr;
 	CommandManager commandManager;
+	EditorIconLibrary icons;
 
 private:
 	struct EditorUIPanelEntry {
