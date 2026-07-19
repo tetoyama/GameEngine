@@ -255,11 +255,11 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	ImGui::PopID();
 
-	ImGui::Dummy(ImVec2(0.0f, 4.0f));
+	ImGui::Dummy(ImVec2(0.0f, 6.0f));
 	ImGui::BeginChild(
 		"Child",
 		ImVec2(0.0f, 0.0f),
-		true,
+		false,
 		0
 	);
 
@@ -310,11 +310,11 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 		if(open){
 			ImGui::Indent(8.0f);
-			ImGui::Dummy(ImVec2(0.0f, 2.0f));
+			ImGui::Dummy(ImVec2(0.0f, 4.0f));
 			registry->InspectComponent(component, context);
 			ImGui::Unindent(8.0f);
 		}
-		ImGui::Dummy(ImVec2(0.0f, 3.0f));
+		ImGui::Dummy(ImVec2(0.0f, 8.0f));
 	}
 
 	for(ComponentView component : componentsToRemove){
@@ -326,7 +326,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		m_editor->commandManager.Execute(std::move(command));
 	}
 
-	ImGui::Separator();
+	ImGui::Dummy(ImVec2(0.0f, 2.0f));
 	const float addComponentWidth = ImGui::GetContentRegionAvail().x;
 	if(MImGui::Button(
 		"+ Add Component",
