@@ -1,0 +1,6 @@
+34929 /tmp/apply_conversation_retrieval.py
+5c9a9d45e1e4777d8061c4cfe451d3ebd2e442010404acb7646d23d5406555c1  /tmp/apply_conversation_retrieval.py
+  File "/tmp/apply_conversation_retrieval.py", line 513
+    block = r'''
+            
+SyntaxError: (unicode error) 'utf-8' codec can't decode byte 0xbe in position 4160: invalid start byte
