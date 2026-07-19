@@ -1,7 +1,0 @@
-<Project>
-  <ItemDefinitionGroup>
-    <ClCompile>
-      <PreprocessorDefinitions>NOMINMAX;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-    </ClCompile>
-  </ItemDefinitionGroup>
-</Project>
