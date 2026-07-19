@@ -41,12 +41,13 @@ jobs:
         shell: bash
         run: |
           test -f /tmp/agentos_conversation_patch.log || echo "patch failed before log creation" > /tmp/agentos_conversation_patch.log
-          tail -n 160 /tmp/agentos_conversation_patch.log > .github/agentos_conversation_patch_failure.txt
+          cp /tmp/agentos_conversation_patch.log /tmp/agentos_conversation_patch_saved.log
+          git reset --hard HEAD
+          tail -n 160 /tmp/agentos_conversation_patch_saved.log > .github/agentos_conversation_patch_failure.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/agentos_conversation_patch_failure.txt
           git commit -m "Record conversation retrieval patch failure"
-          git pull --rebase origin ${{ github.event.pull_request.head.ref }}
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
           exit 1
 
@@ -71,5 +72,4 @@ jobs:
             Tests/AgentOSConversationRetrievalReplanSmokeTest.cpp \
             Tests/AgentOS/Makefile
           git commit -m "Retrieve conversation context as tool evidence"
-          git pull --rebase origin ${{ github.event.pull_request.head.ref }}
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
