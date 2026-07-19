@@ -15,6 +15,7 @@
 #include <sceneManager.h>
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
+#include "Editor/UI/ModernImGui/ModernImGui.h"
 #include <scene.h>
 #include <Component/transformComponent.h>
 #include <Component/entityNameComponent.h>
@@ -49,6 +50,7 @@ void AssetsBrowser::Finalize(){
 }
 
 void AssetsBrowser::Draw(const EditorDrawContext ctx){
+	(void)ctx;
 	bool* showAssetsBrowser = &m_editor->GetUI<MenuBar>()->showAssetsBrowser;
 	if(!showAssetsBrowser || !*showAssetsBrowser){
 		return;
@@ -74,11 +76,17 @@ void AssetsBrowser::Draw(const EditorDrawContext ctx){
 		m_fileSystemCacheInvalidationPending = false;
 	}
 
-	if(ImGui::Button("Refresh")){
+	const MImGui::Theme& modernTheme = MImGui::GetTheme();
+	if(MImGui::Button(
+		"Refresh",
+		ImVec2(74.0f, modernTheme.compactHeight),
+		MImGui::ButtonKind::Secondary
+	)){
 		InvalidateFileSystemCache();
 		ClearPreviewCache();
 	}
 	ImGui::SameLine();
+	ImGui::AlignTextToFramePadding();
 	ImGui::TextDisabled("Filesystem cache");
 
 	ImGui::Columns(2, "AssetColumns", true);
@@ -88,7 +96,7 @@ void AssetsBrowser::Draw(const EditorDrawContext ctx){
 		firstFrame = false;
 	}
 
-	ImGui::BeginChild("LeftPane", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+	ImGui::BeginChild("LeftPane", ImVec2(0, 0), true, 0);
 	std::error_code ec;
 	if(std::filesystem::exists(assetsRoot, ec) && std::filesystem::is_directory(assetsRoot, ec)){
 		ImGui::PushID("AssetsRoot");
@@ -114,12 +122,12 @@ void AssetsBrowser::Draw(const EditorDrawContext ctx){
 		}
 		ImGui::PopID();
 	} else{
-		ImGui::TextColored(ImVec4(1, 0, 0, 1), "Assets directory not found!");
+		ImGui::TextColored(modernTheme.dangerHover, "Assets directory not found!");
 	}
 	ImGui::EndChild();
 
 	ImGui::NextColumn();
-	ImGui::BeginChild("RightPane", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+	ImGui::BeginChild("RightPane", ImVec2(0, 0), true, 0);
 	DrawAssetsInDirectory(m_selectedPath);
 	ImGui::EndChild();
 
@@ -226,15 +234,9 @@ void AssetsBrowser::DrawDirectoryTree(const std::filesystem::path& directory, st
 
 		const bool isSelected = selectedPath == path.string();
 		if(isSelected) flags |= ImGuiTreeNodeFlags_Selected;
-		if(isSelected){
-			ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.3f, 0.5f, 0.9f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_HeaderHovered, ImVec4(0.4f, 0.6f, 1.0f, 1.0f));
-			ImGui::PushStyleColor(ImGuiCol_HeaderActive, ImVec4(0.2f, 0.4f, 0.8f, 1.0f));
-		}
 
 		ImGui::PushID(path.string().c_str());
 		const bool opened = ImGui::TreeNodeEx(entry.name.c_str(), flags);
-		if(isSelected) ImGui::PopStyleColor(3);
 
 		if(ImGui::BeginPopupContextItem()){
 			if(ImGui::MenuItem("新しいフォルダを作成")){
@@ -269,8 +271,14 @@ void AssetsBrowser::DrawDirectoryTree(const std::filesystem::path& directory, st
 			openRename = false;
 		}
 		if(ImGui::BeginPopupModal("名前を変更", nullptr, ImGuiWindowFlags_AlwaysAutoResize)){
-			ImGui::InputText("新しい名前", newNameBuffer, IM_ARRAYSIZE(newNameBuffer));
-			if(ImGui::Button("OK")){
+			MImGui::TextField(
+				"新しい名前",
+				newNameBuffer,
+				IM_ARRAYSIZE(newNameBuffer),
+				0,
+				260.0f
+			);
+			if(MImGui::PrimaryButton("OK")){
 				std::filesystem::path newPath = renameTarget.parent_path() / newNameBuffer;
 				std::error_code ec;
 				std::filesystem::rename(renameTarget, newPath, ec);
@@ -278,7 +286,7 @@ void AssetsBrowser::DrawDirectoryTree(const std::filesystem::path& directory, st
 				ImGui::CloseCurrentPopup();
 			}
 			ImGui::SameLine();
-			if(ImGui::Button("キャンセル")) ImGui::CloseCurrentPopup();
+			if(MImGui::Button("キャンセル")) ImGui::CloseCurrentPopup();
 			ImGui::EndPopup();
 		}
 
@@ -290,23 +298,26 @@ void AssetsBrowser::DrawDirectoryTree(const std::filesystem::path& directory, st
 	}
 }
 
-
-
 void AssetsBrowser::DrawAssetsInDirectory(std::string& selectedPath){
 	const std::filesystem::path path = selectedPath;
-	ImGui::Text("%s", selectedPath.c_str());
+	ImGui::AlignTextToFramePadding();
+	ImGui::TextDisabled("%s", selectedPath.c_str());
 
-	float searchWidth = 120.0f;
-	if(ImGui::GetWindowContentRegionMax().x * 0.3f > searchWidth){
-		searchWidth = ImGui::GetWindowContentRegionMax().x * 0.3f;
+	float searchWidth = 160.0f;
+	if(ImGui::GetContentRegionAvail().x * 0.34f > searchWidth){
+		searchWidth = ImGui::GetContentRegionAvail().x * 0.34f;
 	}
 	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - searchWidth);
-	ImGui::PushItemWidth(searchWidth);
 	static char searchBuffer[256] = "";
-	ImGui::InputTextWithHint("##AssetSearch", "Search files...", searchBuffer, sizeof(searchBuffer));
-	ImGui::PopItemWidth();
+	MImGui::SearchField(
+		"##AssetSearch",
+		"Search files...",
+		searchBuffer,
+		sizeof(searchBuffer),
+		searchWidth
+	);
 	ImGui::Separator();
-	ImGui::BeginChild("Child", ImVec2(0, 0), true, ImGuiWindowFlags_HorizontalScrollbar);
+	ImGui::BeginChild("Child", ImVec2(0, 0), true, 0);
 
 	const float itemSize = 70.0f;
 	const float panelWidth = ImGui::GetContentRegionAvail().x;
@@ -337,12 +348,20 @@ void AssetsBrowser::DrawAssetsInDirectory(std::string& selectedPath){
 		const ImVec2 cursorPos = ImGui::GetCursorPos();
 
 		if(entry.isDirectory){
-			if(ImGui::Button("##Folder", ImVec2(itemSize, itemSize))){
+			if(MImGui::Button(
+				"##Folder",
+				ImVec2(itemSize, itemSize),
+				MImGui::ButtonKind::Secondary
+			)){
 				ClearPreviewCache();
 				selectedPath = entry.path.string();
 			}
 		} else{
-			ImGui::Button("##ICON", ImVec2(itemSize, itemSize));
+			MImGui::Button(
+				"##ICON",
+				ImVec2(itemSize, itemSize),
+				MImGui::ButtonKind::Secondary
+			);
 			if(ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)){
 				const std::string fullPath = entry.path.string();
 				ImGui::SetDragDropPayload("ASSET_PATH", fullPath.c_str(), fullPath.size() + 1);
@@ -350,6 +369,8 @@ void AssetsBrowser::DrawAssetsInDirectory(std::string& selectedPath){
 				ImGui::EndDragDropSource();
 			}
 		}
+		const bool tileHovered = ImGui::IsItemHovered();
+		const bool tileActive = ImGui::IsItemActive();
 		const ImVec2 afterCursorPos = ImGui::GetCursorPos();
 
 		const std::string iconPath = entry.isDirectory ? "FOLDER" : entry.path.string();
@@ -365,9 +386,9 @@ void AssetsBrowser::DrawAssetsInDirectory(std::string& selectedPath){
 				iconSize.x = itemSize;
 				ImGui::SetCursorPos(ImVec2(cursorPos.x, cursorPos.y + (itemSize - iconSize.y) * 0.5f));
 			}
-			const ImVec4 imageColor = (ImGui::IsItemHovered() || ImGui::IsItemActive())
-				? ImVec4(1, 1, 1, 0.5f)
-				: ImVec4(1, 1, 1, 1);
+			const ImVec4 imageColor = tileActive
+				? ImVec4(1, 1, 1, 0.70f)
+				: (tileHovered ? ImVec4(1, 1, 1, 0.88f) : ImVec4(1, 1, 1, 1));
 			ImGui::Image(icon->pTexture.Get(), iconSize, ImVec2(0, 0), ImVec2(1, 1), imageColor, ImVec4(0, 0, 0, 0));
 			ImGui::SetCursorPos(afterCursorPos);
 		}
@@ -382,6 +403,9 @@ void AssetsBrowser::DrawAssetsInDirectory(std::string& selectedPath){
 			displayName = displayName.substr(0, len) + "...";
 		}
 		ImGui::TextUnformatted(displayName.c_str());
+		if(ImGui::IsItemHovered()){
+			ImGui::SetTooltip("%s", entry.name.c_str());
+		}
 		ImGui::EndGroup();
 		ImGui::PopID();
 		++index;
@@ -392,9 +416,6 @@ void AssetsBrowser::DrawAssetsInDirectory(std::string& selectedPath){
 TextureData* AssetsBrowser::GetIconTexture(std::string filepath){
 
 	FileIconType type = FileIconType::FILE_UNDEFINED;
-
-	//return fileIcon[type].get();
-
 
 	if(filepath == "FOLDER"){
 		type = FileIconType::FILE_FOLDER;
