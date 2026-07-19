@@ -109,21 +109,28 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	ComponentRegistry* registry = context->component;
 	const MImGui::Theme& modernTheme = MImGui::GetTheme();
+	NameComponent* name = registry->GetComponent<NameComponent>(selectedEntity);
+	const bool isPrefab =
+		registry->GetComponent<PrefabComponent>(selectedEntity) != nullptr;
 
-	ImGui::AlignTextToFramePadding();
-	ImGui::TextDisabled("ID: %u", selectedEntity.GetIndex());
-	ImGui::SameLine();
+	ImGui::PushID("EntityHeader");
+	const float entityActionWidth = 32.0f;
+	const float entityNameWidth = (std::max)(
+		96.0f,
+		ImGui::GetContentRegionAvail().x -
+		entityActionWidth - ImGui::GetStyle().ItemSpacing.x
+	);
 
-	if(NameComponent* name =
-		registry->GetComponent<NameComponent>(selectedEntity)){
+	if(name){
 		char nameBuffer[256]{};
 		std::strncpy(nameBuffer, name->name.c_str(), sizeof(nameBuffer) - 1);
 
-		if(ImGui::InputText(
+		if(MImGui::TextField(
 			"##Name",
 			nameBuffer,
 			sizeof(nameBuffer),
-			ImGuiInputTextFlags_EnterReturnsTrue
+			ImGuiInputTextFlags_EnterReturnsTrue,
+			entityNameWidth
 		)){
 			auto command = std::make_unique<RenameCommand>(
 				context,
@@ -133,18 +140,37 @@ void Inspector::Draw(const EditorDrawContext ctx){
 			);
 			m_editor->commandManager.Execute(std::move(command));
 		}
-
-		if(registry->GetComponent<PrefabComponent>(selectedEntity)){
-			ImGui::SameLine();
-			ImGui::TextColored(
-				ImVec4(0.4f, 0.8f, 1.0f, 1.0f),
-				"Prefab"
-			);
-		}
+	} else{
+		ImGui::Dummy(ImVec2(entityNameWidth, modernTheme.compactHeight));
 	}
 
-	ImGui::SameLine(ImGui::GetWindowContentRegionMax().x - 72.0f);
-	if(MImGui::DangerButton("Delete##EntityDelete", ImVec2(72.0f, modernTheme.compactHeight))){
+	ImGui::SameLine();
+	if(MImGui::Button(
+		"...##EntityActions",
+		ImVec2(entityActionWidth, modernTheme.compactHeight),
+		MImGui::ButtonKind::Ghost
+	)){
+		ImGui::OpenPopup("EntityActionsPopup");
+	}
+
+	bool deleteEntity = false;
+	if(ImGui::BeginPopup("EntityActionsPopup")){
+		ImGui::TextDisabled("Entity %u", selectedEntity.GetIndex());
+		ImGui::Separator();
+		ImGui::PushStyleColor(ImGuiCol_Text, modernTheme.dangerHover);
+		deleteEntity = ImGui::MenuItem("Delete Entity");
+		ImGui::PopStyleColor();
+		ImGui::EndPopup();
+	}
+
+	ImGui::TextDisabled("Entity %u", selectedEntity.GetIndex());
+	if(isPrefab){
+		ImGui::SameLine();
+		MImGui::Badge("Prefab");
+	}
+	ImGui::PopID();
+
+	if(deleteEntity){
 		auto command = std::make_unique<EntityDeleteCommand>(
 			context,
 			selectedEntity,
@@ -232,7 +258,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		"Child",
 		ImVec2(0.0f, 0.0f),
 		true,
-		ImGuiWindowFlags_HorizontalScrollbar
+		0
 	);
 
 	const std::vector<ComponentView> components =
@@ -249,10 +275,11 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		const ImGuiID openStateID = ImGui::GetID("SectionOpenState");
 		bool open = sectionStorage->GetBool(openStateID, true);
 
-		const float removeWidth = 68.0f;
+		const float actionWidth = 32.0f;
 		const float headerWidth = (std::max)(
 			80.0f,
-			ImGui::GetContentRegionAvail().x - removeWidth - ImGui::GetStyle().ItemSpacing.x
+			ImGui::GetContentRegionAvail().x -
+			actionWidth - ImGui::GetStyle().ItemSpacing.x
 		);
 
 		MImGui::SectionHeader(componentName.c_str(), &open, headerWidth);
@@ -260,11 +287,22 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 		ImGui::SameLine();
 		if(MImGui::Button(
-			"Remove",
-			ImVec2(removeWidth, modernTheme.compactHeight),
+			"...##ComponentActions",
+			ImVec2(actionWidth, modernTheme.compactHeight),
 			MImGui::ButtonKind::Ghost
 		)){
-			componentsToRemove.push_back(component);
+			ImGui::OpenPopup("ComponentActionsPopup");
+		}
+
+		if(ImGui::BeginPopup("ComponentActionsPopup")){
+			ImGui::TextDisabled("%s", componentName.c_str());
+			ImGui::Separator();
+			ImGui::PushStyleColor(ImGuiCol_Text, modernTheme.dangerHover);
+			if(ImGui::MenuItem("Remove Component")){
+				componentsToRemove.push_back(component);
+			}
+			ImGui::PopStyleColor();
+			ImGui::EndPopup();
 		}
 		ImGui::PopID();
 
