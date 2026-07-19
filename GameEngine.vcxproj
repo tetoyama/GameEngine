@@ -2783,6 +2783,44 @@
     <ClInclude Include="Source\GameApplication\Service\IService.h" />
     <ClInclude Include="Source\GameApplication\Backends\YAMLConverters.h" />
     <ClInclude Include="Source\Shader\commonDefine.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\AgentOsTypes.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Json.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Agents\AgentContext.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Agents\CriticAgent.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Agents\IntakeAgent.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Agents\PlannerAgent.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Agents\ReasoningAgent.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Agents\RetrievalWorker.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Agents\SynthesisAgent.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Budget\Budget.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Command\CapabilitySet.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Command\CommandPipeline.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Command\CommandSchema.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Command\CommandTypes.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Evidence\Evidence.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Evidence\EvidenceBuilder.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Llm\ILlmBackend.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Llm\LoggingLlmBackend.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Llm\JsonExtractor.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Llm\MockLlmBackend.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Llm\PromptTemplates.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Logic\LogicGraph.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Logic\FuzzyMatch.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Orchestrator\EarlyStopping.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Orchestrator\Orchestrator.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Orchestrator\Supervisor.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Store\SqliteDb.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Store\TaskStore.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\EngineTools\EngineToolContext.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\EngineTools\EngineToolRegistry.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\EngineTools\EntityIntrospection.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\EngineTools\MainThreadDispatcher.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\EngineTools\SystemIntrospection.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\EngineTools\WriteTrace.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Service\AgentOSService.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Service\LlamaLlmBackend.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\UI\AgentOSPanel.h" />
+    <ClInclude Include="Source\GameApplication\Backends\sqlite\sqlite3.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="Source\GameApplication\Backends\checkFileExtention.cpp" />
@@ -3592,6 +3630,43 @@
     <ClCompile Include="Source\GameApplication\gameApplication.cpp" />
     <ClCompile Include="Source\main.cpp" />
     <ClCompile Include="Source\GameApplication\Backends\ImGuiFunc.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\AgentOsTypes.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Agents\AgentContext.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Agents\CriticAgent.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Agents\IntakeAgent.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Agents\PlannerAgent.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Agents\ReasoningAgent.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Agents\RetrievalWorker.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Agents\SynthesisAgent.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Budget\Budget.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Command\CapabilitySet.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Command\CommandPipeline.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Command\CommandSchema.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Evidence\Evidence.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Evidence\EvidenceBuilder.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Llm\JsonExtractor.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Llm\MockLlmBackend.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Llm\PromptTemplates.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Logic\LogicGraph.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Orchestrator\EarlyStopping.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Orchestrator\Orchestrator.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Orchestrator\Supervisor.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Store\SqliteDb.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Store\TaskStore.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\EngineTools\EngineToolRegistry.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\EngineTools\EntityIntrospection.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\EngineTools\MainThreadDispatcher.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\EngineTools\SystemIntrospection.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\EngineTools\WriteTrace.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Service\AgentOSService.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Service\LlamaLlmBackend.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\UI\AgentOSPanel.cpp" />
+    <ClCompile Include="Source\GameApplication\Backends\sqlite\sqlite3.c">
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">TurnOffAllWarnings</WarningLevel>
+      <WarningLevel Condition="'$(Configuration)|$(Platform)'=='Release|x64'">TurnOffAllWarnings</WarningLevel>
+      <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">false</SDLCheck>
+      <SDLCheck Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</SDLCheck>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <None Include="Asset\Shader\pixelLightingBlinnPhongVS.cso">

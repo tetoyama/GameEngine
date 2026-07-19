@@ -16,6 +16,7 @@
 #include "UI/SceneStorageSettingsPanel.h"
 #include "UI/BRAIN/BRAIN.h"
 #include "UI/CB41.h"
+#include "AgentOS/UI/AgentOSPanel.h"
 
 #include "Analysis/AnalyzerManager.h"
 
@@ -57,6 +58,9 @@ void EditorService::Initialize(EditorServiceContext context) {
 	UIs.push_back({"SceneStorageSettings", new SceneStorageSettingsPanel()});
 	//UIs.push_back({"BRAIN", new BRAIN()});
 	//UIs.push_back({"CB41", new CB41()});
+	// AgentOSPanel: BRAIN後継のLLMエージェント基盤UI。
+	// AgentOSServiceへの接続はengine.cpp側でSetService()により事後注入される。
+	UIs.push_back({"AgentOS", new agentos::AgentOSPanel()});
 
 	m_CurrentPanelTimings.clear();
 	m_CompletedPanelTimings.clear();

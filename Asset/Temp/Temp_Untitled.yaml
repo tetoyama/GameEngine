@@ -35,7 +35,7 @@ Entities:
       - Component: ColliderComponent
         isDynamic: false
         autoMass: true
-        Mass: 0
+        Mass: 0.00100000005
         colliders:
           - type: 0
             size:
@@ -77,8 +77,8 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
           UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\mesh.png
@@ -219,9 +219,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -255,7 +255,7 @@ Entities:
       - Component: ColliderComponent
         isDynamic: true
         autoMass: true
-        Mass: 0
+        Mass: 1
         colliders:
           - type: 2
             size:
@@ -297,9 +297,9 @@ Entities:
             y: 0
             z: 0
           EmissiveIntensity: 0
-          UseDiffuseTexture: false
-          UseNormalTexture: false
-          UseEnvironmentMap: false
+          UseDiffuseTexture: true
+          UseNormalTexture: true
+          UseEnvironmentMap: true
       - Component: ModelRendererComponent
         FilePath: Asset\Model\Y Bot.fbx
         isBlender: false
@@ -371,7 +371,7 @@ Entities:
             - 15
             - 1
         nextLinkId: 1
-        nextPinId: 1
+        nextPinId: 2
         PostEffectEditorZoom: 1
         ScreenInput:
           Name: ""
@@ -385,7 +385,7 @@ Entities:
             x: -1
             y: -1
           InputPins:
-            []
+            - 1
       - Component: CameraController
         distance: 6
         height: 2

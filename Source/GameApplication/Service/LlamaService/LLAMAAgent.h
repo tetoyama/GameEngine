@@ -109,6 +109,15 @@ public:
 	// 使用率（0.0f ～ 1.0f）
 	float GetTokenUsageRate() const noexcept;
 
+	// 直近のRunAsyncで入力・生成したトークン数。
+	// AgentOSの進捗表示から読み取れるようatomicで公開する。
+	int GetLastPromptTokenCount() const noexcept {
+		return m_lastPromptTokens.load(std::memory_order_acquire);
+	}
+	int GetLastGeneratedTokenCount() const noexcept {
+		return m_lastGeneratedTokens.load(std::memory_order_acquire);
+	}
+
 
 private:
 
@@ -123,11 +132,19 @@ private:
 
 	void WorkerMain();
 
-	// [修正] retryDepth を追加。
-	// コンテキストオーバーフロー時に SummarizeAndReset() を挟んで自分自身を
-	// 再帰呼び出しする経路があるが、要約してもオーバーフローが解消しない
-	// 異常系で無限再帰に陥らないようにするための深度ガード。
-	void RunPromptInternal(const std::string& prompt, int retryDepth = 0);
+	struct CancelSnapshot {
+		std::vector<MessageEntry> history;
+		std::vector<llama_token> pastTokens;
+		int nPast = 0;
+		bool valid = false;
+	};
+
+	// Snapshotはtop-level推論のstack所有。thread_local capacityをWorker終了まで
+	// 保持しない。再帰リトライ時だけ同じSnapshotへの非所有pointerを渡す。
+	void RunPromptInternal(
+		const std::string& prompt,
+		int retryDepth = 0,
+		CancelSnapshot* snapshot = nullptr);
 
 	// ============================
 	// Model / Config
@@ -146,6 +163,8 @@ private:
 	// 会話コンテキスト
 	std::vector<llama_token> m_pastTokens;
 	std::atomic<int> m_nPast = 0;
+	std::atomic<int> m_lastPromptTokens{0};
+	std::atomic<int> m_lastGeneratedTokens{0};
 
 	// Agent側で一元管理する会話の履歴バッファ
 	std::vector<MessageEntry> m_history;

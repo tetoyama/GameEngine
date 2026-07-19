@@ -1,0 +1,661 @@
+// =======================================================================
+//
+// RetrievalWorker.cpp
+//
+// =======================================================================
+#include "RetrievalWorker.h"
+
+#include <algorithm>
+#include <cctype>
+#include <string>
+#include <unordered_set>
+#include <vector>
+
+namespace agentos {
+
+namespace {
+
+double ExtractConfidenceHint(const Json& payload) {
+	if (payload.is_object() && payload.contains("confidenceHint") && payload.at("confidenceHint").is_number()) {
+		return payload.at("confidenceHint").get<double>();
+	}
+	return 1.0;
+}
+
+std::string ExtractClaim(const Json& payload, const std::string& toolName) {
+	if (payload.is_object() && payload.contains("claim") && payload.at("claim").is_string()) {
+		return payload.at("claim").get<std::string>();
+	}
+	return toolName + " result";
+}
+
+std::string ExtractPlanTaskId(const Json& taskSpec) {
+	if (taskSpec.is_object() && taskSpec.contains("taskId") && taskSpec.at("taskId").is_string()) {
+		return taskSpec.at("taskId").get<std::string>();
+	}
+	return "?";
+}
+
+std::string Trim(std::string value) {
+	auto isNotSpace = [](unsigned char ch) { return std::isspace(ch) == 0; };
+	value.erase(value.begin(), std::find_if(value.begin(), value.end(), isNotSpace));
+	value.erase(std::find_if(value.rbegin(), value.rend(), isNotSpace).base(), value.end());
+	return value;
+}
+
+std::string LowerAscii(std::string value) {
+	std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+		return static_cast<char>(std::tolower(ch));
+	});
+	return value;
+}
+
+bool IsPlaceholderString(const std::string& raw) {
+	const std::string value = Trim(raw);
+	const std::string lower = LowerAscii(value);
+	if (value.empty()) return true;
+	if ((value.front() == '<' && value.back() == '>') ||
+	    lower == "todo" || lower == "tbd" || lower == "unknown" ||
+	    lower == "entity" || lower == "component" || lower == "entity_name" ||
+	    lower == "component_name" || lower == "your_entity" || lower == "your_component" ||
+	    lower == "target entity" || lower == "target component" ||
+	    lower == "main entity" || lower == "key component") {
+		return true;
+	}
+	return value.find("主要な Entity") != std::string::npos ||
+		value.find("主要なEntity") != std::string::npos ||
+		value.find("対象 Entity") != std::string::npos ||
+		value.find("対象Entity") != std::string::npos ||
+		value.find("対象のEntity") != std::string::npos ||
+		value.find("対象 Component") != std::string::npos ||
+		value.find("対象Component") != std::string::npos ||
+		value.find("対象のComponent") != std::string::npos ||
+		value.find("关键") != std::string::npos ||
+		lower.find("placeholder") != std::string::npos;
+}
+
+bool PayloadRepresentsFailure(const Json& payload) {
+	if (!payload.is_object()) return false;
+	if (payload.value("failure", false)) return true;
+	if (payload.contains("error") && payload.at("error").is_string() &&
+	    !Trim(payload.at("error").get<std::string>()).empty()) return true;
+	return false;
+}
+
+bool PayloadRepresentsUnsatisfied(const Json& payload) {
+	if (!payload.is_object()) return false;
+	for (const char* key : {"found", "exists", "satisfied"}) {
+		if (payload.contains(key) && payload.at(key).is_boolean() &&
+		    !payload.at(key).get<bool>()) return true;
+	}
+	if (payload.contains("status") && payload.at("status").is_string()) {
+		const std::string status = LowerAscii(payload.at("status").get<std::string>());
+		return status == "not_found" || status == "unsatisfied" || status == "missing";
+	}
+	return false;
+}
+
+void StampRevision(Json* payload) {
+	if (payload == nullptr) return;
+	if (!payload->is_object()) *payload = Json::object({{"raw", *payload}});
+	(*payload)["requestRevision"] = prompts::CurrentRequestRevision();
+}
+
+void AddStoredEvidence(AgentContext& ctx, Evidence evidence, std::vector<Evidence>* evidenceOut) {
+	const EvidenceId id = ctx.store->AddEvidence(evidence);
+	evidence.id = id;
+	evidenceOut->push_back(std::move(evidence));
+}
+
+Result ResolveDependencyEvidence(AgentContext& ctx, TaskId storeTaskId, const Json& taskSpec, Json* out) {
+	*out = Json::object();
+	if (!taskSpec.is_object() || !taskSpec.contains("dependencies") ||
+	    !taskSpec.at("dependencies").is_array() || taskSpec.at("dependencies").empty()) {
+		return Result::Ok();
+	}
+	if (ctx.store == nullptr) {
+		return Result::Fail("RetrievalWorker: TaskStore is unavailable for dependency resolution");
+	}
+
+	const std::optional<TaskRow> current = ctx.store->GetTask(storeTaskId);
+	if (!current) return Result::Fail("RetrievalWorker: current task is missing from TaskStore");
+	const std::vector<TaskRow> siblings = ctx.store->GetChildren(current->parentId);
+
+	for (const Json& depValue : taskSpec.at("dependencies")) {
+		if (!depValue.is_string()) return Result::Fail("RetrievalWorker: dependency id is not a string");
+		const std::string depId = depValue.get<std::string>();
+		const TaskRow* dependency = nullptr;
+		for (const TaskRow& candidate : siblings) {
+			if (candidate.spec.is_object() && candidate.spec.value("taskId", std::string()) == depId) {
+				dependency = &candidate;
+				break;
+			}
+		}
+		if (dependency == nullptr) {
+			return Result::Fail("RetrievalWorker: dependency task not found: " + depId);
+		}
+		if (dependency->state != TaskState::Succeeded) {
+			return Result::Fail(
+				"RetrievalWorker: dependency '" + depId + "' did not satisfy its task (state=" +
+				ToString(dependency->state) + ")");
+		}
+
+		Json evidenceArray = Json::array();
+		for (const Evidence& evidence : ctx.store->GetEvidenceForTask(dependency->id)) {
+			evidenceArray.push_back(evidence.ToJson());
+		}
+		(*out)[depId] = Json::object({
+			{"storeTaskId", dependency->id},
+			{"state", ToString(dependency->state)},
+			{"result", dependency->result},
+			{"evidences", std::move(evidenceArray)},
+		});
+	}
+	return Result::Ok();
+}
+
+const Json* FindToolDescriptor(const Json& catalog, const std::string& toolName) {
+	if (!catalog.is_array()) return nullptr;
+	for (const Json& entry : catalog) {
+		if (entry.is_object() && entry.value("name", std::string()) == toolName) return &entry;
+	}
+	return nullptr;
+}
+
+bool SchemaHasRequiredFields(const Json& descriptor) {
+	if (!descriptor.is_object() || !descriptor.contains("argumentSchema") ||
+	    !descriptor.at("argumentSchema").is_object()) return false;
+	for (const auto& item : descriptor.at("argumentSchema").items()) {
+		if (item.value().is_object() && item.value().value("required", false)) return true;
+	}
+	return false;
+}
+
+void CollectNamedEntities(const Json& value, std::vector<std::string>* names) {
+	if (names->size() >= 5) return;
+	if (value.is_object()) {
+		// found=false等の負の結果は、その内部の検索語を正のBindingとして収集しない。
+		if (PayloadRepresentsUnsatisfied(value) || PayloadRepresentsFailure(value)) return;
+		if (value.contains("name") && value.at("name").is_string()) {
+			const std::string name = Trim(value.at("name").get<std::string>());
+			if (!name.empty() && !IsPlaceholderString(name) &&
+			    std::find(names->begin(), names->end(), name) == names->end()) {
+				names->push_back(name);
+			}
+		}
+		for (const auto& item : value.items()) {
+			CollectNamedEntities(item.value(), names);
+			if (names->size() >= 5) return;
+		}
+	} else if (value.is_array()) {
+		for (const Json& child : value) {
+			CollectNamedEntities(child, names);
+			if (names->size() >= 5) return;
+		}
+	}
+}
+
+Json BuildDeterministicCommands(
+	const std::unordered_set<std::string>& allowed,
+	const Json& filteredCatalog,
+	const Json& dependencyEvidence) {
+
+	Json commands = Json::array();
+	if (allowed.size() != 1) return commands;
+	const std::string toolName = *allowed.begin();
+	const Json* descriptor = FindToolDescriptor(filteredCatalog, toolName);
+	if (descriptor == nullptr) return commands;
+
+	if (!SchemaHasRequiredFields(*descriptor)) {
+		commands.push_back(Json::object({{"tool", toolName}, {"arguments", Json::object()}}));
+		return commands;
+	}
+
+	if (toolName == "DescribeEntity" || toolName == "FindEntityByName") {
+		std::vector<std::string> names;
+		CollectNamedEntities(dependencyEvidence, &names);
+		const char* field = toolName == "DescribeEntity" ? "entityName" : "name";
+		for (const std::string& name : names) {
+			commands.push_back(Json::object({
+				{"tool", toolName},
+				{"arguments", Json::object({{field, name}})},
+			}));
+		}
+	}
+	return commands;
+}
+
+Json ParseExplicitCommands(const Json& taskSpec) {
+	if (!taskSpec.is_object()) return Json::array();
+	if (taskSpec.contains("commands") && taskSpec.at("commands").is_array()) {
+		return taskSpec.at("commands");
+	}
+	const std::string description = taskSpec.value("description", std::string());
+	const std::string marker = "REPAIR_COMMAND ";
+	const std::size_t pos = description.find(marker);
+	if (pos == std::string::npos) return Json::array();
+	const std::string encoded = Trim(description.substr(pos + marker.size()));
+	Json command = Json::parse(encoded, nullptr, false);
+	if (!command.is_object() || command.is_discarded()) return Json::array();
+	return Json::array({command});
+}
+
+Result ValidateGroundedValue(
+	const Json& value,
+	const std::string& dependencyDump,
+	bool requiresDependencyGrounding,
+	const std::string& path) {
+
+	if (value.is_string()) {
+		const std::string text = Trim(value.get<std::string>());
+		if (IsPlaceholderString(text)) {
+			return Result::Fail("ungrounded placeholder or blank string at " + path + ": '" + text + "'");
+		}
+		if (requiresDependencyGrounding && dependencyDump.find(text) == std::string::npos) {
+			return Result::Fail("argument at " + path + " is not present in dependency evidence: '" + text + "'");
+		}
+		return Result::Ok();
+	}
+	if (value.is_array()) {
+		for (std::size_t i = 0; i < value.size(); ++i) {
+			Result child = ValidateGroundedValue(
+				value[i], dependencyDump, requiresDependencyGrounding,
+				path + "[" + std::to_string(i) + "]");
+			if (!child) return child;
+		}
+	}
+	if (value.is_object()) {
+		for (const auto& item : value.items()) {
+			Result child = ValidateGroundedValue(
+				item.value(), dependencyDump, requiresDependencyGrounding,
+				path + "." + item.key());
+			if (!child) return child;
+		}
+	}
+	return Result::Ok();
+}
+
+bool IsDiscoveryTool(const std::string& toolName) {
+	static const std::unordered_set<std::string> kDiscoveryTools = {
+		"ResolveEntity", "FindEntityByName", "CodeSearch", "SearchComponent", "SearchField",
+	};
+	return kDiscoveryTools.count(toolName) != 0;
+}
+
+std::string ValidationFailureSourceType(const std::string& error) {
+	if (error.find("tool is not allowed") != std::string::npos) return "ToolAllowlistRejected";
+	if (error.find("dependency evidence") != std::string::npos ||
+	    error.find("ungrounded placeholder") != std::string::npos) {
+		return "GroundingRejected";
+	}
+	return "CommandValidationError";
+}
+
+std::string CommandFailureSourceType(CommandStatus status) {
+	switch (status) {
+	case CommandStatus::SchemaRejected: return "SchemaRejected";
+	case CommandStatus::CapabilityRejected: return "CapabilityRejected";
+	case CommandStatus::BudgetRejected: return "BudgetRejected";
+	case CommandStatus::PreconditionRejected: return "PreconditionRejected";
+	case CommandStatus::ExecutionFailed: return "ExecutionFailed";
+	case CommandStatus::PostconditionFailed: return "PostconditionFailed";
+	case CommandStatus::AwaitingApproval: return "AwaitingApproval";
+	case CommandStatus::Ok: return "ToolResultError";
+	}
+	return "ExecutionFailed";
+}
+
+Result ValidateGroundedCommand(
+	const Json& command,
+	const std::unordered_set<std::string>& allowed,
+	const Json& dependencyEvidence) {
+
+	if (!command.is_object() || !command.contains("tool") || !command.at("tool").is_string()) {
+		return Result::Fail("command must contain a string tool name");
+	}
+	const std::string toolName = command.at("tool").get<std::string>();
+	if (allowed.count(toolName) == 0) {
+		return Result::Fail("tool is not allowed for this task: " + toolName);
+	}
+	if (!command.contains("arguments") || !command.at("arguments").is_object()) {
+		return Result::Fail("command arguments must be an object");
+	}
+
+	const bool hasDependencies = dependencyEvidence.is_object() && !dependencyEvidence.empty();
+	// Discovery Toolのqueryは未知対象を見つけるための未確定語なので、既存Evidenceへの
+	// 完全一致を要求しない。Exact Access Toolだけが成功した依存EvidenceへBindingする。
+	const bool requiresDependencyGrounding = hasDependencies && !IsDiscoveryTool(toolName);
+	return ValidateGroundedValue(
+		command.at("arguments"), dependencyEvidence.dump(), requiresDependencyGrounding, "arguments");
+}
+
+Evidence MakeFailureEvidence(
+	AgentContext& ctx,
+	TaskId storeTaskId,
+	const std::string& sourceType,
+	const std::string& sourceUri,
+	const std::string& claim,
+	Json payload) {
+
+	Evidence evidence;
+	evidence.taskId = storeTaskId;
+	evidence.claim = claim;
+	if (!payload.is_object()) payload = Json::object({{"raw", std::move(payload)}});
+	payload["failure"] = true;
+	StampRevision(&payload);
+	evidence.payload = std::move(payload);
+	evidence.provenance.sourceType = sourceType;
+	evidence.provenance.sourceUri = sourceUri;
+	evidence.provenance.session = "session_" + std::to_string(ctx.sessionId);
+	evidence.confidence = 1.0;
+	return evidence;
+}
+
+// ---------------------------------
+// CHANGE 3: SchemaRejectedからの自己修復リトライ。
+//
+// PromptTemplates.cppは別Agentが所有しているため、他Promptと同じ出力契約文字列を
+// ここへインラインで複製する（構想の契約テキストを踏襲。文言はPromptTemplates.cpp
+// のkContractJaと同一にしておくこと）。
+// ---------------------------------
+constexpr const char* kSchemaRepairContractJa =
+	"あなたはAgentOSのサブシステムとして動作するアシスタントです。\n"
+	"出力契約（厳守）:\n"
+	"1. 応答は単一の```json フェンスで囲まれたJSONオブジェクトのみとすること。\n"
+	"2. フェンスの外に文章を書かないこと。指定されたキー以外を追加しないこと。\n"
+	"3. 不確実な点は指定フィールドで表現し、存在しない事実やEvidenceを捏造しないこと。\n";
+
+// 拒否されたCommandと正しいargumentSchemaをLLMへ渡し、同じ意図のCommandを1件だけ
+// 修正させる。GenerateQueriesが提案したCommand（LLMの自由記述）のみを対象とし、
+// Grounding済みのExplicit/Deterministic Commandは対象にしない（呼び出し側で判定）。
+Result RequestSchemaRepairCommand(
+	AgentContext& ctx,
+	const Json& rejectedCommand,
+	const std::string& schemaError,
+	const Json& argumentSchema,
+	Json* repairedCommandOut) {
+
+	if (repairedCommandOut == nullptr) return Result::Fail("RetrievalWorker: repairedCommandOut is null");
+
+	PromptPair prompt;
+	prompt.system = std::string(kSchemaRepairContractJa) +
+		"\n役割: 直前のTool呼び出しが引数スキーマ違反で拒否されたWorker担当。"
+		"エラーと正しいargumentSchemaに従い、同じ意図のTool呼び出しを1件だけ修正して出力する。"
+		"\n出力スキーマ:\n"
+		"{\"commands\": [{\"tool\": string, \"arguments\": object}]}"
+		"\n/no_think\n";
+	prompt.user =
+		"拒否されたCommand:\n" + rejectedCommand.dump(2) +
+		"\n\nスキーマ検証エラー:\n" + schemaError +
+		"\n\n正しいargumentSchema:\n" + argumentSchema.dump(2) +
+		"\n\n同じ意図を保ったまま、正しい引数名・型で1件だけ修正したcommandsを出力してください。";
+
+	Json raw;
+	Result callResult = CallLlmJson(ctx, prompt, &raw);
+	if (!callResult) return callResult;
+	if (!raw.is_object() || !raw.contains("commands") || !raw.at("commands").is_array() ||
+	    raw.at("commands").empty() || !raw.at("commands")[0].is_object()) {
+		return Result::Fail("RetrievalWorker: schema repair response missing commands[0]");
+	}
+	Json repaired = raw.at("commands")[0];
+	if (!repaired.contains("tool") || !repaired.at("tool").is_string() ||
+	    !repaired.contains("arguments") || !repaired.at("arguments").is_object()) {
+		return Result::Fail("RetrievalWorker: schema repair command missing tool/arguments");
+	}
+	*repairedCommandOut = std::move(repaired);
+	return Result::Ok();
+}
+
+// Submit結果を評価してEvidenceを積む共通処理。成功ならtrueを返し、失敗/Unsatisfied
+// ならその種別に応じたEvidenceを積んでfalseを返す（呼び出し側でbreakする）。
+bool EvaluateCommandOutcome(
+	AgentContext& ctx,
+	TaskId storeTaskId,
+	const std::string& toolName,
+	const Json& arguments,
+	const CommandResult& result,
+	std::vector<Evidence>* evidenceOut,
+	int* succeeded,
+	int* failed,
+	int* unsatisfied) {
+
+	if (!result.IsOk()) {
+		++*failed;
+		const std::string sourceType = CommandFailureSourceType(result.status);
+		AddStoredEvidence(ctx, MakeFailureEvidence(
+			ctx, storeTaskId, sourceType, toolName,
+			"Tool " + toolName + " failed (" + ToString(result.status) + "): " + result.error,
+			Json::object({{"status", ToString(result.status)}, {"error", result.error},
+			              {"failureCategory", sourceType}})), evidenceOut);
+		return false;
+	}
+	if (PayloadRepresentsFailure(result.payload)) {
+		++*failed;
+		AddStoredEvidence(ctx, MakeFailureEvidence(
+			ctx, storeTaskId, "ToolResultError", toolName,
+			"Tool " + toolName + " returned an error result", result.payload), evidenceOut);
+		return false;
+	}
+	if (PayloadRepresentsUnsatisfied(result.payload)) {
+		++*unsatisfied;
+		Json payload = result.payload;
+		payload["unsatisfied"] = true;
+		payload["arguments"] = arguments;
+		AddStoredEvidence(ctx, MakeFailureEvidence(
+			ctx, storeTaskId, "ToolUnsatisfied", toolName,
+			"Tool " + toolName + " completed but did not satisfy the task", payload), evidenceOut);
+		return false;
+	}
+
+	++*succeeded;
+	Evidence evidence;
+	evidence.taskId = storeTaskId;
+	evidence.claim = ExtractClaim(result.payload, toolName);
+	evidence.payload = result.payload;
+	StampRevision(&evidence.payload);
+	evidence.provenance.sourceType = "Tool:" + toolName;
+	evidence.provenance.sourceUri = toolName;
+	evidence.provenance.session = "session_" + std::to_string(ctx.sessionId);
+	evidence.confidence = ExtractConfidenceHint(result.payload);
+	AddStoredEvidence(ctx, std::move(evidence), evidenceOut);
+	return true;
+}
+
+} // namespace
+
+Result RetrievalWorker::Run(
+	AgentContext& ctx,
+	TaskId storeTaskId,
+	const Json& taskSpec,
+	std::vector<Evidence>* evidenceOut,
+	Json* summaryOut) {
+	if (evidenceOut == nullptr) return Result::Fail("RetrievalWorker: evidenceOut is null");
+	if (ctx.pipeline == nullptr || ctx.store == nullptr) {
+		return Result::Fail("RetrievalWorker: pipeline or store is null");
+	}
+
+	Json dependencyEvidence;
+	Result dependencyResult = ResolveDependencyEvidence(ctx, storeTaskId, taskSpec, &dependencyEvidence);
+	if (!dependencyResult) {
+		if (summaryOut != nullptr) {
+			*summaryOut = Json::object({
+				{"executed", 0}, {"failed", 1}, {"rejected", 0}, {"skipped", true},
+				{"outcome", "DependencyUnsatisfied"},
+				{"coverageNote", dependencyResult.error},
+			});
+		}
+		return dependencyResult;
+	}
+
+	std::unordered_set<std::string> allowed;
+	if (taskSpec.is_object() && taskSpec.contains("allowedTools") && taskSpec.at("allowedTools").is_array()) {
+		for (const Json& tool : taskSpec.at("allowedTools")) {
+			if (tool.is_string()) allowed.insert(tool.get<std::string>());
+		}
+	}
+	if (allowed.empty()) return Result::Fail("RetrievalWorker: task has no allowed tools");
+
+	Json filteredCatalog = Json::array();
+	const Json fullCatalog = ctx.pipeline->DescribeTools();
+	if (fullCatalog.is_array()) {
+		for (const Json& entry : fullCatalog) {
+			if (entry.is_object() && entry.contains("name") && entry.at("name").is_string() &&
+			    allowed.count(entry.at("name").get<std::string>()) != 0) {
+				filteredCatalog.push_back(entry);
+			}
+		}
+	}
+
+	Json commands = ParseExplicitCommands(taskSpec);
+	// CHANGE 3: このCommand列だけがSchemaRejectedからの自己修復リトライ対象となる。
+	// Explicit/Deterministic Commandは既にGrounding済みでLLMの自由記述ではないため対象外。
+	bool commandsFromLlm = false;
+	if (commands.empty()) commands = BuildDeterministicCommands(allowed, filteredCatalog, dependencyEvidence);
+	if (commands.empty()) {
+		Json augmentedTaskSpec = taskSpec;
+		augmentedTaskSpec["dependencyEvidence"] = dependencyEvidence;
+		const PromptPair prompt = prompts::GenerateQueries(augmentedTaskSpec, filteredCatalog);
+		Json raw;
+		Result callResult = CallLlmJson(ctx, prompt, &raw);
+		if (!callResult) {
+			return Result::Fail("RetrievalWorker: query generation failed: " + callResult.error);
+		}
+		if (raw.is_object() && raw.contains("commands") && raw.at("commands").is_array()) {
+			commands = raw.at("commands");
+		}
+		commandsFromLlm = true;
+	}
+
+	int attempted = 0;
+	int succeeded = 0;
+	int failed = 0;
+	int rejected = 0;
+	int unsatisfied = 0;
+	int correctiveRetriesUsed = 0;
+	constexpr int kMaxCorrectiveRetries = 2;
+
+	const std::size_t limit = (std::min<std::size_t>)(commands.size(), 5);
+	for (std::size_t i = 0; i < limit; ++i) {
+		const Json& command = commands[i];
+		Result grounded = ValidateGroundedCommand(command, allowed, dependencyEvidence);
+		if (!grounded) {
+			++rejected;
+			const std::string toolName = command.is_object()
+				? command.value("tool", std::string("?"))
+				: "?";
+			const std::string validationCategory = ValidationFailureSourceType(grounded.error);
+			AddStoredEvidence(ctx, MakeFailureEvidence(
+				ctx, storeTaskId, validationCategory, toolName,
+				"Tool command rejected before execution (" + validationCategory + "): " + grounded.error,
+				Json::object({{"error", grounded.error}, {"command", command},
+				              {"failureCategory", validationCategory}})), evidenceOut);
+			break;
+		}
+
+		const std::string toolName = command.at("tool").get<std::string>();
+		const Json arguments = command.at("arguments");
+		CommandRequest request;
+		request.taskId = storeTaskId;
+		request.issuer = "RetrievalWorker";
+		request.tool = toolName;
+		request.arguments = arguments;
+		request.capability = ctx.token;
+		++attempted;
+
+		const CommandResult result = ctx.pipeline->Submit(request);
+
+		// CHANGE 3: LLM提案CommandがSchemaRejectedで拒否された場合に限り、即座に
+		// 失敗記録してbreakするのではなく、エラーと正しいargumentSchemaを渡して
+		// 1回だけ修正させる自己修復リトライを試みる（Task全体で最大2回まで）。
+		if (result.status == CommandStatus::SchemaRejected && commandsFromLlm &&
+		    correctiveRetriesUsed < kMaxCorrectiveRetries) {
+			++correctiveRetriesUsed;
+			const Json* descriptor = FindToolDescriptor(filteredCatalog, toolName);
+			Json repairedCommand;
+			Result repairResult = descriptor != nullptr
+				? RequestSchemaRepairCommand(
+					ctx, command, result.error,
+					descriptor->value("argumentSchema", Json::object()), &repairedCommand)
+				: Result::Fail("RetrievalWorker: tool descriptor unavailable for schema repair");
+			Result repairGrounded = repairResult
+				? ValidateGroundedCommand(repairedCommand, allowed, dependencyEvidence)
+				: repairResult;
+
+			if (repairGrounded) {
+				const std::string repairedToolName = repairedCommand.at("tool").get<std::string>();
+				const Json repairedArguments = repairedCommand.at("arguments");
+				CommandRequest retryRequest;
+				retryRequest.taskId = storeTaskId;
+				retryRequest.issuer = "RetrievalWorker";
+				retryRequest.tool = repairedToolName;
+				retryRequest.arguments = repairedArguments;
+				retryRequest.capability = ctx.token;
+				++attempted;
+				const CommandResult retryResult = ctx.pipeline->Submit(retryRequest);
+
+				if (retryResult.IsOk() && !PayloadRepresentsFailure(retryResult.payload) &&
+				    !PayloadRepresentsUnsatisfied(retryResult.payload)) {
+					Evidence retryEvidence;
+					retryEvidence.taskId = storeTaskId;
+					retryEvidence.claim = "schema違反をリトライで修正した: " + repairedToolName;
+					retryEvidence.payload = Json::object({
+						{"originalArguments", arguments},
+						{"correctedArguments", repairedArguments},
+						{"schemaError", result.error},
+					});
+					StampRevision(&retryEvidence.payload);
+					retryEvidence.provenance.sourceType = "SchemaRepair";
+					retryEvidence.provenance.sourceUri = repairedToolName;
+					retryEvidence.provenance.session = "session_" + std::to_string(ctx.sessionId);
+					retryEvidence.confidence = 1.0;
+					AddStoredEvidence(ctx, std::move(retryEvidence), evidenceOut);
+				}
+
+				if (EvaluateCommandOutcome(
+					ctx, storeTaskId, repairedToolName, repairedArguments, retryResult,
+					evidenceOut, &succeeded, &failed, &unsatisfied)) {
+					continue;
+				}
+				break;
+			}
+		}
+
+		if (!EvaluateCommandOutcome(
+			ctx, storeTaskId, toolName, arguments, result,
+			evidenceOut, &succeeded, &failed, &unsatisfied)) {
+			break;
+		}
+	}
+
+	if (summaryOut != nullptr) {
+		Json summary = Json::object();
+		summary["attempted"] = attempted;
+		summary["executed"] = succeeded;
+		summary["failed"] = failed;
+		summary["unsatisfied"] = unsatisfied;
+		summary["rejected"] = rejected;
+		summary["skipped"] = false;
+		summary["requestRevision"] = prompts::CurrentRequestRevision();
+		summary["dependencyEvidence"] = dependencyEvidence;
+		summary["outcome"] = unsatisfied > 0
+			? "Unsatisfied"
+			: ((failed > 0 || rejected > 0) ? "Failed" : "Satisfied");
+		summary["coverageNote"] = "task '" + ExtractPlanTaskId(taskSpec) + "': succeeded=" +
+			std::to_string(succeeded) + " failed=" + std::to_string(failed) +
+			" unsatisfied=" + std::to_string(unsatisfied) +
+			" rejected=" + std::to_string(rejected);
+		*summaryOut = std::move(summary);
+	}
+
+	if (commands.empty()) return Result::Fail("RetrievalWorker: no grounded commands were generated");
+	if (failed > 0 || rejected > 0) {
+		return Result::Fail("RetrievalWorker: one or more commands failed or were rejected");
+	}
+	if (unsatisfied > 0) {
+		return Result::Fail("RetrievalWorker: command completed but task outcome was Unsatisfied");
+	}
+	if (succeeded == 0) return Result::Fail("RetrievalWorker: no command completed successfully");
+	return Result::Ok();
+}
+
+} // namespace agentos
