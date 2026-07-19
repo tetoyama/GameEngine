@@ -14,6 +14,7 @@
 #include <sceneManager.h>
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
+#include "Editor/UI/ModernImGui/ModernImGui.h"
 #include "Editor/Command/EntityCommand.h"
 #include "Editor/Command/PrefabCommand.h"
 #include <scene.h>
@@ -78,17 +79,17 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 		return;
 	}
 
-	//ImGuiWindowFlags toolbar_window_flags = ImGuiWindowFlags_NoCollapse;
 	ImGuiWindowFlags toolbar_window_flags = 0;
 	if(!ImGui::Begin("Hierarchy", showSceneHierarchy, toolbar_window_flags)){
 		ImGui::End();
 		return;
 	}
 
+	const MImGui::Theme& modernTheme = MImGui::GetTheme();
+
 	for(auto& scenePair : m_editor->sceneManager->GetActiveScenes()){
 
 		SceneContext* context = scenePair.second->GetSceneContext();
-
 		EntityRegistry* registry = context->entity;
 
 		// PrefabInstantiateCommand の Undo 後に選択状態をリセットする共通コールバック
@@ -100,22 +101,19 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 		};
 
 		if(ImGui::TreeNodeEx((scenePair.second->SceneName + "##" + scenePair.first).c_str(), ImGuiTreeNodeFlags_DefaultOpen)){
+			ImGui::PushID(scenePair.first.c_str());
 
 			if(ImGui::BeginPopupContextItem()){
 
 				if(ImGui::MenuItem("Save scene as...")){
 					std::string oldSavePath = scenePair.second->ScenePath;
-
 					scenePair.second->ScenePath = "";
-
 					scenePair.second->Save();
-
 					scenePair.second->ScenePath = oldSavePath;
-
 				}
 
 				if(ImGui::MenuItem("Delete Scene")){
-					scenePair.second->isDestroy = true; // シーンを削除フラグ付きでマーク
+					scenePair.second->isDestroy = true;
 					selectedEntity = 0;
 				}
 
@@ -144,9 +142,8 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 				ImGui::EndDragDropTarget();
 			}
 
-			ImGui::SetCursorPos(ImVec2(10, ImGui::GetCursorPos().y));
-			// ツールバー
-			if(ImGui::Button("+ Add")){
+			const float addWidth = 68.0f;
+			if(MImGui::Button("+ Add", ImVec2(addWidth, modernTheme.compactHeight))){
 				ImGui::OpenPopup("##AddEntityPopup");
 			}
 			if(ImGui::BeginPopup("##AddEntityPopup")){
@@ -220,10 +217,14 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 			}
 			ImGui::SameLine();
 
-			ImGui::SetNextItemWidth(-1);
-			ImGui::InputTextWithHint("##search", "Search objects...", searchBuffer, sizeof(searchBuffer));
+			MImGui::SearchField(
+				"##search",
+				"Search objects...",
+				searchBuffer,
+				sizeof(searchBuffer),
+				-1.0f
+			);
 
-			ImGui::SetCursorPos(ImVec2(10, ImGui::GetCursorPos().y));
 			ImGui::Separator();
 
 			// GetAllAlive() の参照ではなくコピーを取得する。
@@ -255,6 +256,7 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 				}
 			}
 
+			ImGui::PopID();
 			ImGui::TreePop();
 		}
 	}
@@ -262,49 +264,72 @@ void Hierarchy::Draw(const EditorDrawContext ctx){
 }
 
 void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const ChildMap& children, const std::string& lowerSearch){
-	float offsetX = ImGui::GetCursorPosX();
-
-	ImGui::SetCursorPosX(10.0f);
-	ImGui::Text(("ID : " + std::to_string(entity)).c_str());
-	ImGui::SameLine(50.0f + offsetX * 0.25f);
-
 	auto* name = context->component->GetComponent<NameComponent>(entity);
-	std::string displayName = name ? name->name : "Entity";
-	if(pendingRenameEntity != 0 && selectedEntity == entity && sceneContext == context){
-		displayName = "";
-	}
+	const std::string displayName = name ? name->name : "Entity";
 	const auto childIt = children.find(entity);
 	const bool hasChildren = childIt != children.end() && !childIt->second.empty();
+	const bool selected = selectedEntity == entity && sceneContext == context;
+	const bool inRenameMode = pendingRenameEntity != 0 && selected;
+	const bool isPrefab = context->component->GetComponent<PrefabComponent>(entity) != nullptr;
 
-	ImGuiTreeNodeFlags flags = ImGuiTreeNodeFlags_OpenOnArrow |
-		ImGuiTreeNodeFlags_DefaultOpen |
-		((selectedEntity == entity && sceneContext == context) ? ImGuiTreeNodeFlags_Selected : 0);
+	ImGui::PushID(context);
+	ImGui::PushID((void*)(intptr_t)entity);
 
-	if(!hasChildren){
-		flags |= ImGuiTreeNodeFlags_Leaf | ImGuiTreeNodeFlags_NoTreePushOnOpen;
+	ImGuiStorage* storage = ImGui::GetStateStorage();
+	const ImGuiID openStateID = ImGui::GetID("HierarchyOpenState");
+	bool opened = storage->GetBool(openStateID, true);
+	if(!lowerSearch.empty() && HasMatchingChild(entity, context, children, lowerSearch)){
+		opened = true;
 	}
 
-	// --- ノード描画（グループで DnD エリアを (Prefab) ラベルまで拡張） ---
-	bool inRenameMode = (pendingRenameEntity != 0 && selectedEntity == entity && sceneContext == context);
-	ImGui::BeginGroup();
-	bool opened = ImGui::TreeNodeEx((void*)(intptr_t)entity, flags, "%s", displayName.c_str());
-	if(!inRenameMode && context->component->GetComponent<PrefabComponent>(entity)){
-		ImGui::SameLine();
-		ImGui::TextColored(ImVec4(0.4f, 0.8f, 1.0f, 1.0f), "(Prefab)");
-	}
-	ImGui::EndGroup();
+	const MImGui::TreeRowResult row = MImGui::TreeRow(
+		"##EntityRow",
+		inRenameMode ? "" : displayName.c_str(),
+		selected,
+		hasChildren,
+		opened,
+		isPrefab ? "Prefab" : nullptr
+	);
+	opened = row.open;
+	storage->SetBool(openStateID, opened);
 
-	if(ImGui::IsItemHovered() && ImGui::IsMouseClicked(ImGuiMouseButton_Left)){
+	const ImVec2 rowMin = ImGui::GetItemRectMin();
+	const ImVec2 rowMax = ImGui::GetItemRectMax();
+	const ImVec2 cursorAfterRow = ImGui::GetCursorPos();
+	const bool rowHovered = ImGui::IsItemHovered(ImGuiHoveredFlags_DelayShort);
+
+	if(row.activated){
 		selectedEntity = entity;
 		sceneContext = context;
 	}
+
+	// --- Drag & Drop ---
+	if(ImGui::BeginDragDropSource()){
+		ImGui::SetDragDropPayload("ENTITY_DRAG_DROP", &entity, sizeof(Entity));
+		ImGui::Text("Move %s", displayName.c_str());
+		ImGui::EndDragDropSource();
+	}
+	if(ImGui::BeginDragDropTarget()){
+		if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP")){
+			IM_ASSERT(payload->DataSize == sizeof(Entity));
+			Entity draggedEntity = *(const Entity*)payload->Data;
+			if(draggedEntity != entity){
+				auto* draggedT = context->component->GetComponent<TransformComponent>(draggedEntity);
+				Entity oldParent = draggedT ? draggedT->parent : Entity(0, 0);
+				auto cmd = std::make_unique<SetParentCommand>(context, draggedEntity, oldParent, entity);
+				m_editor->commandManager.Execute(std::move(cmd));
+			}
+		}
+		ImGui::EndDragDropTarget();
+	}
+
 	// --- 右クリックメニュー ---
-	char popupId[32];
-	snprintf(popupId, sizeof(popupId), "##NodeCtx%" PRIu32, (uint32_t)entity);
-	if(ImGui::BeginPopupContextItem(popupId)){
+	if(ImGui::BeginPopupContextItem("##NodeContext")){
 
 		if(ImGui::MenuItem("名前変更")){
 			pendingRenameEntity = entity;
+			selectedEntity = entity;
+			sceneContext = context;
 			if(name){
 				strncpy(renameBuffer, name->name.c_str(), sizeof(renameBuffer));
 				renameBuffer[sizeof(renameBuffer) - 1] = '\0';
@@ -313,7 +338,6 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 
 		if(ImGui::BeginMenu("作成")){
 			if(ImGui::MenuItem("EmptyParent")){
-				// 空の親エンティティを作成し、選択エンティティをその子にする
 				auto cmd = std::make_unique<EmptyParentCommand>(
 					context, entity,
 					[this, context](Entity e, SceneContext*){
@@ -329,7 +353,6 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 				m_editor->commandManager.Execute(std::move(cmd));
 			}
 			if(ImGui::MenuItem("EmptyChild")){
-				// 選択ノードの子エンティティを作成
 				auto cmd = std::make_unique<EntityCreateCommand>(
 					context, entity,
 					[this, context](Entity e, SceneContext*){
@@ -393,8 +416,6 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 			auto cmd = std::make_unique<EntityDeleteCommand>(
 				context, entity,
 				[this](){
-					// 削除後、選択中エンティティが生存していなければ選択を解除する
-					// （削除対象の親だけでなく子エンティティが選択されていた場合も対応）
 					if(this->sceneContext && !this->sceneContext->entity->IsAlive(this->selectedEntity))
 						this->selectedEntity = 0;
 					if(this->sceneContext && !this->sceneContext->entity->IsAlive(this->pendingRenameEntity))
@@ -407,52 +428,42 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 			m_editor->commandManager.Execute(std::move(cmd));
 
 			ImGui::EndPopup();
-			if(opened && hasChildren){
-				ImGui::TreePop();
-			}
+			ImGui::PopID();
+			ImGui::PopID();
 			return;
 		}
 
 		ImGui::EndPopup();
 	}
 
-	// --- Drag & Drop ---
-	// SourceAllowNullID is required because LastItemData.ID becomes 0 after BeginGroup
-	if(ImGui::BeginDragDropSource(ImGuiDragDropFlags_SourceAllowNullID)){
-		ImGui::SetDragDropPayload("ENTITY_DRAG_DROP", &entity, sizeof(Entity));
-		ImGui::Text("Move Entity");
-		ImGui::EndDragDropSource();
-	}
-	if(ImGui::BeginDragDropTarget()){
-		if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ENTITY_DRAG_DROP")){
-			IM_ASSERT(payload->DataSize == sizeof(Entity));
-			Entity draggedEntity = *(const Entity*)payload->Data;
-			if(draggedEntity != entity){
-				auto* draggedT = context->component->GetComponent<TransformComponent>(draggedEntity);
-				Entity oldParent = draggedT ? draggedT->parent : Entity(0, 0);
-				auto cmd = std::make_unique<SetParentCommand>(context, draggedEntity, oldParent, entity);
-				m_editor->commandManager.Execute(std::move(cmd));
+	if(rowHovered && !inRenameMode){
+		ImGui::BeginTooltip();
+		ImGui::TextUnformatted(displayName.c_str());
+		ImGui::TextDisabled("Entity ID: %u", entity.GetIndex());
+		if(isPrefab){
+			if(const auto* prefab = context->component->GetComponent<PrefabComponent>(entity)){
+				if(!prefab->filePath.empty()){
+					ImGui::TextDisabled("%s", prefab->filePath.c_str());
+				}
 			}
 		}
-		ImGui::EndDragDropTarget();
+		ImGui::EndTooltip();
 	}
 
 	// --- 名前変更UI ---
 	if(inRenameMode){
-
-		if(pendingRenameEntity != entity){
-			if(name){
-				strncpy(renameBuffer, name->name.c_str(), sizeof(renameBuffer));
-				renameBuffer[sizeof(renameBuffer) - 1] = '\0';
-			} else{
-				renameBuffer[0] = '\0';
-			}
-			pendingRenameEntity = entity;
+		const float textX = rowMin.x + (hasChildren ? 24.0f : 8.0f);
+		float rightReserve = 8.0f;
+		if(isPrefab){
+			rightReserve += ImGui::CalcTextSize("Prefab").x + 18.0f;
 		}
+		const float inputWidth = (std::max)(60.0f, rowMax.x - textX - rightReserve);
 
-		ImGui::SameLine();
-		ImGui::SetCursorPosX(ImGui::GetCursorPosX() - 10.0f);
-		ImGui::PushItemWidth(80.0f);
+		ImGui::SetCursorScreenPos(ImVec2(textX, rowMin.y + 1.0f));
+		ImGui::SetNextItemWidth(inputWidth);
+		if(!ImGui::IsAnyItemActive()){
+			ImGui::SetKeyboardFocusHere();
+		}
 
 		if(ImGui::InputText("##Rename", renameBuffer, sizeof(renameBuffer), ImGuiInputTextFlags_EnterReturnsTrue)){
 			if(name){
@@ -462,11 +473,12 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 			}
 			pendingRenameEntity = 0;
 		}
-		ImGui::PopItemWidth();
+		ImGui::SetCursorPos(cursorAfterRow);
 	}
 
 	// --- 子描画 ---
 	if(opened && hasChildren){
+		ImGui::Indent(18.0f);
 		for(Entity child : childIt->second){
 			const bool match = EntityMatchesSearch(child, context, lowerSearch);
 			const bool childMatch = !lowerSearch.empty() &&
@@ -475,6 +487,9 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 				DrawHierarchyNode(child, context, children, lowerSearch);
 			}
 		}
-		ImGui::TreePop();
+		ImGui::Unindent(18.0f);
 	}
+
+	ImGui::PopID();
+	ImGui::PopID();
 }
