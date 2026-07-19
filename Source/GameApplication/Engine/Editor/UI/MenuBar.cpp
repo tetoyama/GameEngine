@@ -76,62 +76,84 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 		}
 
 		if(m_editor){
-			ImGui::SameLine(0.0f, 10.0f);
-			ImGui::PushID("EditorPanelShortcuts");
+			constexpr float shortcutSpacing = 4.0f;
+			const float groupWidth =
+				MImGui::PanelShortcutWidth("Hierarchy") +
+				MImGui::PanelShortcutWidth("Assets") +
+				MImGui::PanelShortcutWidth("Inspector") +
+				MImGui::PanelShortcutWidth("Log") +
+				MImGui::PanelShortcutWidth("Profiler") +
+				shortcutSpacing * 4.0f;
+			const float targetX =
+				ImGui::GetWindowContentRegionMax().x - groupWidth - 6.0f;
 
-			auto drawPanelShortcut = [this](
-				const char* id,
-				EditorIcon icon,
-				bool& visible,
-				const char* tooltip
-			){
-				if(MImGui::IconOnlyButton(
-					id,
-					m_editor->icons.Get(icon),
-					visible,
-					tooltip,
-					22.0f
-				)){
-					visible = !visible;
-				}
-			};
+			// Do not degrade to ambiguous icon-only controls on narrow windows.
+			// The Window menu remains the reliable fallback.
+			if(targetX > ImGui::GetCursorPosX() + 16.0f){
+				ImGui::SameLine();
+				ImGui::SetCursorPosX(targetX);
+				ImGui::PushID("EditorPanelShortcuts");
 
-			drawPanelShortcut(
-				"Hierarchy",
-				EditorIcon::Hierarchy,
-				showSceneHierarchy,
-				"Hierarchy"
-			);
-			ImGui::SameLine(0.0f, 2.0f);
-			drawPanelShortcut(
-				"Assets",
-				EditorIcon::Assets,
-				showAssetsBrowser,
-				"Assets Browser"
-			);
-			ImGui::SameLine(0.0f, 2.0f);
-			drawPanelShortcut(
-				"Inspector",
-				EditorIcon::Inspector,
-				showInspector,
-				"Inspector"
-			);
-			ImGui::SameLine(0.0f, 2.0f);
-			drawPanelShortcut(
-				"Console",
-				EditorIcon::Console,
-				showConsole,
-				"Debug Log"
-			);
-			ImGui::SameLine(0.0f, 2.0f);
-			drawPanelShortcut(
-				"Performance",
-				EditorIcon::Performance,
-				showPerformanceMonitor,
-				"Performance Monitor"
-			);
+				auto drawPanelShortcut = [this](
+					const char* id,
+					const char* label,
+					EditorIcon icon,
+					bool& visible,
+					const char* tooltip
+				){
+					if(MImGui::PanelShortcutButton(
+						id,
+						label,
+						m_editor->icons.Get(icon),
+						visible,
+						tooltip
+					)){
+						visible = !visible;
+					}
+				};
 
-			ImGui::PopID();
+				drawPanelShortcut(
+					"Hierarchy",
+					"Hierarchy",
+					EditorIcon::Hierarchy,
+					showSceneHierarchy,
+					"Show or hide Hierarchy"
+				);
+				ImGui::SameLine(0.0f, shortcutSpacing);
+				drawPanelShortcut(
+					"Assets",
+					"Assets",
+					EditorIcon::Assets,
+					showAssetsBrowser,
+					"Show or hide Assets Browser"
+				);
+				ImGui::SameLine(0.0f, shortcutSpacing);
+				drawPanelShortcut(
+					"Inspector",
+					"Inspector",
+					EditorIcon::Inspector,
+					showInspector,
+					"Show or hide Inspector"
+				);
+				ImGui::SameLine(0.0f, shortcutSpacing);
+				drawPanelShortcut(
+					"Console",
+					"Log",
+					EditorIcon::Console,
+					showConsole,
+					"Show or hide Debug Log"
+				);
+				ImGui::SameLine(0.0f, shortcutSpacing);
+				drawPanelShortcut(
+					"Performance",
+					"Profiler",
+					EditorIcon::Performance,
+					showPerformanceMonitor,
+					"Show or hide Performance Monitor"
+				);
+
+				ImGui::PopID();
+			}
 		}
 
 		ImGui::EndMainMenuBar();
