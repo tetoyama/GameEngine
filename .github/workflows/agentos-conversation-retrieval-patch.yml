@@ -27,19 +27,26 @@ jobs:
         continue-on-error: true
         shell: bash
         run: |
-          cat .github/agentos_conversation_patch.py.b64.part* | base64 --decode > /tmp/apply_conversation_retrieval.py
-          python3 -m py_compile /tmp/apply_conversation_retrieval.py
-          python3 /tmp/apply_conversation_retrieval.py > /tmp/agentos_conversation_patch.log 2>&1
+          set -o pipefail
+          {
+            cat .github/agentos_conversation_patch.py.b64.part* | base64 --decode > /tmp/apply_conversation_retrieval.py
+            wc -c /tmp/apply_conversation_retrieval.py
+            sha256sum /tmp/apply_conversation_retrieval.py
+            python3 -m py_compile /tmp/apply_conversation_retrieval.py
+            python3 /tmp/apply_conversation_retrieval.py
+          } > /tmp/agentos_conversation_patch.log 2>&1
 
       - name: Persist patch failure
         if: steps.patch.outcome == 'failure'
         shell: bash
         run: |
-          tail -n 120 /tmp/agentos_conversation_patch.log > .github/agentos_conversation_patch_failure.txt
+          test -f /tmp/agentos_conversation_patch.log || echo "patch failed before log creation" > /tmp/agentos_conversation_patch.log
+          tail -n 160 /tmp/agentos_conversation_patch.log > .github/agentos_conversation_patch_failure.txt
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add .github/agentos_conversation_patch_failure.txt
           git commit -m "Record conversation retrieval patch failure"
+          git pull --rebase origin ${{ github.event.pull_request.head.ref }}
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
           exit 1
 
@@ -64,4 +71,5 @@ jobs:
             Tests/AgentOSConversationRetrievalReplanSmokeTest.cpp \
             Tests/AgentOS/Makefile
           git commit -m "Retrieve conversation context as tool evidence"
+          git pull --rebase origin ${{ github.event.pull_request.head.ref }}
           git push origin HEAD:${{ github.event.pull_request.head.ref }}
