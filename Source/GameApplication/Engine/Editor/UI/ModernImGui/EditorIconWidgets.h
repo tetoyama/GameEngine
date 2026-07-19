@@ -49,7 +49,7 @@ inline bool IconOnlyButton(
 	const ImGuiID itemID = ImGui::GetItemID();
 	const bool hovered = ImGui::IsItemHovered();
 	const bool held = ImGui::IsItemActive();
-	const bool focused = ImGui::IsItemFocused();
+	const bool focused = ImGui::IsItemFocused() && ImGui::GetIO().NavActive;
 
 	const float hoverAmount = Animate(itemID ^ 0x414D4E11u, hovered ? 1.0f : 0.0f);
 	const float selectedAmount = Animate(itemID ^ 0x315C9D27u, selected ? 1.0f : 0.0f);
@@ -58,9 +58,16 @@ inline bool IconOnlyButton(
 	const ImVec2 boundsMin = ImGui::GetItemRectMin();
 	const ImVec2 boundsMax = ImGui::GetItemRectMax();
 	Theme& theme = GetTheme();
-	ImVec4 fill = Lerp(WithAlpha(theme.panel, 0.0f), WithAlpha(theme.hover, 0.78f), hoverAmount);
-	fill = Lerp(fill, WithAlpha(theme.selected, 0.78f), selectedAmount);
-	fill = Lerp(fill, theme.pressed, pressAmount * 0.28f);
+
+	// Panel visibility is persistent state, not a primary action. Keep the
+	// background quiet and communicate the state with a restrained underline.
+	ImVec4 fill = Lerp(
+		WithAlpha(theme.panel, 0.0f),
+		WithAlpha(theme.hover, 0.52f),
+		hoverAmount
+	);
+	fill = Lerp(fill, WithAlpha(theme.accent, 0.12f), selectedAmount);
+	fill = Lerp(fill, WithAlpha(theme.pressed, 0.70f), pressAmount * 0.30f);
 
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
 	if(fill.w > 0.001f){
@@ -73,9 +80,9 @@ inline bool IconOnlyButton(
 	}
 	if(selectedAmount > 0.001f){
 		drawList->AddRectFilled(
-			ImVec2(boundsMin.x + 4.0f, boundsMax.y - 2.5f),
-			ImVec2(boundsMax.x - 4.0f, boundsMax.y - 1.0f),
-			ImGui::GetColorU32(WithAlpha(theme.accentHover, selectedAmount)),
+			ImVec2(boundsMin.x + 5.0f, boundsMax.y - 2.5f),
+			ImVec2(boundsMax.x - 5.0f, boundsMax.y - 1.0f),
+			ImGui::GetColorU32(WithAlpha(theme.accentHover, 0.95f * selectedAmount)),
 			1.0f
 		);
 	}
@@ -89,7 +96,7 @@ inline bool IconOnlyButton(
 			(boundsMin.y + boundsMax.y - iconSize) * 0.5f
 		),
 		iconSize,
-		hovered || selected ? 1.0f : 0.76f
+		hovered || selected ? 1.0f : 0.68f
 	);
 
 	if(tooltip && tooltip[0] && hovered){
