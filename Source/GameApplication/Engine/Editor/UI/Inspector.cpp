@@ -187,6 +187,8 @@ void Inspector::Draw(const EditorDrawContext ctx){
 			}
 		);
 		m_editor->commandManager.Execute(std::move(command));
+		ImGui::End();
+		return;
 	}
 
 	ImGui::Separator();
