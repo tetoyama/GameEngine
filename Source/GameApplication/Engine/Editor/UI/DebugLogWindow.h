@@ -7,8 +7,12 @@
 #include "Editor/InterFace/IEditorUI.h"
 #include "Service/DebugTools/DebugSystem.h"
 
+#include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
+#include <string>
+#include <unordered_set>
 #include <vector>
 
 // デバッグログ表示ウィンドウ
