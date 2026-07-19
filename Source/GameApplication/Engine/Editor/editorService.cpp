@@ -33,6 +33,7 @@ void EditorService::Initialize(EditorServiceContext context) {
 	resourceService = context.resourceService;
 	sceneManager = context.sceneManager;
 	llamaService = context.llamaService;
+	icons.Initialize(resourceService);
 
 	// AnalyzerManager の生成・初期化（ソースコード解析機能の起動）
 	analyzer = new AnalyzerManager();
@@ -117,6 +118,7 @@ void EditorService::Shutdown() {
 		}
 	}
 	UIs.clear();
+	icons.Shutdown();
 	m_CurrentPanelTimings.clear();
 	m_CompletedPanelTimings.clear();
 }
