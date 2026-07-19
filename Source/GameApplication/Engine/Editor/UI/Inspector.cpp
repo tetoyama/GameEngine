@@ -18,6 +18,7 @@
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
 #include "Editor/UI/ModernImGui/ModernImGui.h"
+#include "Editor/UI/ModernImGui/EditorIconWidgets.h"
 #include "Editor/Command/EntityCommand.h"
 #include "Editor/Command/ComponentCommand.h"
 #include "Scene/scene.h"
@@ -114,12 +115,26 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		registry->GetComponent<PrefabComponent>(selectedEntity) != nullptr;
 
 	ImGui::PushID("EntityHeader");
+	const float entityIconWidth = 26.0f;
 	const float entityActionWidth = 32.0f;
 	const float entityNameWidth = (std::max)(
 		96.0f,
 		ImGui::GetContentRegionAvail().x -
-		entityActionWidth - ImGui::GetStyle().ItemSpacing.x
+		entityIconWidth - entityActionWidth - ImGui::GetStyle().ItemSpacing.x * 2.0f
 	);
+
+	const ImVec2 entityIconCursor = ImGui::GetCursorScreenPos();
+	ImGui::Dummy(ImVec2(entityIconWidth, modernTheme.compactHeight));
+	MImGui::DrawEditorIcon(
+		m_editor->icons.Get(EditorIcon::Entity),
+		ImVec2(
+			entityIconCursor.x + 3.0f,
+			entityIconCursor.y + (modernTheme.compactHeight - 18.0f) * 0.5f
+		),
+		18.0f,
+		0.92f
+	);
+	ImGui::SameLine();
 
 	if(name){
 		char nameBuffer[256]{};
@@ -284,7 +299,13 @@ void Inspector::Draw(const EditorDrawContext ctx){
 			actionWidth - ImGui::GetStyle().ItemSpacing.x
 		);
 
-		MImGui::SectionHeader(componentName.c_str(), &open, headerWidth);
+		MImGui::IconSectionHeader(
+			"ComponentHeader",
+			componentName.c_str(),
+			m_editor->icons.GetForComponent(componentName),
+			&open,
+			headerWidth
+		);
 		sectionStorage->SetBool(openStateID, open);
 
 		ImGui::SameLine();
@@ -328,9 +349,12 @@ void Inspector::Draw(const EditorDrawContext ctx){
 
 	ImGui::Dummy(ImVec2(0.0f, 2.0f));
 	const float addComponentWidth = ImGui::GetContentRegionAvail().x;
-	if(MImGui::Button(
-		"+ Add Component",
-		ImVec2(addComponentWidth, modernTheme.controlHeight)
+	if(MImGui::IconButton(
+		"AddComponent",
+		"Add Component",
+		m_editor->icons.Get(EditorIcon::Add),
+		ImVec2(addComponentWidth, modernTheme.controlHeight),
+		MImGui::ButtonKind::Secondary
 	)){
 		ImGui::OpenPopup("AddComponentPopup");
 	}
