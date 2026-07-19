@@ -59,8 +59,6 @@ inline bool IconOnlyButton(
 	const ImVec2 boundsMax = ImGui::GetItemRectMax();
 	Theme& theme = GetTheme();
 
-	// Panel visibility is persistent state, not a primary action. Keep the
-	// background quiet and communicate the state with a restrained underline.
 	ImVec4 fill = Lerp(
 		WithAlpha(theme.panel, 0.0f),
 		WithAlpha(theme.hover, 0.52f),
@@ -155,6 +153,30 @@ inline bool IconSectionHeader(
 	const bool pressed = SectionHeader(label.c_str(), open, width);
 	const ImVec2 boundsMin = ImGui::GetItemRectMin();
 	const ImVec2 boundsMax = ImGui::GetItemRectMax();
+	const Theme& theme = GetTheme();
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+	// Dear ImGui keeps mouse focus on the last clicked item. The persistent
+	// focus ring reads as a selected component, so keep it only for nav input.
+	if(ImGui::IsItemFocused() && !ImGui::GetIO().NavActive){
+		drawList->AddRect(
+			ImVec2(boundsMin.x - 1.5f, boundsMin.y - 1.5f),
+			ImVec2(boundsMax.x + 1.5f, boundsMax.y + 1.5f),
+			ImGui::GetColorU32(ImGuiCol_ChildBg),
+			theme.cornerRadius + 1.5f,
+			0,
+			3.0f
+		);
+		drawList->AddRect(
+			boundsMin,
+			boundsMax,
+			ImGui::GetColorU32(EffectiveOutline()),
+			theme.cornerRadius,
+			0,
+			EffectiveStrokeWidth()
+		);
+	}
+
 	const float iconSize = 15.0f;
 	const float centerY = (boundsMin.y + boundsMax.y) * 0.5f;
 	DrawEditorIcon(
