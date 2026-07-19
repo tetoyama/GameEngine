@@ -6,6 +6,7 @@
 #include "Backends/ImGui/imgui.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "MenuBar.h"
+#include "ModernImGui/EditorIconWidgets.h"
 
 void MenuBar::Register(MenuEvent event, const Callback& callback){
 	m_eventCallbacks[event] = callback;
@@ -72,6 +73,65 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 			}
 
 			ImGui::EndMenu();
+		}
+
+		if(m_editor){
+			ImGui::SameLine(0.0f, 10.0f);
+			ImGui::PushID("EditorPanelShortcuts");
+
+			auto drawPanelShortcut = [this](
+				const char* id,
+				EditorIcon icon,
+				bool& visible,
+				const char* tooltip
+			){
+				if(MImGui::IconOnlyButton(
+					id,
+					m_editor->icons.Get(icon),
+					visible,
+					tooltip,
+					22.0f
+				)){
+					visible = !visible;
+				}
+			};
+
+			drawPanelShortcut(
+				"Hierarchy",
+				EditorIcon::Hierarchy,
+				showSceneHierarchy,
+				"Hierarchy"
+			);
+			ImGui::SameLine(0.0f, 2.0f);
+			drawPanelShortcut(
+				"Assets",
+				EditorIcon::Assets,
+				showAssetsBrowser,
+				"Assets Browser"
+			);
+			ImGui::SameLine(0.0f, 2.0f);
+			drawPanelShortcut(
+				"Inspector",
+				EditorIcon::Inspector,
+				showInspector,
+				"Inspector"
+			);
+			ImGui::SameLine(0.0f, 2.0f);
+			drawPanelShortcut(
+				"Console",
+				EditorIcon::Console,
+				showConsole,
+				"Debug Log"
+			);
+			ImGui::SameLine(0.0f, 2.0f);
+			drawPanelShortcut(
+				"Performance",
+				EditorIcon::Performance,
+				showPerformanceMonitor,
+				"Performance Monitor"
+			);
+
+			ImGui::PopID();
 		}
 
 		ImGui::EndMainMenuBar();
