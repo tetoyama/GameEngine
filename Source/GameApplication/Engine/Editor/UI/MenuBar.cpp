@@ -6,7 +6,9 @@
 #include "Backends/ImGui/imgui.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "MenuBar.h"
+#include "ModernImGui/AppleTransport.h"
 #include "ModernImGui/EditorIconWidgets.h"
+#include "Scene/sceneManager.h"
 
 void MenuBar::Register(MenuEvent event, const Callback& callback){
 	m_eventCallbacks[event] = callback;
@@ -76,22 +78,97 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 		}
 
 		if(m_editor){
+			const float menuEndX = ImGui::GetCursorPosX();
+			const float contentMinX = ImGui::GetWindowContentRegionMin().x;
+			const float contentMaxX = ImGui::GetWindowContentRegionMax().x;
+
 			constexpr float shortcutSpacing = 4.0f;
-			const float groupWidth =
+			const float shortcutGroupWidth =
 				MImGui::PanelShortcutWidth("Hierarchy") +
 				MImGui::PanelShortcutWidth("Assets") +
 				MImGui::PanelShortcutWidth("Inspector") +
 				MImGui::PanelShortcutWidth("Log") +
 				MImGui::PanelShortcutWidth("Profiler") +
 				shortcutSpacing * 4.0f;
-			const float targetX =
-				ImGui::GetWindowContentRegionMax().x - groupWidth - 6.0f;
+			const float shortcutTargetX =
+				contentMaxX - shortcutGroupWidth - 6.0f;
+			const bool canShowShortcuts =
+				shortcutTargetX > menuEndX + 16.0f;
 
-			// Do not degrade to ambiguous icon-only controls on narrow windows.
-			// The Window menu remains the reliable fallback.
-			if(targetX > ImGui::GetCursorPosX() + 16.0f){
+			const float transportWidth = MImGui::TransportGroupWidth(3);
+			const float transportTargetX =
+				(contentMinX + contentMaxX - transportWidth) * 0.5f;
+			const float transportRightLimit = canShowShortcuts
+				? shortcutTargetX - 16.0f
+				: contentMaxX - 8.0f;
+			const bool canShowTransport =
+				transportTargetX > menuEndX + 16.0f &&
+				transportTargetX + transportWidth < transportRightLimit;
+
+			// The transport is the global primary action. It stays centered and
+			// visually independent from navigation and contextual viewport tools.
+			if(canShowTransport && m_editor->sceneManager){
 				ImGui::SameLine();
-				ImGui::SetCursorPosX(targetX);
+				ImGui::SetCursorPosX(transportTargetX);
+				ImGui::PushID("GlobalTransport");
+
+				const ImVec2 transportTopLeft = ImGui::GetCursorScreenPos();
+				MImGui::DrawTransportGroupBackground(transportTopLeft, 3);
+				ImGui::PushStyleVar(ImGuiStyleVar_ItemSpacing, ImVec2(0.0f, 0.0f));
+
+				const SceneManagerState state = m_editor->sceneManager->State;
+				if(MImGui::TransportButton(
+					"Stop",
+					MImGui::TransportGlyph::Stop,
+					false,
+					state != SceneManagerState::Stopped,
+					true,
+					"Stop"
+				)){
+					m_editor->sceneManager->State = SceneManagerState::Stopped;
+					ImGui::SetWindowFocus("Editor View");
+				}
+
+				ImGui::SameLine(0.0f, 0.0f);
+				const bool playing = state == SceneManagerState::Playing;
+				const bool paused = state == SceneManagerState::Paused;
+				if(MImGui::TransportButton(
+					"PlayPause",
+					playing ? MImGui::TransportGlyph::Pause : MImGui::TransportGlyph::Play,
+					playing || paused,
+					true,
+					true,
+					playing ? "Pause" : "Play"
+				)){
+					if(playing){
+						m_editor->sceneManager->State = SceneManagerState::Paused;
+					}else{
+						m_editor->sceneManager->State = SceneManagerState::Playing;
+						ImGui::SetWindowFocus("Play View");
+					}
+				}
+
+				ImGui::SameLine(0.0f, 0.0f);
+				if(MImGui::TransportButton(
+					"Step",
+					MImGui::TransportGlyph::Step,
+					false,
+					true,
+					false,
+					"Step one frame"
+				)){
+					m_editor->sceneManager->State = SceneManagerState::Step;
+				}
+
+				ImGui::PopStyleVar();
+				ImGui::PopID();
+			}
+
+			// Navigation remains secondary. It is shown only when labels fit;
+			// narrow windows fall back to the explicit Window menu.
+			if(canShowShortcuts){
+				ImGui::SameLine();
+				ImGui::SetCursorPosX(shortcutTargetX);
 				ImGui::PushID("EditorPanelShortcuts");
 
 				auto drawPanelShortcut = [this](
