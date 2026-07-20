@@ -286,10 +286,11 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 		opened = true;
 	}
 
-	const MImGui::TreeRowResult row = MImGui::IconTreeRow(
+	// Repeated generic icons do not add information. Keep the row focused on
+	// hierarchy, name, selection and exceptional state such as Prefab.
+	const MImGui::TreeRowResult row = MImGui::TreeRow(
 		"##EntityRow",
 		inRenameMode ? "" : displayName.c_str(),
-		m_editor->icons.Get(EditorIcon::Entity),
 		selected,
 		hasChildren,
 		opened,
@@ -454,7 +455,7 @@ void Hierarchy::DrawHierarchyNode(Entity entity, SceneContext* context, const Ch
 	}
 
 	if(inRenameMode){
-		const float textX = rowMin.x + (hasChildren ? 44.0f : 27.0f);
+		const float textX = rowMin.x + (hasChildren ? 27.0f : 9.0f);
 		float rightReserve = 8.0f;
 		if(isPrefab){
 			rightReserve += ImGui::CalcTextSize("Prefab").x + 18.0f;
