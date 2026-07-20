@@ -42,7 +42,6 @@ private:
 
 	// Playback belongs to the global transport. Viewport-local controls remain
 	// contextual to the editor camera and render presentation.
-	void ControlButton();
 	void DrawRenderLayerToggleUI();
 
 	float m_MouseWheel = 0.0f;
@@ -54,9 +53,4 @@ private:
 	Vector3            m_gizmoStartPos;
 	DirectX::XMFLOAT4  m_gizmoStartRot{0.f, 0.f, 0.f, 1.f};
 	Vector3            m_gizmoStartScale{1.f, 1.f, 1.f};
-
-	std::shared_ptr<TextureData> PlayButtonTexture;
-	std::shared_ptr<TextureData> PauseButtonTexture;
-	std::shared_ptr<TextureData> StopButtonTexture;
-	std::shared_ptr<TextureData> StepButtonTexture;
 };
