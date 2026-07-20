@@ -4,6 +4,8 @@
 
 Retain Dear ImGui as the editor's immediate-mode UI kernel while removing the visible stock-ImGui appearance through a wrapper-only customization layer.
 
+The target is not a Unity clone. The target is an Apple-style professional tool in which primary actions, navigation, contextual controls and selected-object identity each have a stable visual role.
+
 The following remain unchanged:
 
 - Dear ImGui source and DX11/Win32 backends
@@ -34,6 +36,8 @@ The wrapper follows the transferable parts of Emil Kowalski's `apple-design` ski
 - reversible controls follow symmetric visual paths
 - reduced-motion, reduced-transparency and increased-contrast behavior are component-level concerns
 - feedback must remain useful and restrained rather than decorative
+- repeated icons are removed when they do not add semantic information
+- icon-only controls are used only for familiar transport symbols; navigation remains textually explicit
 
 Web-only implementation details such as CSS transitions, Pointer Events and `backdrop-filter` are not copied literally. Their behavioral intent is translated to ImGui IDs, frame state and `ImDrawList` drawing.
 
@@ -74,10 +78,15 @@ Reference: `https://github.com/emilkowalski/skills/tree/main/skills/apple-design
 ## Completed: Step 2 — Inspector Pilot
 
 - Replaced entity-state checkboxes with two-column `Toggle` controls.
-- Replaced component tree headers with `SectionHeader`.
+- Replaced component tree headers with icon-aware `SectionHeader` controls.
 - Replaced `+ Add Component` with a full-width wrapper button.
 - Wrapped component search while preserving the existing popup and command flow.
-- Moved the entity name to `TextField` and reduced ID/Prefab to supporting metadata.
+- Replaced the loose object header with one stable identity material containing:
+  - one object icon
+  - editable entity name
+  - object type and ID metadata
+  - Prefab badge
+  - contextual action menu
 - Replaced the permanently visible destructive entity button with a contextual action menu.
 - Replaced permanently visible component remove labels with consistent `...` action menus.
 - Kept component inspection and command-based add/remove behavior unchanged.
@@ -101,6 +110,7 @@ Runtime validation still required:
 - Removed the permanently visible numeric entity ID from each row.
 - Moved entity IDs and Prefab source paths into delayed tooltips.
 - Rendered Prefab state as a compact badge.
+- Removed the repeated generic Entity icon because it did not distinguish rows or improve scanning.
 - Preserved recursive filtering, context menus, inline rename and parenting commands.
 - Registered each entity row as one ImGui item so selection, context menus and drag/drop share the same hit target.
 
@@ -146,30 +156,59 @@ Remaining Assets work:
 - breadcrumb navigation
 - asset selection state and context actions
 
-## Completed: Step 5b — Viewport Toolbar
+## Completed: Step 5b — Viewport Context Toolbar
 
-- Replaced stock image buttons with a dedicated toolbar material surface.
-- Converted Stop, Play/Pause and Step into consistent wrapped actions.
-- Made Play/Pause the current primary action.
-- Replaced the long render-layer preview string with a concise visible-count summary.
-- Replaced the selected-blue multi-select combo with an anchored popup of wrapped layer toggles.
+- Reduced the Editor View toolbar to controls that belong to that view.
+- Render-layer visibility uses an icon plus concise visible-count summary.
+- Render-layer selection uses an anchored popup of wrapped toggles.
 - Added explicit Show All and Hide All actions.
-- Reduced camera speed to supporting toolbar metadata.
+- Camera speed is right-aligned supporting metadata.
+- Removed Stop, Play/Pause and Step from the viewport to avoid duplicating global state controls.
 
 Runtime validation still required:
 
 - verify toolbar fit at narrow Editor View widths
 - verify layer popup position in docked and floating viewports
 - verify render-layer toggles remain open for repeated changes
-- verify Play/Pause/Stop/Step state transitions and focus behavior
+
+## Completed: Step 5c — Apple-style Global Role Hierarchy
+
+The main editor surface now separates responsibilities instead of collecting unrelated controls in each panel.
+
+### Global primary action
+
+- Added a centered capsule transport in the main menu bar.
+- Stop, Play/Pause and Step use geometric symbols rather than ambiguous generated artwork.
+- Playback state receives immediate pointer-down feedback and restrained selected-state emphasis.
+- Stop and Play retain the existing focus behavior for Editor View and Play View.
+
+### Global navigation
+
+- Hierarchy, Assets, Inspector, Log and Profiler shortcuts remain right-aligned.
+- Each shortcut uses icon plus text and a thin active underline.
+- When labels do not fit, shortcuts disappear and the explicit Window menu remains available.
+- Navigation never degrades into an unexplained icon-only strip.
+
+### Object identity
+
+- The Inspector identity material provides a single visual anchor for the selected object.
+- Generic object icons are not repeated through the Hierarchy.
+- Component icons remain because they distinguish different editing domains.
+
+Runtime validation still required:
+
+- verify global transport fit between menus and navigation shortcuts
+- verify Play/Pause/Stop/Step state transitions
+- verify narrow-menu fallback at 1280x720
+- verify identity surface at narrow Inspector widths and high DPI
 
 ## Next: Step 6 — Remaining High-visibility Surfaces
 
 Migrate in this order:
 
-1. remaining stock Combo/Selectable and nested component TreeNode presentation
-2. B.R.A.I.N. header, timeline, phase rail and composer
-3. Performance Monitor and Debug Log controls
+1. Performance Monitor summary cards and progressive disclosure
+2. remaining stock Combo/Selectable and nested component TreeNode presentation
+3. B.R.A.I.N. header, timeline, phase rail and composer
 4. Settings surfaces and save feedback
 5. Dock-tab appearance achievable through public style configuration
 
