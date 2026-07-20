@@ -9,6 +9,8 @@
 
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
+#include "Registry/componentRegistry.h"
+#include "Registry/entityRegistry.h"
 
 #include <cstddef>
 #include <unordered_map>
