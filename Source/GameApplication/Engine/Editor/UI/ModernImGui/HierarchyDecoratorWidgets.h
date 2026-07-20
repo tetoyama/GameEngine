@@ -226,16 +226,20 @@ inline DecoratedHierarchyRowResult DecoratedHierarchyRow(
 	const ImVec2 mouse = ImGui::GetMousePos();
 	const float centerY = (boundsMin.y + boundsMax.y) * 0.5f;
 
+	// Active state is the first semantic control in the row. The tree starts
+	// after its fixed leading region so the dot, breadcrumbs, arrow and label
+	// never compete for the same pixels at any hierarchy depth.
 	constexpr float indentStep = 18.0f;
-	const float treeBaseX = boundsMin.x + 11.0f;
+	constexpr float activeRegionWidth = 22.0f;
+	const float treeBaseX = boundsMin.x + (showActiveState ? 31.0f : 11.0f);
 	const float nodeX = treeBaseX + static_cast<float>(depth) * indentStep;
 	const ImVec2 arrowMin(nodeX - 9.0f, boundsMin.y);
 	const ImVec2 arrowMax(nodeX + 10.0f, boundsMax.y);
 	const bool arrowHovered = hasChildren && hovered &&
 		HierarchyPointInRect(mouse, arrowMin, arrowMax);
 
-	const ImVec2 activeMin(boundsMax.x - 24.0f, boundsMin.y);
-	const ImVec2 activeMax(boundsMax.x, boundsMax.y);
+	const ImVec2 activeMin(boundsMin.x, boundsMin.y);
+	const ImVec2 activeMax(boundsMin.x + activeRegionWidth, boundsMax.y);
 	const bool activeHovered = showActiveState && hovered &&
 		HierarchyPointInRect(mouse, activeMin, activeMax);
 	const bool doubleClicked = hasChildren && hovered && !activeHovered &&
@@ -304,6 +308,39 @@ inline DecoratedHierarchyRowResult DecoratedHierarchyRow(
 		DrawFocusRing(drawList, boundsMin, boundsMax, theme.cornerRadius);
 	}
 
+	if(showActiveState){
+		const ImVec2 activeCenter(boundsMin.x + 11.0f, centerY);
+		const float activeRadius = 4.4f + activeHoverAmount * 0.5f;
+		const ImVec4 activeFill = active
+			? Lerp(theme.accent, theme.accentHover, activeHoverAmount)
+			: WithAlpha(theme.window, 0.78f);
+		drawList->AddCircleFilled(
+			activeCenter,
+			activeRadius,
+			ImGui::GetColorU32(activeFill)
+		);
+		drawList->AddCircle(
+			activeCenter,
+			activeRadius,
+			ImGui::GetColorU32(
+				active ? WithAlpha(theme.accentHover, 0.88f) : EffectiveOutline()
+			),
+			0,
+			1.0f
+		);
+		if(active){
+			drawList->AddCircleFilled(
+				activeCenter,
+				1.35f,
+				ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 0.90f))
+			);
+		}
+		if(activeHovered){
+			result.accessoryHovered = true;
+			ImGui::SetTooltip(active ? "Disable entity" : "Enable entity");
+		}
+	}
+
 	if(showBreadcrumbs){
 		const ImU32 breadcrumbColor = ImGui::GetColorU32(
 			WithAlpha(theme.textDisabled, 0.34f)
@@ -356,40 +393,6 @@ inline DecoratedHierarchyRowResult DecoratedHierarchyRow(
 	}
 
 	float rightCursor = boundsMax.x - 5.0f;
-	if(showActiveState){
-		rightCursor = activeMin.x - 2.0f;
-		const ImVec2 activeCenter(boundsMax.x - 12.0f, centerY);
-		const float activeRadius = 4.4f + activeHoverAmount * 0.5f;
-		const ImVec4 activeFill = active
-			? Lerp(theme.accent, theme.accentHover, activeHoverAmount)
-			: WithAlpha(theme.window, 0.78f);
-		drawList->AddCircleFilled(
-			activeCenter,
-			activeRadius,
-			ImGui::GetColorU32(activeFill)
-		);
-		drawList->AddCircle(
-			activeCenter,
-			activeRadius,
-			ImGui::GetColorU32(
-				active ? WithAlpha(theme.accentHover, 0.88f) : EffectiveOutline()
-			),
-			0,
-			1.0f
-		);
-		if(active){
-			drawList->AddCircleFilled(
-				activeCenter,
-				1.35f,
-				ImGui::GetColorU32(ImVec4(1.0f, 1.0f, 1.0f, 0.90f))
-			);
-		}
-		if(activeHovered){
-			result.accessoryHovered = true;
-			ImGui::SetTooltip(active ? "Disable entity" : "Enable entity");
-		}
-	}
-
 	const float textX = nodeX + 12.0f;
 	const float remainingWidth = rightCursor - textX;
 	const bool compactPrefab = remainingWidth < 170.0f;
