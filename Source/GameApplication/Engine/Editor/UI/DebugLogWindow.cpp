@@ -191,16 +191,29 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, theme.cornerRadius);
 	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 7.0f));
 	if(ImGui::BeginChild("LogRegion", ImVec2(0, 0), false)){
+		const float rowHeight = ImGui::GetTextLineHeightWithSpacing() * 2.25f;
 		ImGuiListClipper clipper;
-		clipper.Begin(
-			static_cast<int>(filteredIndices.size()),
-			ImGui::GetTextLineHeightWithSpacing() * 2.25f
-		);
+		clipper.Begin(static_cast<int>(filteredIndices.size()), rowHeight);
 		while(clipper.Step()){
 			for(int row = clipper.DisplayStart; row < clipper.DisplayEnd; ++row){
 				const LogEntry& entry = cachedEntries[filteredIndices[static_cast<size_t>(row)]];
 				ImGui::PushID(row);
 
+				const ImVec2 rowMin = ImGui::GetCursorScreenPos();
+				const ImVec2 rowMax(
+					rowMin.x + ImGui::GetContentRegionAvail().x,
+					rowMin.y + rowHeight
+				);
+				if((row & 1) != 0){
+					ImGui::GetWindowDrawList()->AddRectFilled(
+						rowMin,
+						rowMax,
+						ImGui::GetColorU32(MImGui::WithAlpha(theme.raised, 0.16f)),
+						3.0f
+					);
+				}
+
+				ImGui::SetCursorScreenPos(ImVec2(rowMin.x, rowMin.y + 3.0f));
 				ImGui::PushStyleColor(ImGuiCol_Text, GetColorForLevel(entry.level));
 				ImGui::TextUnformatted(LevelToString(entry.level));
 				ImGui::PopStyleColor();
@@ -214,13 +227,7 @@ void DebugLogWindow::Draw(const EditorDrawContext ctx){
 					entry.line
 				);
 
-				const ImVec2 lineStart = ImGui::GetCursorScreenPos();
-				ImGui::GetWindowDrawList()->AddLine(
-					ImVec2(lineStart.x, lineStart.y - 2.0f),
-					ImVec2(lineStart.x + ImGui::GetContentRegionAvail().x, lineStart.y - 2.0f),
-					ImGui::GetColorU32(MImGui::WithAlpha(theme.separator, 0.70f)),
-					1.0f
-				);
+				ImGui::SetCursorScreenPos(ImVec2(rowMin.x, rowMax.y));
 				ImGui::PopID();
 			}
 		}
