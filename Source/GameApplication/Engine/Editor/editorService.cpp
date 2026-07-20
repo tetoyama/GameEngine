@@ -17,6 +17,7 @@
 #include "UI/BRAIN/BRAIN.h"
 #include "UI/CB41.h"
 #include "UI/ModernImGui/EditorIconWidgets.h"
+#include "UI/ModernImGui/EditorEmptyState.h"
 
 #include "Analysis/AnalyzerManager.h"
 
@@ -93,6 +94,11 @@ void EditorService::Draw(EditorDrawContext ctx) {
 		const double seconds =
 			std::chrono::duration<double>(end - begin).count();
 		m_CurrentPanelTimings.push_back({panel.name, seconds});
+	}
+
+	Hierarchy* hierarchy = GetUI<Hierarchy>();
+	if(!hierarchy || !hierarchy->selectedEntity || !hierarchy->sceneContext){
+		MImGui::DrawInspectorEmptyState(icons);
 	}
 
 	// Dock tabs are owned by Dear ImGui. Draw semantic glyphs only after every
