@@ -115,74 +115,115 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		registry->GetComponent<PrefabComponent>(selectedEntity) != nullptr;
 
 	ImGui::PushID("EntityHeader");
-	const float entityIconWidth = 26.0f;
-	const float entityActionWidth = 32.0f;
-	const float entityNameWidth = (std::max)(
-		96.0f,
-		ImGui::GetContentRegionAvail().x -
-		entityIconWidth - entityActionWidth - ImGui::GetStyle().ItemSpacing.x * 2.0f
-	);
-
-	const ImVec2 entityIconCursor = ImGui::GetCursorScreenPos();
-	ImGui::Dummy(ImVec2(entityIconWidth, modernTheme.compactHeight));
-	MImGui::DrawEditorIcon(
-		m_editor->icons.Get(EditorIcon::Entity),
-		ImVec2(
-			entityIconCursor.x + 3.0f,
-			entityIconCursor.y + (modernTheme.compactHeight - 18.0f) * 0.5f
-		),
-		18.0f,
-		0.92f
-	);
-	ImGui::SameLine();
-
-	if(name){
-		char nameBuffer[256]{};
-		std::strncpy(nameBuffer, name->name.c_str(), sizeof(nameBuffer) - 1);
-
-		if(MImGui::TextField(
-			"##Name",
-			nameBuffer,
-			sizeof(nameBuffer),
-			ImGuiInputTextFlags_EnterReturnsTrue,
-			entityNameWidth
-		)){
-			auto command = std::make_unique<RenameCommand>(
-				context,
-				selectedEntity,
-				name->name,
-				nameBuffer
-			);
-			m_editor->commandManager.Execute(std::move(command));
-		}
-	} else{
-		ImGui::Dummy(ImVec2(entityNameWidth, modernTheme.compactHeight));
-	}
-
-	ImGui::SameLine();
-	if(MImGui::Button(
-		"...##EntityActions",
-		ImVec2(entityActionWidth, modernTheme.compactHeight),
-		MImGui::ButtonKind::Ghost
-	)){
-		ImGui::OpenPopup("EntityActionsPopup");
-	}
-
 	bool deleteEntity = false;
-	if(ImGui::BeginPopup("EntityActionsPopup")){
-		ImGui::TextDisabled("Entity %u", selectedEntity.GetIndex());
-		ImGui::Separator();
-		ImGui::PushStyleColor(ImGuiCol_Text, modernTheme.dangerHover);
-		deleteEntity = ImGui::MenuItem("Delete Entity");
-		ImGui::PopStyleColor();
-		ImGui::EndPopup();
-	}
 
-	ImGui::TextDisabled("Entity %u", selectedEntity.GetIndex());
-	if(isPrefab){
+	// Identity is presented as one stable material surface. The icon is used
+	// once as an anchor; repeated rows below rely on labels and structure.
+	ImGui::PushStyleColor(ImGuiCol_ChildBg, MImGui::WithAlpha(modernTheme.panel, 0.96f));
+	ImGui::PushStyleColor(ImGuiCol_Border, MImGui::EffectiveOutline());
+	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, modernTheme.cornerRadius);
+	ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(8.0f, 8.0f));
+	if(ImGui::BeginChild(
+		"EntityIdentitySurface",
+		ImVec2(0.0f, 62.0f),
+		true,
+		ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
+	)){
+		const ImVec2 baseCursor = ImGui::GetCursorPos();
+		const ImVec2 iconScreen = ImGui::GetCursorScreenPos();
+		const float iconTileSize = 36.0f;
+		ImDrawList* drawList = ImGui::GetWindowDrawList();
+		drawList->AddRectFilled(
+			iconScreen,
+			ImVec2(iconScreen.x + iconTileSize, iconScreen.y + iconTileSize),
+			ImGui::GetColorU32(modernTheme.raised),
+			10.0f
+		);
+		drawList->AddRect(
+			iconScreen,
+			ImVec2(iconScreen.x + iconTileSize, iconScreen.y + iconTileSize),
+			ImGui::GetColorU32(MImGui::EffectiveOutline()),
+			10.0f,
+			0,
+			MImGui::EffectiveStrokeWidth()
+		);
+		MImGui::DrawMaterialEdge(
+			drawList,
+			iconScreen,
+			ImVec2(iconScreen.x + iconTileSize, iconScreen.y + iconTileSize),
+			10.0f,
+			0.75f
+		);
+		MImGui::DrawEditorIcon(
+			m_editor->icons.Get(EditorIcon::Entity),
+			ImVec2(iconScreen.x + 8.0f, iconScreen.y + 8.0f),
+			20.0f,
+			0.94f
+		);
+		ImGui::Dummy(ImVec2(iconTileSize, iconTileSize));
+
+		const float contentX = baseCursor.x + iconTileSize + 10.0f;
+		const float actionWidth = 30.0f;
+		const float actionGap = ImGui::GetStyle().ItemSpacing.x;
+		const float contentRight = ImGui::GetWindowContentRegionMax().x;
+		const float nameWidth = (std::max)(
+			96.0f,
+			contentRight - contentX - actionWidth - actionGap
+		);
+
+		ImGui::SetCursorPos(ImVec2(contentX, baseCursor.y));
+		if(name){
+			char nameBuffer[256]{};
+			std::strncpy(nameBuffer, name->name.c_str(), sizeof(nameBuffer) - 1);
+
+			if(MImGui::TextField(
+				"##Name",
+				nameBuffer,
+				sizeof(nameBuffer),
+				ImGuiInputTextFlags_EnterReturnsTrue,
+				nameWidth
+			)){
+				auto command = std::make_unique<RenameCommand>(
+					context,
+					selectedEntity,
+					name->name,
+					nameBuffer
+				);
+				m_editor->commandManager.Execute(std::move(command));
+			}
+		}else{
+			ImGui::Dummy(ImVec2(nameWidth, modernTheme.compactHeight));
+		}
+
 		ImGui::SameLine();
-		MImGui::Badge("Prefab");
+		if(MImGui::Button(
+			"...##EntityActions",
+			ImVec2(actionWidth, modernTheme.compactHeight),
+			MImGui::ButtonKind::Ghost
+		)){
+			ImGui::OpenPopup("EntityActionsPopup");
+		}
+
+		if(ImGui::BeginPopup("EntityActionsPopup")){
+			ImGui::TextDisabled("Scene Entity · ID %u", selectedEntity.GetIndex());
+			ImGui::Separator();
+			ImGui::PushStyleColor(ImGuiCol_Text, modernTheme.dangerHover);
+			deleteEntity = ImGui::MenuItem("Delete Entity");
+			ImGui::PopStyleColor();
+			ImGui::EndPopup();
+		}
+
+		ImGui::SetCursorPos(ImVec2(contentX, baseCursor.y + modernTheme.compactHeight + 4.0f));
+		ImGui::TextDisabled("Scene Entity · ID %u", selectedEntity.GetIndex());
+		if(isPrefab){
+			ImGui::SameLine();
+			MImGui::Badge("Prefab");
+		}
 	}
+	ImGui::EndChild();
+	ImGui::PopStyleVar(3);
+	ImGui::PopStyleColor(2);
 	ImGui::PopID();
 
 	if(deleteEntity){
@@ -206,7 +247,7 @@ void Inspector::Draw(const EditorDrawContext ctx){
 		return;
 	}
 
-	ImGui::Separator();
+	ImGui::Dummy(ImVec2(0.0f, 8.0f));
 	ImGui::PushID("EntityStateHeader");
 
 	if(ImGui::BeginTable(
