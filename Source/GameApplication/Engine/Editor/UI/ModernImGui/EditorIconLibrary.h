@@ -1,19 +1,18 @@
 // =======================================================================
 //
 // EditorIconLibrary.h
-// Shared editor icon atlas access.
+// Resolution-independent editor icon descriptors.
 //
 // =======================================================================
 #pragma once
 
 #include <cstdint>
-#include <memory>
 #include <string_view>
 
 #include "Backends/ImGui/imgui.h"
 #include "Resources/Data/textureData.h"
-#include "Resources/Loader/textureLoader.h"
-#include "Resources/resourceService.h"
+
+class ResourceService;
 
 enum class EditorIcon : std::uint8_t {
 	Add = 0,
@@ -32,50 +31,36 @@ enum class EditorIcon : std::uint8_t {
 };
 
 struct EditorIconImage {
+	// Editor glyphs are drawn as vector primitives. Texture fields remain for
+	// controls that intentionally pass a runtime texture through TextureIcon().
+	EditorIcon vectorIcon = EditorIcon::Count;
 	ImTextureRef texture{};
 	ImVec2 uv0{0.0f, 0.0f};
 	ImVec2 uv1{1.0f, 1.0f};
 
+	bool IsVector() const {
+		return vectorIcon != EditorIcon::Count;
+	}
+
 	bool IsValid() const {
-		return texture._TexID != (ImTextureID)0;
+		return IsVector() || texture._TexID != (ImTextureID)0;
 	}
 };
 
 class EditorIconLibrary {
 public:
-	void Initialize(ResourceService* resources) {
-		if(!resources) return;
-		m_atlas = resources->Load<TextureData>(
-			"Asset/Texture/UI/Editor/EditorIcons.png"
-		);
-	}
-
-	void Shutdown() {
-		m_atlas.reset();
-	}
+	// Kept for EditorService lifecycle compatibility. Vector icons require no
+	// resource loading and are available immediately at every DPI scale.
+	void Initialize(ResourceService*) {}
+	void Shutdown() {}
 
 	EditorIconImage Get(EditorIcon icon) const {
 		EditorIconImage image;
-		if(!m_atlas || !m_atlas->pTexture.Get()) return image;
-
-		constexpr int columns = 4;
-		constexpr int rows = 3;
 		const int index = static_cast<int>(icon);
 		if(index < 0 || index >= static_cast<int>(EditorIcon::Count)){
 			return image;
 		}
-
-		const int column = index % columns;
-		const int row = index / columns;
-		image.texture._TexID = (ImTextureID)m_atlas->pTexture.Get();
-		image.uv0 = ImVec2(
-			static_cast<float>(column) / static_cast<float>(columns),
-			static_cast<float>(row) / static_cast<float>(rows)
-		);
-		image.uv1 = ImVec2(
-			static_cast<float>(column + 1) / static_cast<float>(columns),
-			static_cast<float>(row + 1) / static_cast<float>(rows)
-		);
+		image.vectorIcon = icon;
 		return image;
 	}
 
@@ -91,7 +76,4 @@ public:
 		}
 		return Get(EditorIcon::Component);
 	}
-
-private:
-	std::shared_ptr<TextureData> m_atlas;
 };
