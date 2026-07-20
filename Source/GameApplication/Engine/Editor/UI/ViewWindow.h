@@ -40,6 +40,8 @@ private:
 
 	void EditorView(const EditorDrawContext ctx);
 
+	// Playback belongs to the global transport. Viewport-local controls remain
+	// contextual to the editor camera and render presentation.
 	void ControlButton();
 	void DrawRenderLayerToggleUI();
 
