@@ -16,6 +16,7 @@
 #include "UI/SceneStorageSettingsPanel.h"
 #include "UI/BRAIN/BRAIN.h"
 #include "UI/CB41.h"
+#include "UI/ModernImGui/EditorIconWidgets.h"
 
 #include "Analysis/AnalyzerManager.h"
 
@@ -93,6 +94,11 @@ void EditorService::Draw(EditorDrawContext ctx) {
 			std::chrono::duration<double>(end - begin).count();
 		m_CurrentPanelTimings.push_back({panel.name, seconds});
 	}
+
+	// Dock tabs are owned by Dear ImGui. Draw semantic glyphs only after every
+	// editor window has submitted its tab so docking state and hit targets stay
+	// entirely under the upstream implementation.
+	MImGui::DrawDockTabIcons(icons);
 
 	m_CompletedPanelTimings = m_CurrentPanelTimings;
 }
