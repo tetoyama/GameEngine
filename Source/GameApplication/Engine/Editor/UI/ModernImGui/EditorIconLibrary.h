@@ -27,6 +27,11 @@ enum class EditorIcon : std::uint8_t {
 	Name,
 	Performance,
 	Transform,
+	Viewport,
+	Play,
+	Settings,
+	Scene,
+	Telemetry,
 	Count,
 };
 
