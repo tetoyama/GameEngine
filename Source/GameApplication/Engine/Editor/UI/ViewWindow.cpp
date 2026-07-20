@@ -13,7 +13,7 @@
 #include "sceneManager.h"
 #include "Service/Graphics/graphicsContext.h"
 #include "Editor/UI/MenuBar.h"
-#include "Editor/UI/ModernImGui/ModernImGui.h"
+#include "Editor/UI/ModernImGui/EditorIconWidgets.h"
 #include <Component/RenderLayerComponent.h>
 #include "Registry/systemRegistry.h"
 #include "System/Render/RenderSystem/renderSystem.h"
@@ -67,19 +67,26 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 	ImGui::PushStyleColor(ImGuiCol_Border, MImGui::EffectiveOutline());
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, modernTheme.cornerRadius);
 	ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 5.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(6.0f, 4.0f));
 	if(ImGui::BeginChild(
 		"ViewportToolbar",
-		ImVec2(0.0f, modernTheme.compactHeight + 10.0f),
+		ImVec2(0.0f, modernTheme.compactHeight + 8.0f),
 		true,
 		ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
 	)){
-		ControlButton();
-		ImGui::SameLine(0.0f, 12.0f);
 		DrawRenderLayerToggleUI();
-		ImGui::SameLine(0.0f, 12.0f);
-		ImGui::AlignTextToFramePadding();
-		ImGui::TextDisabled("Camera %.2f", cameraMoveSpeed);
+
+		char cameraLabel[64]{};
+		std::snprintf(cameraLabel, sizeof(cameraLabel), "Camera  %.2f", cameraMoveSpeed);
+		const float cameraLabelWidth = ImGui::CalcTextSize(cameraLabel).x;
+		const float cameraTargetX =
+			ImGui::GetWindowContentRegionMax().x - cameraLabelWidth;
+		if(cameraTargetX > ImGui::GetCursorPosX() + 12.0f){
+			ImGui::SameLine();
+			ImGui::SetCursorPosX(cameraTargetX);
+			ImGui::AlignTextToFramePadding();
+			ImGui::TextDisabled("%s", cameraLabel);
+		}
 	}
 	ImGui::EndChild();
 	ImGui::PopStyleVar(3);
@@ -403,11 +410,14 @@ void ViewWindow::DrawRenderLayerToggleUI() {
 	}
 
 	char preview[64]{};
-	std::snprintf(preview, sizeof(preview), "Layers  %d/%d##ViewportLayers", visibleCount, layerCount);
-	if(MImGui::Button(
+	std::snprintf(preview, sizeof(preview), "Layers  %d/%d", visibleCount, layerCount);
+	if(MImGui::IconButton(
+		"ViewportLayers",
 		preview,
-		ImVec2(128.0f, MImGui::GetTheme().compactHeight),
-		MImGui::ButtonKind::Secondary
+		m_editor->icons.Get(EditorIcon::Layers),
+		ImVec2(132.0f, MImGui::GetTheme().compactHeight),
+		MImGui::ButtonKind::Secondary,
+		14.0f
 	)){
 		ImGui::OpenPopup("ViewportRenderLayersPopup");
 	}
