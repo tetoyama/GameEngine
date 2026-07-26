@@ -145,6 +145,11 @@ inline bool TryBuildCodeInvestigationPlan(
 	const Json& toolCatalog,
 	Json* planOut) {
 
+	// Plannerが受け取った正規のCatalogを、後続のCritic/Repairへ引き継ぐ。
+	// このヘルパはPlannerAgent::Runの最初に呼ばれるため、静的コード調査以外の
+	// LLM Planner経路でも同一CatalogがセッションContextへ保存される。
+	prompts::SetCurrentToolCatalog(toolCatalog);
+
 	if(planOut == nullptr || !intake.is_object()) return false;
 	const std::string text = detail::PlanningText(intake);
 	if(!detail::LooksLikeCodeRequest(text)) return false;
