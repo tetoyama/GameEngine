@@ -4,6 +4,7 @@
 //
 // =======================================================================
 #include "PlannerAgent.h"
+#include "CodeInvestigationPlanner.h"
 
 #include <cstdint>
 #include <functional>
@@ -289,6 +290,7 @@ void NormalizePlan(Json* plan) {
 Result PlannerAgent::Run(AgentContext& ctx, const Json& intake, const Json& toolCatalog, Json* planOut) {
 	if (planOut == nullptr) return Result::Fail("PlannerAgent: planOut is null");
 
+	if (planner_internal::TryBuildCodeInvestigationPlan(intake, toolCatalog, planOut)) return Result::Ok();
 	if (TryBuildSceneSnapshotPlan(intake, toolCatalog, planOut)) return Result::Ok();
 
 	const PromptPair prompt = prompts::Plan(intake, toolCatalog, kMaxTasks);
