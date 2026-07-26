@@ -113,6 +113,8 @@ std::string ContextText(const Json& supplied) {
 			Json item = Json::object();
 			if (turn.contains("sessionId")) item["sessionId"] = turn.at("sessionId");
 			item["user"] = Truncate(turn.value("user", std::string()), 600);
+			// 構造化Thread Stateが無いときの一次履歴フォールバックでは、訂正解決に
+			// 必要な直前assistant応答も切り詰めて渡す（IntakeAgent::BoundedRecentTurnと対）。
 			const std::string assistant = turn.value("assistant", std::string());
 			if (!assistant.empty()) item["assistant"] = Truncate(assistant, 560);
 			userFallback.push_back(std::move(item));
@@ -267,6 +269,8 @@ Result ApplyCurrentRequestPatch(const Json& requestPatch, Json* revisedIntakeOut
 	if (requestPatch.contains("reason") && requestPatch.at("reason").is_string()) {
 		revised["requestRevisionReason"] = requestPatch.at("reason");
 	}
+	// CriticのrequestPatchは対象Bindingや制約を修正できるが、ユーザーが
+	// 最初に依頼したRoot Goal自体は不変として必ず復元する。
 	revised["rootGoal"] = immutableRootGoal;
 	revised["rootResolvedRequest"] = immutableRootResolved;
 	NormalizedIntakeRef() = revised;
@@ -320,14 +324,26 @@ PromptPair Intake(const std::string& userRequest, const Json& conversationContex
 		"- 履歴に根拠がない参照は推測せずunresolvedReferencesへ入れる。\n"
 		"requestType: investigation = Engine/Scene実データが必要。"
 		"conversation = 雑談、人物質問、履歴だけで答えられる修正確認。",
-		"{\"goal\": string, \"resolvedRequest\": string, \"turnRelation\": \"new\"|\"continue\"|\"correct\"|\"clarify\"|\"refer\"|\"refresh\", \"referencedSessionIds\": [integer], \"symptoms\": [string], \"constraints\": [string], \"requiredCapabilities\": [string], \"unresolvedReferences\": [string], \"targetKind\": \"unknown\"|\"entity\"|\"entityRole\"|\"component\"|\"field\"|\"concept\", \"targetConcept\": string|null, \"resolvedEntityName\": string|null, \"requestType\": \"conversation\"|\"investigation\"}");
+		"{\"goal\": string, \"resolvedRequest\": string, "
+		"\"turnRelation\": \"new\"|\"continue\"|\"correct\"|\"clarify\"|\"refer\"|\"refresh\", "
+		"\"referencedSessionIds\": [integer], "
+		"\"symptoms\": [string], \"constraints\": [string], "
+		"\"requiredCapabilities\": [string], \"unresolvedReferences\": [string], "
+		"\"targetKind\": \"unknown\"|\"entity\"|\"entityRole\"|\"component\"|\"field\"|\"concept\", "
+		"\"targetConcept\": string|null, \"resolvedEntityName\": string|null, "
+		"\"requestType\": \"conversation\"|\"investigation\"}");
+
 	p.user = "選択済みConversation Thread State:\n" + ContextText(conversationContext) +
 		"\n\n現在のユーザー入力（最優先）:\n" + userRequest +
 		"\n\n今回のturnRelationとstandaloneなresolvedRequestを生成してください。";
 	return p;
 }
 
-PromptPair DirectReply(const std::string& userRequest, const std::string& compactToolCatalog, const Json& conversationContext) {
+PromptPair DirectReply(
+	const std::string& userRequest,
+	const std::string& compactToolCatalog,
+	const Json& conversationContext) {
+
 	PromptPair p;
 	p.system = BuildSystem(
 		"AgentOSの対話窓口として日本語で応答するDirectReply担当。\n"
@@ -339,7 +355,9 @@ PromptPair DirectReply(const std::string& userRequest, const std::string& compac
 		"- Toolはゲーム内実データを明示的に求め、1回のRead Toolで完結する場合だけ提案する。\n"
 		"- 履歴だけで回答できるならreply。多段調査が必要ならescalate=true。\n"
 		"- 実行していない操作を実行済みと言わない。",
-		"{\"reply\": string|null, \"toolCall\": {\"tool\": string, \"arguments\": object}|null, \"escalate\": boolean}");
+		"{\"reply\": string|null, \"toolCall\": {\"tool\": string, \"arguments\": object}|null, "
+		"\"escalate\": boolean}");
+
 	p.user = "現在のユーザー入力:\n" + userRequest +
 		"\n\n今回の解決済み要求:\n" + CurrentResolvedRequest(userRequest) +
 		"\n\nturnRelation: " + CurrentTurnRelation() +
@@ -348,17 +366,38 @@ PromptPair DirectReply(const std::string& userRequest, const std::string& compac
 	return p;
 }
 
-PromptPair FormatToolResult(const std::string& userRequest, const std::string& toolName, const Json& payload) {
+PromptPair FormatToolResult(
+	const std::string& userRequest,
+	const std::string& toolName,
+	const Json& payload) {
 	PromptPair p;
-	p.system = BuildSystem("Tool実行結果を現在の解決済み要求に沿って日本語で要約するReporter担当。結果に無い事実を足さないこと。found=falseや取得失敗を『存在しないと確認』へ変換しないこと。", "{\"reply\": string}");
-	p.user = "ユーザー要求:\n" + CurrentResolvedRequest(userRequest) + "\n\n実行したTool: " + toolName + "\n\nTool実行結果:\n" + Truncate(payload.dump(2));
+	p.system = BuildSystem(
+		"Tool実行結果を現在の解決済み要求に沿って日本語で要約するReporter担当。"
+		"結果に無い事実を足さないこと。found=falseや取得失敗を『存在しないと確認』へ変換しないこと。",
+		"{\"reply\": string}");
+	p.user = "ユーザー要求:\n" + CurrentResolvedRequest(userRequest) +
+		"\n\n実行したTool: " + toolName +
+		"\n\nTool実行結果:\n" + Truncate(payload.dump(2));
 	return p;
 }
 
-PromptPair CompressConversationMemory(const std::string& existingSummary, const Json& turnsToCompress) {
+PromptPair CompressConversationMemory(
+	const std::string& existingSummary,
+	const Json& turnsToCompress) {
+
 	PromptPair p;
-	p.system = BuildSystem("古いConversation Turnを累積会話要約へ圧縮するMemory担当。\n- 各Turnはuser入力とassistant最終応答のペアとして読む。\n- 目的、確定仕様、好み、対象名、訂正、未完了事項を保持する。\n- 後の訂正が矛盾する場合、最新状態を正文とする。\n- assistant回答は会話記憶でありEngine Evidenceではない。\n- Tool中間ログ、思考過程、冗長な言い回しは残さない。\n- 事実を追加しない。summaryは4000文字程度以内。", "{\"summary\": string}");
-	p.user = "既存の累積要約:\n" + (existingSummary.empty() ? std::string("(なし)") : Truncate(existingSummary, 6000)) + "\n\n今回要約へ畳み込むTurn:\n" + Truncate(turnsToCompress.dump(2), 14000);
+	p.system = BuildSystem(
+		"古いConversation Turnを累積会話要約へ圧縮するMemory担当。\n"
+		"- 各Turnはuser入力とassistant最終応答のペアとして読む。\n"
+		"- 目的、確定仕様、好み、対象名、訂正、未完了事項を保持する。\n"
+		"- 後の訂正が矛盾する場合、最新状態を正文とする。\n"
+		"- assistant回答は会話記憶でありEngine Evidenceではない。\n"
+		"- Tool中間ログ、思考過程、冗長な言い回しは残さない。\n"
+		"- 事実を追加しない。summaryは4000文字程度以内。",
+		"{\"summary\": string}");
+	p.user = "既存の累積要約:\n" +
+		(existingSummary.empty() ? std::string("(なし)") : Truncate(existingSummary, 6000)) +
+		"\n\n今回要約へ畳み込むTurn:\n" + Truncate(turnsToCompress.dump(2), 14000);
 	return p;
 }
 
@@ -366,31 +405,56 @@ PromptPair Plan(const Json& intake, const Json& toolCatalog, int maxTasks) {
 	SetCurrentToolCatalog(toolCatalog);
 	PromptPair p;
 	p.system = BuildSystem(
-		"Intake結果とTool一覧からTask DAGを作るPlanner担当。task数は" + std::to_string(maxTasks) + "件以内。\n"
+		"Intake結果とTool一覧からTask DAGを作るPlanner担当。task数は" +
+		std::to_string(maxTasks) + "件以内。\n"
 		"- resolvedRequestと最新constraintsを正とし、訂正前の条件を復活させない。\n"
-		"- snapshot観測ではListEntities/ListSystems/DescribeEntity等を使い、時間変化が明示されない限りWriteTraceを使わない。\n"
+		"- snapshot観測ではListEntities/ListSystems/DescribeEntity等を使い、"
+		"時間変化が明示されない限りWriteTraceを使わない。\n"
 		"- Toolを実行するTaskはAnalysisにしない。\n"
-		"- ユーザー語が役割・概念ならEntity名・Component名・Field名へ即断しない。\n"
-		"- 曖昧なEntityはDiscovery Taskで候補化し、DescribeEntityで実在Componentを確認する。\n"
+		"- ユーザー語が役割・概念（例: プレイヤー、ジャンプ力）なら、Entity名・Component名・Field名へ即断しない。\n"
+		"- 曖昧なEntityはResolveEntity/FindEntityByName等のDiscovery Taskで候補化し、DescribeEntityで実在Componentを確認する。\n"
+		"- FindReaders/FindWritersのcomponent引数へJumpForce等のField/Property概念を入れない。\n"
 		"- Exact Access ToolのEntity名・Component名は先行Taskの成功EvidenceからdependenciesでGroundingする。",
-		"{\"tasks\": [{\"taskId\": string, \"type\": \"RuntimeObservation\"|\"CodeSearch\"|\"Trace\"|\"Analysis\", \"description\": string, \"dependencies\": [string], \"allowedTools\": [string], \"searchHints\": [string]}]}");
+		"{\"tasks\": [{\"taskId\": string, "
+		"\"type\": \"RuntimeObservation\"|\"CodeSearch\"|\"Trace\"|\"Analysis\", "
+		"\"description\": string, \"dependencies\": [string], "
+		"\"allowedTools\": [string], \"searchHints\": [string]}]}");
+
 	const Json planningIntake = IntakeWithoutRawConversation(intake);
-	p.user = "解決済みIntake:\n" + Truncate(planningIntake.dump(2), 7000) + "\n\nTool一覧:\n" + Truncate(CompactToolCatalog(toolCatalog)) + "\n\n最大Task数: " + std::to_string(maxTasks);
+	p.user = "解決済みIntake:\n" + Truncate(planningIntake.dump(2), 7000) +
+		"\n\nTool一覧:\n" + Truncate(CompactToolCatalog(toolCatalog)) +
+		"\n\n最大Task数: " + std::to_string(maxTasks);
 	return p;
 }
 
 PromptPair GenerateQueries(const Json& taskSpec, const Json& toolCatalog) {
 	SetCurrentToolCatalog(toolCatalog);
 	PromptPair p;
-	p.system = BuildSystem("Task遂行用Tool呼び出しを最大5件提案するWorker担当。\n- Discovery Toolは現在要求・searchHints由来の検索語を使ってよい。\n- Exact Access ToolではdependencyEvidenceの値を成功Evidenceから完全一致でコピーする。\n- found=false等の負の結果を正のBindingとして使わない。\n- 必要値をEvidenceから決められない場合はcommandsを空配列にする。\n- allowedTools外は禁止。", "{\"commands\": [{\"tool\": string, \"arguments\": object}]}");
-	p.user = "Task spec:\n" + Truncate(taskSpec.dump(2), 10000) + "\n\nTool一覧:\n" + Truncate(CompactToolCatalog(toolCatalog));
+	p.system = BuildSystem(
+		"Task遂行用Tool呼び出しを最大5件提案するWorker担当。\n"
+		"- ResolveEntity/FindEntityByName/CodeSearch等のDiscovery Toolは、現在要求・searchHints由来の検索語を使ってよい。検索語は未確定Bindingであり、検索結果をEvidenceとして後段で確定する。\n"
+		"- DescribeEntity/ReadComponent等のExact Access Toolでは、dependencyEvidenceのEntity名・Component名を成功Evidenceから完全一致でコピーする。\n"
+		"- Entity/Component/Field/Conceptを区別し、FindReaders/FindWritersのcomponentへField名を渡さない。\n"
+		"- found=false等の負の結果に含まれる検索文字列を正のBindingとして使わない。\n"
+		"- 空文字、主要なEntity、対象Component、TODO等は禁止。\n"
+		"- 必要値をEvidenceから決められない場合はcommandsを空配列にする。\n"
+		"- allowedTools外は禁止。",
+		"{\"commands\": [{\"tool\": string, \"arguments\": object}]}");
+	p.user = "Task spec:\n" + Truncate(taskSpec.dump(2), 10000) +
+		"\n\nTool一覧:\n" + Truncate(CompactToolCatalog(toolCatalog));
 	return p;
 }
 
 PromptPair Reason(const Json& builtEvidence) {
 	PromptPair p;
-	p.system = BuildSystem("最新Request Revisionと統合Evidenceのみから仮説を組み立てるReasoning担当。最新resolvedRequest/constraintsを優先し、Conversation MemoryをEngine Evidenceとして使わず、Evidenceに無い事実は書かない。", "{\"hypotheses\": [{\"description\": string, \"rubricBase\": number, \"supports\": [integer], \"contradicts\": [integer], \"missingEvidence\": [string]}]}");
-	p.user = RequestContextText() + "\n\n統合Evidence:\n" + Truncate(builtEvidence.dump(2), 10000);
+	p.system = BuildSystem(
+		"最新Request Revisionと統合Evidenceのみから仮説を組み立てるReasoning担当。"
+		"最新resolvedRequest/constraintsを優先し、Conversation MemoryをEngine Evidenceとして使わず、"
+		"Evidenceに無い事実は書かない。",
+		"{\"hypotheses\": [{\"description\": string, \"rubricBase\": number, "
+		"\"supports\": [integer], \"contradicts\": [integer], \"missingEvidence\": [string]}]}");
+	p.user = RequestContextText() +
+		"\n\n統合Evidence:\n" + Truncate(builtEvidence.dump(2), 10000);
 	return p;
 }
 
@@ -399,23 +463,54 @@ PromptPair Critique(const Json& hypotheses, const Json& builtEvidence) {
 	p.system = BuildSystem(
 		"最新Request Revisionに対して仮説とEvidenceを検証するCritic担当。\n"
 		"- ToolError、found=false、Unsatisfied等は成功Evidenceとして扱わない。\n"
+		"- 要求の対象名が誤っている場合はrequestPatchでBindingを修正する。ただしrootGoal/rootResolvedRequestの目的を、Schema確認・権限調査などの修復サブゴールへ置き換えない。\n"
 		"- 追加調査は必ずtypeをRuntimeObservation/CodeSearch/Traceのいずれかにする。\n"
 		"- 各追加Taskは、下記Tool一覧に実在するTool名とargumentsを具体的に指定する。\n"
 		"- Tool一覧に存在しないTool名を創作しない。\n"
 		"- argumentsはTool一覧のargumentSchemaにある正式フィールド名だけを使う。\n"
 		"- 修正後要求を満たすために必要なEvidenceを再取得できるTaskを最大2件提案する。\n"
-		"- 必要だったが失敗したTaskはobsoleteTasksに入れず、additionalTasksSuggestedで取り直す。\n"
-		"- goalSatisfiedはEvidenceで目的が満たされたかを正直に判定する。",
-		"{\"scores\": {\"evidenceCoverage\": number, \"contradictionHandling\": number, \"causalCompleteness\": number, \"testability\": number}, \"failures\": [string], \"goalSatisfied\": boolean, \"unmetAspects\": [string], \"requestPatch\": {\"goal\": string|null, \"resolvedRequest\": string|null, \"constraints\": [string]|null, \"reason\": string}|null, \"additionalTasksSuggested\": [{\"type\": \"RuntimeObservation\"|\"CodeSearch\"|\"Trace\", \"description\": string, \"tool\": string, \"arguments\": object}], \"obsoleteTasks\": [{\"taskId\": integer, \"reason\": string}]} ");
+		"- rootGoalの達成に不要だったTaskはobsoleteTasksへtaskIdを挙げて計画から外す。"
+		"対象は「立てるべきでなかったTask」に限る。例: 静的なコードの問いに対する実行時トレース、"
+		"存在しないEntityを前提にした観測。\n"
+		"- 「必要だったが失敗したTask」はobsoleteTasksに入れない。それは撤回ではなく再試行の対象であり、"
+		"additionalTasksSuggestedで取り直す。\n"
+		"- resolvedRequestの目的（例: 特定Entityの特定属性値）が統合Evidenceで実際に"
+		"満たされたかをgoalSatisfiedへ正直に判定し、未達の観点をunmetAspectsへ列挙する"
+		"（goalSatisfiedはadvisoryであり、最終pass判定はプログラム側の決定的ゲートが行う）。",
+		"{\"scores\": {\"evidenceCoverage\": number, \"contradictionHandling\": number, "
+		"\"causalCompleteness\": number, \"testability\": number}, "
+		"\"failures\": [string], "
+		"\"goalSatisfied\": boolean, \"unmetAspects\": [string], "
+		"\"requestPatch\": {\"goal\": string|null, \"resolvedRequest\": string|null, "
+		"\"constraints\": [string]|null, \"reason\": string}|null, "
+		"\"additionalTasksSuggested\": [{"
+		"\"type\": \"RuntimeObservation\"|\"CodeSearch\"|\"Trace\", "
+		"\"description\": string, \"tool\": string, \"arguments\": object}], "
+		"\"obsoleteTasks\": [{\"taskId\": integer, \"reason\": string}]} ");
 	const std::string toolCatalog = CompactToolCatalog(ToolCatalogRef());
-	p.user = RequestContextText() + "\n\n仮説:\n" + Truncate(hypotheses.dump(2), 5000) + "\n\n統合Evidence:\n" + Truncate(builtEvidence.dump(2), 9000) + "\n\n利用可能なTool一覧（この一覧外は提案禁止）:\n" + (toolCatalog.empty() ? std::string("(利用可能なToolなし)") : Truncate(toolCatalog, 7000));
+	p.user = RequestContextText() +
+		"\n\n仮説:\n" + Truncate(hypotheses.dump(2), 5000) +
+		"\n\n統合Evidence:\n" + Truncate(builtEvidence.dump(2), 9000) +
+		"\n\n利用可能なTool一覧（この一覧外は提案禁止）:\n" +
+		(toolCatalog.empty() ? std::string("(利用可能なToolなし)") : Truncate(toolCatalog, 7000));
 	return p;
 }
 
-PromptPair Synthesize(const Json& evidence, const Json& rankedHypotheses, const Json& stopInfo) {
+PromptPair Synthesize(
+	const Json& evidence,
+	const Json& rankedHypotheses,
+	const Json& stopInfo) {
 	PromptPair p;
-	p.system = BuildSystem("不変のRoot Goalを最終目的とし、最新Request Revision・選択済み会話Context・Evidence・仮説・停止理由から今回の応答を作る。最新の訂正を優先し、Conversation MemoryをEngine Evidenceとして扱わない。Evidence外の断定は禁止。critic passedでない場合は調査未完了であることを明示する。", "{\"report\": string}");
-	p.user = RequestContextText() + "\n\n確定Evidence:\n" + Truncate(evidence.dump(2), 10000) + "\n\n順位付き仮説:\n" + Truncate(rankedHypotheses.dump(2), 5000) + "\n\n停止情報:\n" + Truncate(stopInfo.dump(2), 2000);
+	p.system = BuildSystem(
+		"不変のRoot Goalを最終目的とし、最新Request Revision・選択済み会話Context・Evidence・仮説・停止理由から今回の応答を作る。"
+		"最新の訂正を優先し、訂正前へ戻らない。Conversation MemoryをEngine Evidenceとして扱わない。"
+		"Evidence外の断定は禁止。critic passedでない場合は、調査未完了であること、失敗原因、"
+		"確定できていない点を明示し、『確認済み』『存在しないと確定』『調査完了』と書かない。",
+		"{\"report\": string}");
+	p.user = RequestContextText() +
+		"\n\n確定Evidence:\n" + Truncate(evidence.dump(2), 10000) +
+		"\n\n順位付き仮説:\n" + Truncate(rankedHypotheses.dump(2), 5000) +
+		"\n\n停止情報:\n" + Truncate(stopInfo.dump(2), 2000);
 	return p;
 }
 
