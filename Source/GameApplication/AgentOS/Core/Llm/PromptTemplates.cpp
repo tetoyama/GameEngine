@@ -8,6 +8,8 @@
 #include <initializer_list>
 #include <string>
 
+#include "../Evidence/EvidencePromptCompressor.h"
+
 namespace agentos {
 namespace prompts {
 
@@ -453,7 +455,8 @@ PromptPair Reason(const Json& builtEvidence) {
 		"{\"hypotheses\": [{\"description\": string, \"rubricBase\": number, "
 		"\"supports\": [integer], \"contradicts\": [integer], \"missingEvidence\": [string]}]}");
 	p.user = RequestContextText() +
-		"\n\n統合Evidence:\n" + Truncate(builtEvidence.dump(2), 10000);
+		"\n\n圧縮Evidence（最新順。evidencesは全体索引、recentEvidenceDetailsは最新payload詳細）:\n" +
+		evidence_prompt::CompressToString(builtEvidence, 9800);
 	return p;
 }
 
@@ -489,7 +492,8 @@ PromptPair Critique(const Json& hypotheses, const Json& builtEvidence) {
 	const std::string toolCatalog = CompactToolCatalog(ToolCatalogRef());
 	p.user = RequestContextText() +
 		"\n\n仮説:\n" + Truncate(hypotheses.dump(2), 5000) +
-		"\n\n統合Evidence:\n" + Truncate(builtEvidence.dump(2), 9000) +
+		"\n\n圧縮Evidence（最新順。evidencesは全体索引、recentEvidenceDetailsは最新payload詳細）:\n" +
+		evidence_prompt::CompressToString(builtEvidence, 8800) +
 		"\n\n利用可能なTool一覧（この一覧外は提案禁止）:\n" +
 		(toolCatalog.empty() ? std::string("(利用可能なToolなし)") : Truncate(toolCatalog, 7000));
 	return p;
@@ -507,7 +511,7 @@ PromptPair Synthesize(
 		"確定できていない点を明示し、『確認済み』『存在しないと確定』『調査完了』と書かない。",
 		"{\"report\": string}");
 	p.user = RequestContextText() +
-		"\n\n確定Evidence:\n" + Truncate(evidence.dump(2), 10000) +
+		"\n\n圧縮済み確定Evidence（最新順）:\n" + evidence_prompt::CompressToString(evidence, 9800) +
 		"\n\n順位付き仮説:\n" + Truncate(rankedHypotheses.dump(2), 5000) +
 		"\n\n停止情報:\n" + Truncate(stopInfo.dump(2), 2000);
 	return p;
