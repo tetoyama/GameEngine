@@ -113,7 +113,7 @@ std::string BuildDeterministicSummary(
 	return prompts::Truncate(summary, 4000);
 }
 
-[[maybe_unused]] Result CompressStoredConversationIfNeeded(AgentContext& ctx, Json* context) {
+Result CompressStoredConversationIfNeeded(AgentContext& ctx, Json* context) {
 	if (context == nullptr || ctx.store == nullptr || !NeedsCompression(*context)) {
 		return Result::Ok();
 	}
@@ -393,11 +393,17 @@ Json EmptyStructuredContext(const std::string& policy, const Json& fullContext =
 	return selected;
 }
 
-Json UserOnlyTurn(const Json& turn) {
+Json BoundedRecentTurn(const Json& turn) {
 	Json result = Json::object();
 	if (!turn.is_object()) return result;
 	if (turn.contains("sessionId")) result["sessionId"] = turn.at("sessionId");
 	result["user"] = prompts::Truncate(turn.value("user", std::string()), 600);
+	// 構造化Thread StateがまだDBに無い場合の一次履歴。訂正解決（「そうじゃなくて」等）は
+	// 直前のassistant応答が見えないと成立しないため、切り詰めた上でassistant本文も渡す。
+	// Intakeプロンプト自身が全履歴参照を許可している段階であり（PromptTemplates::Intake参照）、
+	// 再注入リスクは長さ制限で抑える。threadStateが存在する通常経路はこのフォールバックを通らない。
+	const std::string assistant = turn.value("assistant", std::string());
+	if (!assistant.empty()) result["assistant"] = prompts::Truncate(assistant, 560);
 	return result;
 }
 
@@ -421,17 +427,18 @@ Json BuildIntakePromptContext(const std::string& userRequest, const Json& fullCo
 		}
 	}
 
-	// 既存DBにThread Stateがまだ無い場合だけ、user本文のみを短く渡す。
-	// assistant本文は過去の誤答・Tool出力・巨大一覧を再注入するため絶対に渡さない。
+	// 既存DBにThread Stateがまだ無い場合だけ、直近turnを短く渡す。
+	// 訂正解決に必要な直前assistant応答も、切り詰めた上で含める（BoundedRecentTurn）。
+	// この経路はthreadStateが無いときのみ通り、通常の構造化経路とは分離されている。
 	if (selected["threadStates"].empty() && fullContext.contains("recentTurns") &&
 	    fullContext.at("recentTurns").is_array()) {
 		const Json& turns = fullContext.at("recentTurns");
 		const std::size_t begin = turns.size() > 2 ? turns.size() - 2 : 0;
 		for (std::size_t i = begin; i < turns.size(); ++i) {
-			const Json userOnly = UserOnlyTurn(turns[i]);
-			if (!userOnly.empty()) selected["recentTurns"].push_back(userOnly);
+			const Json bounded = BoundedRecentTurn(turns[i]);
+			if (!bounded.empty()) selected["recentTurns"].push_back(bounded);
 		}
-		selected["selectionPolicy"] = "legacy_user_text_fallback";
+		selected["selectionPolicy"] = "bounded_recent_turn_fallback";
 	}
 	return selected;
 }
@@ -596,6 +603,12 @@ Result IntakeAgent::Run(
 	    ctx.store != nullptr && ctx.sessionId != kInvalidId) {
 		fullContext = ctx.store->GetConversationContext(ctx.sessionId);
 	}
+
+	// 会話履歴が閾値を超えたら、プロンプト構築の前に自動圧縮する。
+	// 圧縮は古いturnを要約へ畳み込み、直近rawturnだけを残す（*fullContextを更新）。
+	// 圧縮の成否はIntake継続を妨げない（失敗時は関数内で安全な縮約へフォールバックする）。
+	CompressStoredConversationIfNeeded(ctx, &fullContext);
+
 	const Json promptContext = BuildIntakePromptContext(userRequest, fullContext);
 
 	const PromptPair prompt = prompts::Intake(userRequest, promptContext);

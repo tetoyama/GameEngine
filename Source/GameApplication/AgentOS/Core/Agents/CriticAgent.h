@@ -40,6 +40,14 @@ struct CriticVerdict {
 	Json llmScores = Json::object();
 	std::vector<std::string> failures;
 	Json additionalTasks = Json::array();
+
+	// 「そもそも立てるべきでなかった」とCriticが判定したTaskのID一覧。
+	// 追加(additionalTasks)と対になる撤回の指示であり、
+	// 再計画が単調増加しかできない問題を解消するために設けている。
+	// 実際に撤回されるかはEvidenceBuilder側の決定的ガードが決める
+	// （使えるEvidenceを産んだTaskは撤回されない）。
+	Json obsoleteTasks = Json::array();
+
 	bool pass = false;
 };
 

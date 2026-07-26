@@ -17,6 +17,11 @@
 #include "Backends/ImGui/imgui.h"
 
 #include "Editor/editorService.h"
+#include "Editor/UI/MenuBar.h"
+
+#include "Resources/Data/textureData.h"
+#include "Resources/Loader/textureLoader.h"
+#include "Resources/resourceService.h"
 
 #include "../Core/Json.h"
 #include "../Service/AgentOSService.h"
@@ -781,25 +786,83 @@ void AgentOSPanel::Initialize(EditorService* editor) {
 	m_frameCounter = 0;
 	m_lastLiveCompletionTokens = -1;
 	std::memset(m_inputBuffer, 0, sizeof(m_inputBuffer));
+
+	// 旧BRAINパネルの背景ロゴを引き継ぐ。
+	// resourceServiceが未接続でも起動を止めないよう、必ずガードする。
+	if(m_editor && m_editor->resourceService) {
+		m_logoTexture = m_editor->resourceService
+			->Load<TextureData>("Asset/BRAIN/logo/Icon.png");
+	}
 }
 
 void AgentOSPanel::Finalize() {
+	m_logoTexture.reset();
 	m_editor = nullptr;
 	m_service = nullptr;
 }
 
+bool* AgentOSPanel::ResolveShowFlag() {
+	if(m_editor) {
+		if(MenuBar* menuBar = m_editor->GetUI<MenuBar>()) {
+			return &menuBar->showBRAIN;
+		}
+	}
+	return &m_show;
+}
+
+void AgentOSPanel::DrawBackgroundLogo() {
+	if(!m_logoTexture || !m_logoTexture->pTexture) return;
+	if(m_logoTexture->Height <= 0) return;
+
+	const ImVec2 winPos = ImGui::GetWindowPos();
+	const ImVec2 winSize = ImGui::GetWindowSize();
+	if(winSize.x <= 0.0f || winSize.y <= 0.0f) return;
+
+	const float texRatio =
+		static_cast<float>(m_logoTexture->Width) /
+		static_cast<float>(m_logoTexture->Height);
+	const float winRatio = winSize.x / winSize.y;
+
+	// アスペクト比を保ったままウィンドウに内接させる。
+	ImVec2 drawSize;
+	if(winRatio > texRatio) {
+		drawSize.y = winSize.y;
+		drawSize.x = winSize.y * texRatio;
+	} else {
+		drawSize.x = winSize.x;
+		drawSize.y = winSize.x / texRatio;
+	}
+
+	const ImVec2 drawPos{
+		winPos.x + (winSize.x - drawSize.x) * 0.5f,
+		winPos.y + (winSize.y - drawSize.y) * 0.5f
+	};
+
+	// 前景のテキストを邪魔しないよう、旧BRAINと同じく極薄(alpha 8)で敷く。
+	ImGui::GetWindowDrawList()->AddImage(
+		m_logoTexture->pTexture.Get(),
+		drawPos,
+		ImVec2(drawPos.x + drawSize.x, drawPos.y + drawSize.y),
+		ImVec2(0.0f, 0.0f),
+		ImVec2(1.0f, 1.0f),
+		IM_COL32(255, 255, 255, 8));
+}
+
 void AgentOSPanel::Draw(const EditorDrawContext) {
-	if(!m_show) return;
+	bool* show = ResolveShowFlag();
+	if(!show || !*show) return;
 	if(m_service) m_service->PumpMainThread(m_frameCounter++);
 
 	ImGui::SetNextWindowSize(ImVec2(380.0f, 680.0f), ImGuiCond_FirstUseEver);
 	ImGui::SetNextWindowSizeConstraints(
 		ImVec2(300.0f, 300.0f),
 		ImVec2(1600.0f, 1600.0f));
-	if(!ImGui::Begin("AgentOS", &m_show)) {
+	if(!ImGui::Begin("B.R.A.I.N.", show)) {
 		ImGui::End();
 		return;
 	}
+
+	DrawBackgroundLogo();
 
 	if(!m_service) {
 		ImGui::TextColored(kErrorColor, "AgentOSService is not attached to this panel.");
@@ -1064,6 +1127,134 @@ void AgentOSPanel::DrawAuditTab() {
 	ImGui::EndChild();
 }
 
+// -----------------------------------------------------------------------
+// DrawInferenceBackend
+//
+// 推論をCPUで回すかGPUへ逃がすかの切り替え。
+//
+// ゲームエンジンに埋め込む以上、既定はCPU（VRAMを描画に残す）。
+// ただしエディタ作業中はGPUが空いているので、そのときは使えた方が速い。
+// 実測でCPU推論は1回の生成に約77秒かかっており、1セッション7〜8分に達していた。
+//
+// 注意: llama_model_params::n_gpu_layers はモデルのロード時にしか
+// 指定できないため、切り替えは数GBの再ロードを伴う。
+// -----------------------------------------------------------------------
+void AgentOSPanel::DrawInferenceBackend() {
+	ImGui::Separator();
+	ImGui::Text("Inference Backend:");
+
+	const bool gpuAvailable = m_service->IsGpuBackendAvailable();
+	const int gpuLayers = m_service->GetGpuLayers();
+	const bool usingGpu = (gpuLayers != 0);
+
+	ImGui::SameLine();
+	if(!gpuAvailable) {
+		ImGui::TextColored(kWarningColor, "CPU only (no GPU backend found)");
+	} else {
+		ImGui::TextColored(usingGpu ? kSuccessColor : kMutedColor,
+			usingGpu ? "GPU" : "CPU");
+	}
+
+	// 検出したデバイス一覧。GPUが出ていなければDLL未配置ということ。
+	if(ImGui::CollapsingHeader("Detected devices")) {
+		const std::vector<std::string> devices = m_service->GetBackendSummary();
+		if(devices.empty()) {
+			ImGui::TextColored(kErrorColor, "デバイスが検出されていません");
+		}
+		for(const std::string& device : devices) {
+			ImGui::BulletText("%s", device.c_str());
+		}
+		if(!gpuAvailable) {
+			ImGui::TextWrapped(
+				"GPUを使うには ggml-cuda.dll または ggml-vulkan.dll を "
+				"exeと同じ場所へ配置してください（vendorのCMakeで別途ビルドが必要）。");
+		}
+	}
+
+	// 生成中はモデルを差し替えられない
+	const bool busy = m_service->IsBusy();
+	ImGui::BeginDisabled(!gpuAvailable || busy);
+
+	bool useGpu = usingGpu;
+	if(ImGui::Checkbox("Offload to GPU", &useGpu)) {
+		// -1 = 全層。層数を細かく刻みたくなったらここを広げる。
+		m_service->SetGpuLayers(useGpu ? -1 : 0);
+	}
+	ImGui::EndDisabled();
+
+	if(busy) {
+		ImGui::SameLine();
+		ImGui::TextColored(kMutedColor, "(生成中は変更できません)");
+	} else if(gpuAvailable) {
+		ImGui::SameLine();
+		ImGui::TextColored(kMutedColor, "(切り替えるとモデルを再ロードします)");
+	}
+}
+
+// -----------------------------------------------------------------------
+// DrawCodeIndexStatus
+//
+// コード索引（RAG下層）の進捗と操作。
+// バックグラウンドスレッドで構築されるため、
+// UIから状態が見えないと「動いているのか」が判断できない。
+// -----------------------------------------------------------------------
+void AgentOSPanel::DrawCodeIndexStatus() {
+	ImGui::Separator();
+
+	const CodeIndexStatus index = m_service->GetCodeIndexStatus();
+
+	ImVec4 stateColor = kMutedColor;
+	switch(index.state) {
+	case CodeIndexState::Ready:    stateColor = kSuccessColor; break;
+	case CodeIndexState::Building: stateColor = kAccentColor;  break;
+	case CodeIndexState::Failed:   stateColor = kErrorColor;   break;
+	case CodeIndexState::Idle:     stateColor = kPendingColor; break;
+	}
+
+	ImGui::Text("Code Index:");
+	ImGui::SameLine();
+	ImGui::TextColored(stateColor, "%s", ToString(index.state));
+
+	if(index.state == CodeIndexState::Building) {
+		ImGui::ProgressBar(
+			index.Progress(), ImVec2(-1.0f, 0.0f),
+			(std::to_string(index.filesProcessed) + " / " +
+			 std::to_string(index.filesTotal)).c_str());
+	}
+
+	ImGui::Text("Chunks: %zu  (embedded %zu)", index.chunkCount, index.embeddedCount);
+	ImGui::Text("Files: %d reindexed / %d unchanged / %d total",
+		index.filesReindexed, index.filesUnchanged, index.filesTotal);
+	if(index.elapsedMillis > 0) {
+		ImGui::Text("Build time: %.2fs", static_cast<double>(index.elapsedMillis) / 1000.0);
+	}
+
+	// 埋め込み未接続なら字句検索のみ。何が使えているかを明示する。
+	if(index.chunkCount > 0 && index.embeddedCount == 0) {
+		ImGui::TextColored(kWarningColor,
+			"埋め込み未接続: 字句検索のみ動作中（ベクトル検索は無効）");
+	}
+
+	if(!index.error.empty()) {
+		ImGui::TextColored(kErrorColor, "%s", index.error.c_str());
+	}
+
+	const bool building = (index.state == CodeIndexState::Building);
+	ImGui::BeginDisabled(building);
+	if(ImGui::Button("Rebuild (diff)")) {
+		m_service->RebuildCodeIndex(false);
+	}
+	ImGui::SameLine();
+	if(ImGui::Button("Rebuild (full)")) {
+		// パーサを直したときや埋め込みモデルを差し替えたとき用。
+		m_service->RebuildCodeIndex(true);
+	}
+	ImGui::EndDisabled();
+	if(ImGui::IsItemHovered()) {
+		ImGui::SetTooltip("全ファイルを無条件に再構築する（パーサ変更時や埋め込み差し替え時）");
+	}
+}
+
 void AgentOSPanel::DrawStatusTab() {
 	const AgentOSService::StateSnapshot snapshot = m_service->GetSnapshot();
 	ImGui::Text("Stage: %s", snapshot.stage.empty() ? "idle" : snapshot.stage.c_str());
@@ -1079,6 +1270,9 @@ void AgentOSPanel::DrawStatusTab() {
 	if(!snapshot.errorMessage.empty()) {
 		ImGui::TextColored(kErrorColor, "%s", snapshot.errorMessage.c_str());
 	}
+
+	DrawInferenceBackend();
+	DrawCodeIndexStatus();
 	if(snapshot.progressDetail.is_object() &&
 		!snapshot.progressDetail.empty() &&
 		ImGui::CollapsingHeader("Progress detail")) {

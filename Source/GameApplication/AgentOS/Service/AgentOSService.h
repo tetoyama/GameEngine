@@ -33,6 +33,7 @@
 #include "../Core/Budget/Budget.h"
 #include "../Core/Command/CapabilitySet.h"
 #include "../Core/Command/CommandPipeline.h"
+#include "../Core/CodeIndex/CodeIndexService.h"
 #include "../Core/Store/TaskStore.h"
 #include "../Core/Llm/LoggingLlmBackend.h"
 
@@ -56,6 +57,16 @@ struct AgentOSServiceContext {
 	LLAMAService* llamaService = nullptr;
 	std::string modelPath;
 	std::string dbPath = "Logs/AgentOS/agentos.db";
+
+	// --- コード索引（RAG下層） ---
+	// 走査の起点。実行時カレントディレクトリからの相対で解決される。
+	std::string codeIndexRoot = "Source";
+	std::string codeIndexDbPath = "Logs/AgentOS/code_index.db";
+
+	// 起動と同時に索引の構築（差分更新）を始めるか。
+	// 走査とパースはCPUで数秒しかかからないため既定で有効。
+	// 重いのは埋め込みだけで、それは埋め込みバックエンド接続後の話。
+	bool buildCodeIndexOnStart = true;
 };
 
 class AgentOSService : public IService {
@@ -98,6 +109,35 @@ public:
 	AgentOSService();
 	~AgentOSService() override;
 
+	// --- コード索引（RAG下層） ---
+	// UI（AgentOSPanel）から進捗表示と再構築を扱うための入口。
+	CodeIndexStatus GetCodeIndexStatus() const { return m_codeIndex.GetStatus(); }
+	void RebuildCodeIndex(bool force) { m_codeIndex.RequestRebuild(force); }
+
+	// 埋め込みバックエンドを後から接続する。
+	// 接続後は force 再構築しないとベクトルは埋まらない。
+	void SetCodeIndexEmbedding(IEmbeddingBackend* backend) {
+		m_codeIndex.SetEmbeddingBackend(backend);
+	}
+
+	// --- 推論バックエンド（CPU / GPU） ---
+	//
+	// n_gpu_layers はモデルのロード時にしか指定できないため、
+	// 切り替えにはモデルの再ロード（数GB）が必要になる。
+	// UIから呼ぶ想定で、生成中は受け付けない。
+	//
+	// gpuLayers: 0でCPUのみ、-1で全層GPU、正数でその層数だけGPU。
+	int GetGpuLayers() const noexcept { return m_gpuLayers.load(std::memory_order_acquire); }
+
+	// 再ロードを伴う切り替え。生成中はfalseを返して何もしない。
+	bool SetGpuLayers(int gpuLayers);
+
+	// GPUバックエンドが実際に使えるか（DLLが配置されているか）。
+	bool IsGpuBackendAvailable() const;
+
+	// 検出済みバックエンドの概要（UI表示用）。
+	std::vector<std::string> GetBackendSummary() const;
+
 	void Initialize(AgentOSServiceContext context);
 	void Shutdown() override;
 
@@ -135,6 +175,10 @@ private:
 	TaskStore m_taskStore;
 	CapabilityRegistry m_capabilityRegistry;
 	std::unique_ptr<CommandPipeline> m_pipeline;
+
+	// コード索引。バックグラウンドスレッドで構築され、
+	// SearchCodeツールとして CommandPipeline から参照される。
+	CodeIndexService m_codeIndex;
 	MainThreadDispatcher m_dispatcher;
 	WriteTracer m_tracer;
 	EngineToolContext m_engineToolContext;
@@ -143,6 +187,10 @@ private:
 	std::unique_ptr<LlamaLlmBackend> m_llmBackend;
 	std::unique_ptr<LoggingLlmBackend> m_loggingBackend;
 	std::atomic<LlmLoadState> m_llmLoadState{LlmLoadState::Unloaded};
+
+	// GPUオフロード層数。既定0＝CPUのみ。
+	// ゲームエンジンに埋め込む以上、何もしなければVRAMを奪わない側に倒す。
+	std::atomic<int> m_gpuLayers{0};
 
 	std::unique_ptr<Orchestrator> m_orchestrator;
 	mutable std::mutex m_backendMutex;

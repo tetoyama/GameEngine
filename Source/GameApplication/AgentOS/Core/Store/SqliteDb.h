@@ -8,8 +8,10 @@
 // =======================================================================
 #pragma once
 
+#include <cstddef>
 #include <cstdint>
 #include <string>
+#include <vector>
 
 #include "../AgentOsTypes.h"
 
@@ -46,6 +48,10 @@ public:
 	Result BindText(int index, const std::string& value);
 	Result BindNull(int index);
 
+	// バイナリ列。埋め込みベクトル（float配列）の格納に使う。
+	// data はSQLite側へコピーされるため、呼び出し後に解放してよい。
+	Result BindBlob(int index, const void* data, std::size_t bytes);
+
 	StepResult Step();
 	Result Reset();
 
@@ -54,6 +60,9 @@ public:
 	double ColumnDouble(int index) const;
 	std::string ColumnText(int index) const;
 	bool ColumnIsNull(int index) const;
+
+	// バイナリ列を取り出す。NULLや型不一致では空を返す。
+	std::vector<std::uint8_t> ColumnBlob(int index) const;
 
 private:
 	friend class SqliteDb;

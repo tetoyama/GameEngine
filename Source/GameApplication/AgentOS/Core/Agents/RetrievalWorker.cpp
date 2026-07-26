@@ -421,12 +421,15 @@ bool EvaluateCommandOutcome(
 
 	if (!result.IsOk()) {
 		++*failed;
-		const std::string sourceType = CommandFailureSourceType(result.status);
+		// provenance.sourceTypeは下流(EvidenceBuilder::IsFailureEvidence /
+		// CriticAgent)が認識する粗い契約語彙("ToolError")に統一する。
+		// CommandStatus由来の細かい分類はpayload.failureCategoryへ温存する。
+		const std::string failureCategory = CommandFailureSourceType(result.status);
 		AddStoredEvidence(ctx, MakeFailureEvidence(
-			ctx, storeTaskId, sourceType, toolName,
+			ctx, storeTaskId, "ToolError", toolName,
 			"Tool " + toolName + " failed (" + ToString(result.status) + "): " + result.error,
 			Json::object({{"status", ToString(result.status)}, {"error", result.error},
-			              {"failureCategory", sourceType}})), evidenceOut);
+			              {"failureCategory", failureCategory}})), evidenceOut);
 		return false;
 	}
 	if (PayloadRepresentsFailure(result.payload)) {
@@ -543,9 +546,12 @@ Result RetrievalWorker::Run(
 			const std::string toolName = command.is_object()
 				? command.value("tool", std::string("?"))
 				: "?";
+			// 実行前検証で弾かれた場合、provenance.sourceTypeは下流が認識する粗い
+			// 契約語彙("CommandValidationError")に統一する。細かい分類
+			// (GroundingRejected/ToolAllowlistRejected等)はpayload.failureCategoryへ温存する。
 			const std::string validationCategory = ValidationFailureSourceType(grounded.error);
 			AddStoredEvidence(ctx, MakeFailureEvidence(
-				ctx, storeTaskId, validationCategory, toolName,
+				ctx, storeTaskId, "CommandValidationError", toolName,
 				"Tool command rejected before execution (" + validationCategory + "): " + grounded.error,
 				Json::object({{"error", grounded.error}, {"command", command},
 				              {"failureCategory", validationCategory}})), evidenceOut);

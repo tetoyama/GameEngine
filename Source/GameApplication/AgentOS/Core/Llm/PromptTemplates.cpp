@@ -13,8 +13,25 @@ namespace prompts {
 
 namespace {
 
-thread_local Json g_conversationContext = Json::object();
-thread_local Json g_normalizedIntake = Json::object();
+// スレッドごとのPrompt用Context。
+//
+// 名前空間スコープの thread_local に動的初期化子を付けると、MSVCでは
+// スレッドが起動するたび __dyn_tls_init がローダーロック下で走り、
+// Jsonの構築（＝ヒープ確保）を行う。ここでCRTの状態次第でアクセス違反になる。
+// 実際、AgentOSがワーカースレッドを増やした際にこれで落ちた。
+//
+// 関数内の static thread_local にすると初期化が「スレッド起動時」から
+// 「初回使用時」へ移り、スレッド起動経路からヒープ確保が消える。
+// CapabilitySet.cpp の rng も同じ形を採っている。
+Json& ConversationContextRef() {
+	static thread_local Json value = Json::object();
+	return value;
+}
+
+Json& NormalizedIntakeRef() {
+	static thread_local Json value = Json::object();
+	return value;
+}
 
 const char* kContractJa =
 	"あなたはAgentOSのサブシステムとして動作するアシスタントです。\n"
@@ -54,7 +71,7 @@ Json IntakeWithoutRawConversation(const Json& source) {
 std::string ContextText(const Json& supplied) {
 	const Json& context = supplied.is_object() && !supplied.empty()
 		? supplied
-		: g_conversationContext;
+		: ConversationContextRef();
 	if (!context.is_object() || context.empty()) return "(今回の生成に使用する会話状態なし)";
 
 	constexpr std::size_t kContextBudget = 7000;
@@ -88,6 +105,10 @@ std::string ContextText(const Json& supplied) {
 			Json item = Json::object();
 			if (turn.contains("sessionId")) item["sessionId"] = turn.at("sessionId");
 			item["user"] = Truncate(turn.value("user", std::string()), 600);
+			// 構造化Thread Stateが無いときの一次履歴フォールバックでは、訂正解決に
+			// 必要な直前assistant応答も切り詰めて渡す（IntakeAgent::BoundedRecentTurnと対）。
+			const std::string assistant = turn.value("assistant", std::string());
+			if (!assistant.empty()) item["assistant"] = Truncate(assistant, 560);
 			userFallback.push_back(std::move(item));
 		}
 	}
@@ -96,14 +117,14 @@ std::string ContextText(const Json& supplied) {
 }
 
 std::string RequestContextText() {
-	const Json intake = IntakeWithoutRawConversation(g_normalizedIntake);
+	const Json intake = IntakeWithoutRawConversation(NormalizedIntakeRef());
 	const std::string rootGoal = intake.value("rootGoal", intake.value("goal", std::string()));
 	const std::string rootResolved =
 		intake.value("rootResolvedRequest", intake.value("resolvedRequest", std::string()));
 	return "不変のRoot Goal（Repairはこれを置き換えず、達成手段だけを修正する）:\n" +
 		Truncate(rootGoal + "\n" + rootResolved, 1800) +
 		"\n\n解決済みIntake（最新Revision）:\n" + Truncate(intake.dump(2), 5500) +
-		"\n\n選択済みConversation Context（補助情報）:\n" + ContextText(g_conversationContext);
+		"\n\n選択済みConversation Context（補助情報）:\n" + ContextText(ConversationContextRef());
 }
 
 } // namespace
@@ -116,57 +137,57 @@ std::string Truncate(const std::string& text, std::size_t maxChars) {
 void SetCurrentConversationRequestContext(
 	const Json& conversationContext,
 	const Json& normalizedIntake) {
-	g_conversationContext = conversationContext.is_object()
+	ConversationContextRef() = conversationContext.is_object()
 		? conversationContext
 		: Json::object();
-	g_normalizedIntake = normalizedIntake.is_object()
+	NormalizedIntakeRef() = normalizedIntake.is_object()
 		? normalizedIntake
 		: Json::object();
 }
 
 void ClearCurrentConversationRequestContext() {
-	g_conversationContext = Json::object();
-	g_normalizedIntake = Json::object();
+	ConversationContextRef() = Json::object();
+	NormalizedIntakeRef() = Json::object();
 }
 
 Json CurrentConversationRequestContext() {
 	Json context = Json::object();
-	context["conversation"] = g_conversationContext;
-	context["intake"] = IntakeWithoutRawConversation(g_normalizedIntake);
+	context["conversation"] = ConversationContextRef();
+	context["intake"] = IntakeWithoutRawConversation(NormalizedIntakeRef());
 	return context;
 }
 
 std::string CurrentResolvedRequest(const std::string& fallback) {
-	if (g_normalizedIntake.is_object() &&
-	    g_normalizedIntake.contains("resolvedRequest") &&
-	    g_normalizedIntake.at("resolvedRequest").is_string() &&
-	    !g_normalizedIntake.at("resolvedRequest").get<std::string>().empty()) {
-		return g_normalizedIntake.at("resolvedRequest").get<std::string>();
+	if (NormalizedIntakeRef().is_object() &&
+	    NormalizedIntakeRef().contains("resolvedRequest") &&
+	    NormalizedIntakeRef().at("resolvedRequest").is_string() &&
+	    !NormalizedIntakeRef().at("resolvedRequest").get<std::string>().empty()) {
+		return NormalizedIntakeRef().at("resolvedRequest").get<std::string>();
 	}
 	return fallback;
 }
 
 std::string CurrentTurnRelation() {
-	if (g_normalizedIntake.is_object() &&
-	    g_normalizedIntake.contains("turnRelation") &&
-	    g_normalizedIntake.at("turnRelation").is_string()) {
-		return g_normalizedIntake.at("turnRelation").get<std::string>();
+	if (NormalizedIntakeRef().is_object() &&
+	    NormalizedIntakeRef().contains("turnRelation") &&
+	    NormalizedIntakeRef().at("turnRelation").is_string()) {
+		return NormalizedIntakeRef().at("turnRelation").get<std::string>();
 	}
 	return "new";
 }
 
 int CurrentRequestRevision() {
-	if (g_normalizedIntake.is_object()) {
-		return g_normalizedIntake.value("requestRevision", 0);
+	if (NormalizedIntakeRef().is_object()) {
+		return NormalizedIntakeRef().value("requestRevision", 0);
 	}
 	return 0;
 }
 
 Json CurrentHistoryIdentifiers() {
-	if (g_normalizedIntake.is_object() &&
-	    g_normalizedIntake.contains("historyIdentifiers") &&
-	    g_normalizedIntake.at("historyIdentifiers").is_array()) {
-		return g_normalizedIntake.at("historyIdentifiers");
+	if (NormalizedIntakeRef().is_object() &&
+	    NormalizedIntakeRef().contains("historyIdentifiers") &&
+	    NormalizedIntakeRef().at("historyIdentifiers").is_array()) {
+		return NormalizedIntakeRef().at("historyIdentifiers");
 	}
 	return Json::array();
 }
@@ -181,7 +202,7 @@ bool CurrentRequestIsPersonalIdentityQuestion() {
 }
 
 bool CurrentRequestIsSimpleConversation() {
-	if (g_normalizedIntake.is_object() && g_normalizedIntake.value("simpleConversation", false)) {
+	if (NormalizedIntakeRef().is_object() && NormalizedIntakeRef().value("simpleConversation", false)) {
 		return true;
 	}
 	const std::string request = CurrentResolvedRequest();
@@ -195,11 +216,11 @@ Result ApplyCurrentRequestPatch(const Json& requestPatch, Json* revisedIntakeOut
 	if (!requestPatch.is_object() || requestPatch.empty()) {
 		return Result::Fail("request patch must be a non-empty object");
 	}
-	if (!g_normalizedIntake.is_object() || g_normalizedIntake.empty()) {
+	if (!NormalizedIntakeRef().is_object() || NormalizedIntakeRef().empty()) {
 		return Result::Fail("current intake is unavailable");
 	}
 
-	Json revised = g_normalizedIntake;
+	Json revised = NormalizedIntakeRef();
 	const std::string immutableRootGoal =
 		revised.value("rootGoal", revised.value("goal", std::string()));
 	const std::string immutableRootResolved =
@@ -235,7 +256,7 @@ Result ApplyCurrentRequestPatch(const Json& requestPatch, Json* revisedIntakeOut
 	// 最初に依頼したRoot Goal自体は不変として必ず復元する。
 	revised["rootGoal"] = immutableRootGoal;
 	revised["rootResolvedRequest"] = immutableRootResolved;
-	g_normalizedIntake = revised;
+	NormalizedIntakeRef() = revised;
 	if (revisedIntakeOut != nullptr) *revisedIntakeOut = revised;
 	return Result::Ok();
 }
@@ -428,6 +449,11 @@ PromptPair Critique(const Json& hypotheses, const Json& builtEvidence) {
 		"- 各追加Taskは実行するTool名とargumentsを具体的に指定する。\n"
 		"- argumentsはTool一覧のargumentSchemaにある正式フィールド名だけを使う。\n"
 		"- 修正後要求を満たすために必要なEvidenceを再取得できるTaskを最大2件提案する。\n"
+		"- rootGoalの達成に不要だったTaskはobsoleteTasksへtaskIdを挙げて計画から外す。"
+		"対象は「立てるべきでなかったTask」に限る。例: 静的なコードの問いに対する実行時トレース、"
+		"存在しないEntityを前提にした観測。\n"
+		"- 「必要だったが失敗したTask」はobsoleteTasksに入れない。それは撤回ではなく再試行の対象であり、"
+		"additionalTasksSuggestedで取り直す。\n"
 		"- resolvedRequestの目的（例: 特定Entityの特定属性値）が統合Evidenceで実際に"
 		"満たされたかをgoalSatisfiedへ正直に判定し、未達の観点をunmetAspectsへ列挙する"
 		"（goalSatisfiedはadvisoryであり、最終pass判定はプログラム側の決定的ゲートが行う）。",
@@ -439,7 +465,8 @@ PromptPair Critique(const Json& hypotheses, const Json& builtEvidence) {
 		"\"constraints\": [string]|null, \"reason\": string}|null, "
 		"\"additionalTasksSuggested\": [{"
 		"\"type\": \"RuntimeObservation\"|\"CodeSearch\"|\"Trace\", "
-		"\"description\": string, \"tool\": string, \"arguments\": object}]} ");
+		"\"description\": string, \"tool\": string, \"arguments\": object}], "
+		"\"obsoleteTasks\": [{\"taskId\": integer, \"reason\": string}]} ");
 	p.user = RequestContextText() +
 		"\n\n仮説:\n" + Truncate(hypotheses.dump(2), 5000) +
 		"\n\n統合Evidence:\n" + Truncate(builtEvidence.dump(2), 9000);

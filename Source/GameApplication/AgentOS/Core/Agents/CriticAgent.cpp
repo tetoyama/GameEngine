@@ -135,16 +135,60 @@ std::vector<std::string> ExtractGoalIdentifiers(const std::string& text) {
 
 namespace {
 
-double TopHypothesisConfidence(const Json& rankedHypotheses) {
+// ---------------------------------
+// 最上位仮説が構造的に成立しているか
+// ---------------------------------
+//
+// confidenceは小規模モデルが自己申告するスカラーであり、根拠が無い。
+// 実機で、内容が正しく supports もあり missingEvidence も contradicts も空の
+// 仮説に対してモデルが0.38を振り、閾値0.4に0.02足りずhard failになった。
+//
+// このアーキテクチャは他方で、LLMの自己申告 goalSatisfied==true を
+// 「passの十分条件にはしない」と明確に退けている。同じ自己申告である
+// confidenceだけをhard gateとして無条件に信頼するのは一貫していない。
+//
+// そこでスカラーではなく構造で見る。
+//   - 支持するEvidenceが存在する（根拠がある）
+//   - 不足Evidenceが挙がっていない（本人が穴を認識していない）
+//   - 矛盾するEvidenceを抱えていない
+// いずれもモデルが数値を盛って回避できる類のものではない。
+// confidenceはprogrammaticScoreの材料としては引き続き使う（連続量が要るため）。
+struct TopHypothesisShape {
+	bool exists = false;
+	bool hasSupport = false;
+	bool hasMissingEvidence = false;
+	bool hasContradiction = false;
+	double confidence = 0.0;
+
+	// 構造的に自立している仮説か
+	bool IsWellFormed() const {
+		return exists && hasSupport && !hasMissingEvidence && !hasContradiction;
+	}
+};
+
+TopHypothesisShape InspectTopHypothesis(const Json& rankedHypotheses) {
+	TopHypothesisShape shape;
 	if (!rankedHypotheses.is_object() || !rankedHypotheses.contains("hypotheses") ||
 	    !rankedHypotheses.at("hypotheses").is_array() || rankedHypotheses.at("hypotheses").empty()) {
-		return 0.0;
+		return shape;
 	}
 	const Json& top = rankedHypotheses.at("hypotheses")[0];
-	if (top.is_object() && top.contains("confidence") && top.at("confidence").is_number()) {
-		return top.at("confidence").get<double>();
+	if (!top.is_object()) return shape;
+
+	shape.exists = true;
+	if (top.contains("confidence") && top.at("confidence").is_number()) {
+		shape.confidence = top.at("confidence").get<double>();
 	}
-	return 0.0;
+	if (top.contains("supports") && top.at("supports").is_array()) {
+		shape.hasSupport = !top.at("supports").empty();
+	}
+	if (top.contains("missingEvidence") && top.at("missingEvidence").is_array()) {
+		shape.hasMissingEvidence = !top.at("missingEvidence").empty();
+	}
+	if (top.contains("contradicts") && top.at("contradicts").is_array()) {
+		shape.hasContradiction = !top.at("contradicts").empty();
+	}
+	return shape;
 }
 
 std::size_t ArraySize(const Json& parent, const char* key) {
@@ -425,12 +469,30 @@ Result CriticAgent::Run(
 		if (raw.contains("additionalTasksSuggested")) {
 			out->additionalTasks = NormalizeRepairTasks(raw.at("additionalTasksSuggested"));
 		}
+
+		// 撤回すべきTaskの指名。追加(additionalTasksSuggested)と対になる。
+		// ここではID列として正規化するだけで、撤回の可否は
+		// EvidenceBuilder側の決定的ガードが判断する。
+		if (raw.contains("obsoleteTasks") && raw.at("obsoleteTasks").is_array()) {
+			Json normalized = Json::array();
+			for (const Json& entry : raw.at("obsoleteTasks")) {
+				// {"taskId": 205, "reason": "..."} と 205 の両方を受ける。
+				// 小規模モデルは形式を揺らしやすいため寛容に読む。
+				const Json& idNode = entry.is_object() ? entry.value("taskId", Json()) : entry;
+				if (!idNode.is_number_integer()) continue;
+				const std::int64_t taskId = idNode.get<std::int64_t>();
+				if (taskId <= 0) continue;
+				normalized.push_back(taskId);
+			}
+			out->obsoleteTasks = std::move(normalized);
+		}
 	} else {
 		out->failures.push_back("critic LLM call failed: " + callResult.error);
 	}
 
 	const double coverage = builtEvidence.is_object() ? builtEvidence.value("coverage", 0.0) : 0.0;
-	const double topConfidence = TopHypothesisConfidence(rankedHypotheses);
+	const TopHypothesisShape topHypothesis = InspectTopHypothesis(rankedHypotheses);
+	const double topConfidence = topHypothesis.confidence;
 	const std::size_t contradictionCount = ArraySize(builtEvidence, "contradictions");
 	const std::size_t evidenceCount = ArraySize(builtEvidence, "evidences");
 	const std::size_t tasksWithoutEvidence = ArraySize(builtEvidence, "tasksWithoutEvidence");
@@ -477,8 +539,20 @@ Result CriticAgent::Run(
 		AddFailureOnce(out, "programmatic hard fail: critic requested additional investigation");
 		hardFail = true;
 	}
-	if (topConfidence < 0.4) {
-		AddFailureOnce(out, "programmatic hard fail: top hypothesis confidence is below 0.4");
+	// ゲート#7: 最上位仮説が構造的に自立しているか。
+	// 以前はconfidence < 0.4というスカラー閾値だったが、
+	// これはモデルの自己申告であり根拠が無い（詳細はInspectTopHypothesisのコメント）。
+	if (!topHypothesis.exists) {
+		AddFailureOnce(out, "programmatic hard fail: no hypothesis was produced");
+		hardFail = true;
+	} else if (!topHypothesis.hasSupport) {
+		AddFailureOnce(out, "programmatic hard fail: top hypothesis has no supporting evidence");
+		hardFail = true;
+	} else if (topHypothesis.hasMissingEvidence) {
+		AddFailureOnce(out, "programmatic hard fail: top hypothesis declares missing evidence");
+		hardFail = true;
+	} else if (topHypothesis.hasContradiction) {
+		AddFailureOnce(out, "programmatic hard fail: top hypothesis contradicts collected evidence");
 		hardFail = true;
 	}
 	if (goalSatisfiedHardFail) {

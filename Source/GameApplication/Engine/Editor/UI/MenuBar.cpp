@@ -63,6 +63,11 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 			if(ImGui::MenuItem("Performance Monitor", nullptr, showPerformanceMonitor)){
 				showPerformanceMonitor = !showPerformanceMonitor;
 			}
+			// AgentOSPanel（B.R.A.I.N.）の表示トグル。
+			// これが無いとウィンドウを一度閉じたあと再表示する手段が無くなる。
+			if(ImGui::MenuItem("B.R.A.I.N.", nullptr, showBRAIN)){
+				showBRAIN = !showBRAIN;
+			}
 			ImGui::Separator();
 			if(ImGui::MenuItem("Scene Settings", nullptr, showSceneSettings)){
 				showSceneSettings = !showSceneSettings;

@@ -35,11 +35,53 @@ void LLAMAService::Initialize(LLAMAServiceContext context){
 	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMAService の初期化を開始します");
 	OutputDebugStringA("LLAMAService: Initialize called\n");
 
+	// llama_backend_init() は内部で ggml_backend_load_all() を呼ぶため
+	// （llama.cpp の実装参照）、バックエンドDLLの探索はここで完了する。
+	// exeの隣に ggml-vulkan.dll 等を置けば自動的に登録される。
 	llama_backend_init();
+	DetectBackendInfo();
 
 	m_threadRunning = true;
 	m_workerThread = std::thread(&LLAMAService::WorkerThreadMain, this);
 	LLAMA_SERVICE_LOG(LogLevel::Info, "LLAMAService の初期化が完了しました");
+}
+
+// ============================
+// DetectBackendInfo
+// ============================
+// バックエンドの状態を llama.h のAPIだけで取得する。
+//
+// ggml_backend_dev_* を直接呼びたくなるところだが、このプロジェクトは
+// llama.lib しかリンクしておらず（ggml側のインポートライブラリが無い）、
+// 未解決の外部シンボルになる。llama.h 経由なら llama.dll のエクスポートで足りる。
+//
+// GPUが使えない場合、原因はほぼ次のいずれか:
+//   1. ggml-vulkan.dll / ggml-cuda.dll をexeの隣に置いていない
+//   2. そもそもそれらをビルドしていない（vendorのCMakeで別途ビルドが要る）
+// どちらもコード側では解決できないため、状態をログとUIへ出して切り分け可能にする。
+void LLAMAService::DetectBackendInfo(){
+	m_backendInfo = BackendInfo{};
+
+	m_backendInfo.gpuOffloadSupported = llama_supports_gpu_offload();
+	m_backendInfo.maxDevices = llama_max_devices();
+
+	const char* systemInfo = llama_print_system_info();
+	m_backendInfo.systemInfo = (systemInfo != nullptr) ? systemInfo : "";
+
+	LLAMA_SERVICE_LOG(LogLevel::Info,
+		std::string("推論バックエンド: GPUオフロード ") +
+		(m_backendInfo.gpuOffloadSupported ? "利用可能" : "利用不可") +
+		" / 最大デバイス数 " + std::to_string(m_backendInfo.maxDevices));
+
+	if(!m_backendInfo.systemInfo.empty()){
+		LLAMA_SERVICE_LOG(LogLevel::Info, "system info: " + m_backendInfo.systemInfo);
+	}
+
+	if(!m_backendInfo.gpuOffloadSupported){
+		LLAMA_SERVICE_LOG(LogLevel::Info,
+			"GPUバックエンドが未検出のため推論はCPUで行われます。"
+			"GPUを使うには ggml-vulkan.dll 等をexeと同じ場所へ配置してください。");
+	}
 }
 
 void LLAMAService::Shutdown(){
@@ -82,8 +124,20 @@ void LLAMAService::Shutdown(){
 // ============================
 // モデル管理 (同期)
 // ============================
-bool LLAMAService::LoadModel(const std::string& path){
-	LLAMA_SERVICE_LOG(LogLevel::Info, ("LLAMA モデルのロードを開始します: " + path));
+bool LLAMAService::LoadModel(const std::string& path, int gpuLayers){
+	LLAMA_SERVICE_LOG(LogLevel::Info,
+		("LLAMA モデルのロードを開始します: " + path +
+		 " (gpuLayers=" + std::to_string(gpuLayers) + ")"));
+
+	// GPUバックエンドが無い状態で層数を指定しても効果が無い。
+	// 黙ってCPUで動くと「GPUにしたのに速くならない」という誤解を生むため、
+	// ここで明示的に警告しておく。
+	if(gpuLayers != 0 && !m_backendInfo.gpuOffloadSupported){
+		LLAMA_SERVICE_LOG(LogLevel::Warning,
+			"GPUオフロードが指定されましたが、GPUバックエンドが検出されていません。"
+			"推論はCPUで実行されます（ggml-cuda.dll 等の配置が必要です）");
+	}
+
 	{
 		std::lock_guard<std::mutex> lock(m_modelMutex);
 		if(m_models.contains(path)){
@@ -100,7 +154,7 @@ bool LLAMAService::LoadModel(const std::string& path){
 	//
 	// llamaModelLoader.h の LoadLLAMAModelFromFile() が、ロード〜vocab取得〜失敗時の
 	// nullptrチェックまで既に正しく行っているので、ここではその結果をそのまま信頼する。
-	auto modelData = m_resourceService->Load<LLAMAModelData>(path);
+	auto modelData = m_resourceService->Load<LLAMAModelData>(path, gpuLayers);
 	if(!modelData || !modelData->m_model || !modelData->m_vocab){
 		LLAMA_SERVICE_LOG(LogLevel::Error, ("LLAMA モデルデータの取得に失敗しました: " + path));
 		return false;
@@ -113,6 +167,31 @@ bool LLAMAService::LoadModel(const std::string& path){
 
 	LLAMA_SERVICE_LOG(LogLevel::Info, ("LLAMA モデルのロードが完了しました: " + path));
 	return true;
+}
+
+// ============================
+// ReloadModel
+// ============================
+// n_gpu_layersはモデルのロード時にしか指定できないため、
+// CPU/GPUの切り替えには再ロードが必要になる。
+// 数GBの読み直しになるので、呼び出し側は進行中の生成が無いことを保証すること。
+bool LLAMAService::ReloadModel(const std::string& path, int gpuLayers){
+	LLAMA_SERVICE_LOG(LogLevel::Info,
+		("LLAMA モデルを再ロードします: " + path +
+		 " (gpuLayers=" + std::to_string(gpuLayers) + ")"));
+
+	{
+		std::lock_guard<std::mutex> lock(m_modelMutex);
+		m_models.erase(path);
+	}
+
+	// ResourceLoaderのキャッシュキーには引数も含まれるため、
+	// 明示的に落とさないと旧設定のモデルがメモリに残り続ける。
+	if(m_resourceService){
+		m_resourceService->Unload<LLAMAModelData>(path);
+	}
+
+	return LoadModel(path, gpuLayers);
 }
 
 std::shared_ptr<LLAMAModelData> LLAMAService::GetModel(const std::string& path){

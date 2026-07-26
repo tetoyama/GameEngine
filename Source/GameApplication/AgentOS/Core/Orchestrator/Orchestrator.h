@@ -33,6 +33,12 @@ struct OrchestratorResult {
 	Json stopInfo = Json::object();
 	SessionId sessionId = kInvalidId;
 	Json rankedHypotheses = Json::object();
+
+	// 統合Evidenceの最終状態（coverage / failedEvidenceCount / retiredTasks 等）。
+	// なぜその判定になったのかを外から確認できるようにするために持つ。
+	// 停止理由だけでは「何が足りなかったのか」が分からず、
+	// 調査のたびにtranscriptを読み解く必要があった。
+	Json builtEvidence = Json::object();
 };
 
 class Orchestrator {

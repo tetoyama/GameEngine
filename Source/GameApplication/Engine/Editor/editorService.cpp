@@ -58,9 +58,10 @@ void EditorService::Initialize(EditorServiceContext context) {
 	UIs.push_back({"SceneStorageSettings", new SceneStorageSettingsPanel()});
 	//UIs.push_back({"BRAIN", new BRAIN()});
 	//UIs.push_back({"CB41", new CB41()});
-	// AgentOSPanel: BRAIN後継のLLMエージェント基盤UI。
+	// AgentOSPanel: BRAIN後継のLLMエージェント基盤UI。表示名は "B.R.A.I.N." に統一。
+	// 表示トグルは MenuBar::showBRAIN を共有する（Windowメニューから再表示可能）。
 	// AgentOSServiceへの接続はengine.cpp側でSetService()により事後注入される。
-	UIs.push_back({"AgentOS", new agentos::AgentOSPanel()});
+	UIs.push_back({"BRAIN", new agentos::AgentOSPanel()});
 
 	m_CurrentPanelTimings.clear();
 	m_CompletedPanelTimings.clear();

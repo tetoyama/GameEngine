@@ -432,7 +432,18 @@ int main() {
 		const std::string reason = result.stopInfo.value("reason", std::string());
 		const bool mentionsRepairExhausted = reason.find("repair rounds exhausted") != std::string::npos;
 		const bool mentionsEarlyStopping = reason.find("early stopping") != std::string::npos;
-		assert(mentionsRepairExhausted || mentionsEarlyStopping);
+		// Criticが追加Taskも撤回も提案しなかった場合の停止理由。
+		// 以前はこの経路にも "repair rounds exhausted" と記録していたが、
+		// 実際にはラウンドを消化せずに抜けており（1/2で終了）、
+		// 停止理由の調査を誤誘導していたため文言を分離した。
+		const bool mentionsNoRemediation = reason.find("no remediation proposed") != std::string::npos;
+		assert(mentionsRepairExhausted || mentionsEarlyStopping || mentionsNoRemediation);
+
+		// 打ち切り系の停止では、消化ラウンド数が併記されること。
+		if (mentionsRepairExhausted || mentionsNoRemediation) {
+			assert(result.stopInfo.contains("repairRoundsUsed"));
+			assert(result.stopInfo.contains("maxRepairRounds"));
+		}
 
 		std::cout << "  - Scenario 2 (early stopping / repair exhausted, fallback report): OK" << std::endl;
 	}

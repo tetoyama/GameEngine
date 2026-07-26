@@ -8,6 +8,7 @@
 #include <algorithm>
 #include <chrono>
 #include <cctype>
+#include <cstdio>
 #include <ctime>
 #include <filesystem>
 #include <initializer_list>
@@ -15,6 +16,7 @@
 
 #include "LlamaLlmBackend.h"
 #include "../Core/Agents/AgentContext.h"
+#include "../Core/CodeIndex/CodeSearchTool.h"
 #include "../Core/Llm/PromptTemplates.h"
 #include "../Core/Logic/ComponentQueryRouting.h"
 #include "../Core/Orchestrator/Orchestrator.h"
@@ -289,6 +291,43 @@ void AgentOSService::Initialize(AgentOSServiceContext context) {
 	m_pipeline = std::make_unique<CommandPipeline>(&m_capabilityRegistry);
 	RegisterEngineTools(*m_pipeline, m_engineToolContext, m_dispatcher, m_tracer);
 
+	// --- コード索引（RAG下層） ---
+	// EngineToolsが「実行中のシーンを引く手」なのに対して、
+	// これは「ソースコードを引く手」。同じCommandPipelineに載せることで、
+	// Orchestratorからは他のretrievalツールと区別なく扱える。
+	{
+		// 索引DBもTaskStoreと同じくディレクトリを用意しておく
+		const std::filesystem::path indexPath(m_context.codeIndexDbPath);
+		if(indexPath.has_parent_path()){
+			std::error_code indexErrorCode;
+			std::filesystem::create_directories(indexPath.parent_path(), indexErrorCode);
+		}
+
+		CodeIndexServiceContext indexContext;
+		indexContext.sourceRoot = m_context.codeIndexRoot;
+		indexContext.databasePath = m_context.codeIndexDbPath;
+		indexContext.buildOnStart = m_context.buildCodeIndexOnStart;
+		// 埋め込みは未接続。この状態でも字句検索は成立する。
+		// LlamaEmbeddingBackend 接続後に SetCodeIndexEmbedding() で差し込む。
+		indexContext.embedding = nullptr;
+
+		const Result indexResult = m_codeIndex.Initialize(std::move(indexContext));
+		if(!indexResult){
+			// 索引が無くてもAgentOS本体は動くべきなので、失敗しても止めない。
+			if(m_context.debugLog){
+				m_context.debugLog->LOG_ERROR(
+					"AgentOSService: CodeIndexService::Initialize failed: " + indexResult.error);
+			}
+		} else {
+			RegisterCodeSearchTool(*m_pipeline, m_codeIndex);
+			if(m_context.debugLog){
+				m_context.debugLog->LOG_INFO(
+					"AgentOSService: CodeSearch / GetSymbolInfo tools registered (index: "
+					+ m_context.codeIndexDbPath + ").");
+			}
+		}
+	}
+
 	if(m_context.debugLog){
 		m_context.debugLog->LOG_INFO("AgentOSService: initialized.");
 	}
@@ -309,6 +348,10 @@ void AgentOSService::Shutdown() {
 		m_worker.join();
 	}
 
+	// pipelineがSearchCodeツール経由でm_codeIndexを参照しているため、
+	// 索引スレッドを畳むのはpipelineを壊す前でなければならない。
+	m_codeIndex.Shutdown();
+
 	m_orchestrator.reset();
 	m_loggingBackend.reset();
 	m_llmBackend.reset();
@@ -320,6 +363,72 @@ void AgentOSService::Shutdown() {
 		std::lock_guard<std::mutex> lock(m_transcriptMutex);
 		if(m_transcript.is_open()) m_transcript.close();
 	}
+}
+
+// =======================================================================
+// 推論バックエンド（CPU / GPU）
+// =======================================================================
+bool AgentOSService::IsGpuBackendAvailable() const {
+	if(!m_context.llamaService) return false;
+	return m_context.llamaService->HasGpuBackend();
+}
+
+std::vector<std::string> AgentOSService::GetBackendSummary() const {
+	std::vector<std::string> summary;
+	if(!m_context.llamaService) return summary;
+
+	const auto& info = m_context.llamaService->GetBackendInfo();
+
+	summary.push_back(std::string("GPU offload: ") +
+		(info.gpuOffloadSupported ? "supported" : "not available"));
+	summary.push_back("Max devices: " + std::to_string(info.maxDevices));
+
+	// llama_print_system_info() は "AVX = 1 | AVX2 = 1 | ..." のように
+	// パイプ区切りで返る。UIで読みやすいよう1項目ずつに割る。
+	if(!info.systemInfo.empty()){
+		std::string field;
+		std::istringstream stream(info.systemInfo);
+		while(std::getline(stream, field, '|')){
+			// 前後の空白を落とす
+			const std::size_t begin = field.find_first_not_of(" \t\r\n");
+			if(begin == std::string::npos) continue;
+			const std::size_t end = field.find_last_not_of(" \t\r\n");
+			summary.push_back(field.substr(begin, end - begin + 1));
+		}
+	}
+	return summary;
+}
+
+bool AgentOSService::SetGpuLayers(int gpuLayers) {
+	// モデルの再ロードを伴うため、生成中は受け付けない。
+	// 進行中のセッションが使っているllama_model*を破棄することになる。
+	if(IsBusy()) return false;
+	if(!m_context.llamaService) return false;
+
+	const int previous = m_gpuLayers.exchange(gpuLayers, std::memory_order_acq_rel);
+	if(previous == gpuLayers) return true; // 変更なし
+
+	if(m_context.debugLog){
+		m_context.debugLog->LOG_INFO(
+			"AgentOSService: GPU layers " + std::to_string(previous) +
+			" -> " + std::to_string(gpuLayers) + " (model will be reloaded)");
+	}
+
+	// 次回の生成時に作り直させる。ここで即座に再ロードすると
+	// UIスレッドが数GBのロードでブロックするため、状態だけ落とす。
+	{
+		std::lock_guard<std::mutex> backendLock(m_backendMutex);
+		m_orchestrator.reset();
+		m_loggingBackend.reset();
+		m_llmBackend.reset();
+		m_llmAgent.reset();
+	}
+	m_llmLoadState.store(LlmLoadState::Unloaded, std::memory_order_release);
+
+	// 旧設定のモデルを解放する。ResourceLoaderのキャッシュキーには
+	// 引数が含まれるため、明示的に落とさないと両設定分のメモリを抱える。
+	m_context.llamaService->ReloadModel(m_context.modelPath, gpuLayers);
+	return true;
 }
 
 void AgentOSService::CancelCurrentRequest() {
@@ -696,7 +805,8 @@ bool AgentOSService::EnsureLlmReady() {
 	m_llmLoadState.store(LlmLoadState::Loading, std::memory_order_release);
 	SetStage("loading_model");
 
-	const bool loaded = m_context.llamaService->LoadModel(m_context.modelPath);
+	const bool loaded = m_context.llamaService->LoadModel(
+		m_context.modelPath, m_gpuLayers.load(std::memory_order_acquire));
 	if(!loaded){
 		m_llmLoadState.store(LlmLoadState::RetryableFailure, std::memory_order_release);
 		if(m_context.debugLog){
@@ -721,7 +831,9 @@ bool AgentOSService::EnsureLlmReady() {
 	config->max_tokens = 2048;
 	config->system_prompt = "";
 	config->response_prefix = "<think>\n\n</think>\n\n";
-	config->n_threads = 6;
+	// 固定値6をやめ、実機のコア数から決める。
+	// ゲームエンジン内で動くため描画/JobSystem用に物理コアを2つ残す。
+	config->n_threads = AgentConfig::RecommendedThreads(2);
 
 	auto llmAgent = m_context.llamaService->CreateAgent(model, config);
 	if(!llmAgent){

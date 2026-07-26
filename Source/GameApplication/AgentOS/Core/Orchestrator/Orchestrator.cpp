@@ -21,6 +21,7 @@
 #include "../Agents/ReasoningAgent.h"
 #include "../Agents/RetrievalWorker.h"
 #include "../Agents/SynthesisAgent.h"
+#include "../Command/CommandSchema.h"
 #include "../Evidence/Evidence.h"
 #include "../Evidence/EvidenceBuilder.h"
 #include "../Llm/PromptTemplates.h"
@@ -29,6 +30,99 @@
 namespace agentos {
 
 namespace {
+
+// ---------------------------------
+// 修復Taskの引数を「計画の時点で」検証する
+// ---------------------------------
+//
+// Criticが提案する追加Taskの引数は、そのままではTool스キーマに合わないことがある。
+// 実機で観測した例:
+//   - Evidenceのペイロードに押される内部項目 requestRevision を引数へ混入させる
+//   - fileという正式名の代わりにtargetFileを創作する
+//
+// これらは「聞き方の誤り」であって「調べても無かった」ではない。
+// 実行して失敗Evidenceとして記録すると、カバレッジが下がり失敗数が増え、
+// 制御ループが自分の出したノイズを観測結果として食べることになる。
+//
+// そこで実行前に潰す。ICommandExecutorがPreconditionとExecuteを分けているのは
+// 元々このDry Runのためなので、その設計意図に沿う形にする。
+//   - スキーマに無い項目は取り除く（残りが有効ならTaskは活かす）
+//   - 必須項目が欠ける／Tool名が不明なら、Task自体を作らない
+//
+// 戻り値: このTaskを実行してよいか。
+bool SanitizeRepairCommand(const Json& toolCatalog, Json* command, std::string* rejectReason) {
+	if (command == nullptr || !command->is_object()) {
+		if (rejectReason) *rejectReason = "command is not an object";
+		return false;
+	}
+	const std::string toolName = command->value("tool", std::string());
+	if (toolName.empty()) {
+		if (rejectReason) *rejectReason = "tool name is empty";
+		return false;
+	}
+
+	// Tool記述子を引く
+	Json schema;
+	bool found = false;
+	if (toolCatalog.is_array()) {
+		for (const Json& entry : toolCatalog) {
+			if (!entry.is_object()) continue;
+			if (entry.value("name", std::string()) != toolName) continue;
+			schema = entry.value("argumentSchema", Json::object());
+			found = true;
+			break;
+		}
+	}
+	if (!found) {
+		if (rejectReason) *rejectReason = "unknown tool: " + toolName;
+		return false;
+	}
+
+	Json arguments = command->value("arguments", Json::object());
+	if (!arguments.is_object()) arguments = Json::object();
+
+	// スキーマに無い項目を落とす。
+	// queryが正しいのにrequestRevisionが付いていただけで捨てるのは惜しい。
+	if (schema.is_object()) {
+		Json cleaned = Json::object();
+		for (auto it = arguments.begin(); it != arguments.end(); ++it) {
+			if (schema.contains(it.key())) cleaned[it.key()] = it.value();
+		}
+		arguments = std::move(cleaned);
+	}
+
+	// 残った引数がスキーマを満たすか（必須欠けなど）を実行前に確認する。
+	const Result validation = SchemaValidator::Validate(arguments, schema);
+	if (!validation) {
+		if (rejectReason) *rejectReason = validation.error;
+		return false;
+	}
+
+	(*command)["arguments"] = std::move(arguments);
+	return true;
+}
+
+// descriptionへ埋め込まれたREPAIR_COMMANDを取り出して検証し、書き戻す。
+// 埋め込みが無いTask（Workerがdescriptionから自力でCommandを組む）はそのまま通す。
+bool SanitizeRepairDescription(const Json& toolCatalog, std::string* description, std::string* rejectReason) {
+	if (description == nullptr) return true;
+
+	static const std::string marker = "REPAIR_COMMAND ";
+	const std::size_t pos = description->find(marker);
+	if (pos == std::string::npos) return true; // 埋め込み無し
+
+	const std::string encoded = description->substr(pos + marker.size());
+	Json command = Json::parse(encoded, nullptr, false);
+	if (command.is_discarded() || !command.is_object()) {
+		if (rejectReason) *rejectReason = "REPAIR_COMMAND is not valid JSON";
+		return false;
+	}
+
+	if (!SanitizeRepairCommand(toolCatalog, &command, rejectReason)) return false;
+
+	*description = description->substr(0, pos) + marker + command.dump();
+	return true;
+}
 
 // ---------------------------------
 // TaskStoreAuditSink
@@ -487,10 +581,35 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 		ReportProgress("Repair", Json::object({{"round", repairRoundsUsed + 1}}));
 
 		const Json additional = verdict.additionalTasks;
-		if (!additional.is_array() || additional.empty()) {
-			stopInfo = Json::object({{"reason", "repair rounds exhausted (critic suggested no additional tasks)"}});
+		const Json obsolete = verdict.obsoleteTasks;
+		const bool hasAdditions = additional.is_array() && !additional.empty();
+		const bool hasRetirements = obsolete.is_array() && !obsolete.empty();
+
+		// 修復には「追加」と「撤回」の2種類がある。
+		// 撤回が無かった頃は、不要Taskの失敗1件がcoverage/tasksWithoutEvidence/
+		// failedEvidenceCountを同時に踏み、追加をいくら重ねてもpassへ戻れなかった。
+		if (!hasAdditions && !hasRetirements) {
+			stopInfo = Json::object({
+				{"reason", "no remediation proposed (critic suggested neither additional tasks nor retractions)"},
+				{"repairRoundsUsed", repairRoundsUsed},
+				{"maxRepairRounds", config_.maxRepairRounds},
+			});
 			stopped = true;
 			break;
+		}
+
+		// --- 撤回を適用する ---
+		// 追加より先に行う。分母から不要Taskを外してから再評価したいため。
+		if (hasRetirements) {
+			for (const auto& entry : obsolete) {
+				if (!entry.is_number_integer()) continue;
+				const TaskId obsoleteTaskId = static_cast<TaskId>(entry.get<std::int64_t>());
+				evidenceBuilder.RequestRetireTask(obsoleteTaskId);
+			}
+			ReportProgress("Repair", Json::object({
+				{"round", repairRoundsUsed + 1},
+				{"retireRequested", obsolete.size()},
+			}));
 		}
 
 		int added = 0;
@@ -516,10 +635,24 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 				continue; // Analysis/不明種別は追加検索Taskにできない
 			}
 
+			// 引数の不備は「計画の失敗」であって「調査の失敗」ではない。
+			// 実行前に検証し、直せないものはTaskにしない。
+			// こうしないと壊れたCommandが失敗Evidenceとして記録され、
+			// カバレッジと失敗数を汚してrepairが状況を悪化させる（実機で観測）。
+			std::string description = add.value("description", std::string());
+			std::string rejectReason;
+			if (!SanitizeRepairDescription(fullCatalogForRepair, &description, &rejectReason)) {
+				ReportProgress("Repair", Json::object({
+					{"round", repairRoundsUsed + 1},
+					{"rejectedRepairTask", rejectReason},
+				}));
+				continue; // Taskを作らない＝Evidenceを汚さない
+			}
+
 			Json addSpec = Json::object();
 			addSpec["taskId"] = "repair_" + std::to_string(repairRoundsUsed) + "_" + std::to_string(added);
 			addSpec["type"] = addType;
-			addSpec["description"] = add.value("description", std::string());
+			addSpec["description"] = description;
 			addSpec["allowedTools"] = allToolNames; // 修復タスクはToken自体がObserve止まりなので全許可でも安全
 
 			const TaskId storeTaskId = store_->CreateTask(sessionId, rootTaskId, addType, addSpec, 1);
@@ -577,9 +710,16 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	}
 
 	if (!stopped) {
+		// ラウンド数を併記する。以前は打ち切りの理由と実際のラウンド消化数が
+		// 一致せず（1/2ラウンドで抜けても"exhausted"と記録された）、
+		// 停止理由の調査を毎回誤誘導していた。
 		stopInfo = verdict.pass
 			? Json::object({{"reason", "critic passed"}})
-			: Json::object({{"reason", "repair rounds exhausted"}});
+			: Json::object({
+				{"reason", "repair rounds exhausted"},
+				{"repairRoundsUsed", repairRoundsUsed},
+				{"maxRepairRounds", config_.maxRepairRounds},
+			});
 	}
 
 	// --- Synthesis ---
@@ -598,6 +738,8 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	sessionResult.report = report;
 	sessionResult.stopInfo = stopInfo;
 	sessionResult.rankedHypotheses = rankedJson;
+	// 判定の根拠（coverage / failedEvidenceCount / retiredTasks 等）を持ち帰る。
+	sessionResult.builtEvidence = builtJson;
 	return sessionResult;
 }
 

@@ -78,6 +78,20 @@ Result Statement::BindText(int index, const std::string& value) {
 	return Result::Ok();
 }
 
+Result Statement::BindBlob(int index, const void* data, std::size_t bytes) {
+	if (stmt_ == nullptr) {
+		return Result::Fail("Statement::BindBlob: 未初期化のStatement");
+	}
+	// SQLITE_TRANSIENT を渡してSQLite側にコピーさせる。
+	// 呼び出し側のバッファ寿命に依存させないため（BindTextと同じ方針）。
+	const int rc = sqlite3_bind_blob(
+		stmt_, index, data, static_cast<int>(bytes), SQLITE_TRANSIENT);
+	if (rc != SQLITE_OK) {
+		return Result::Fail(sqlite3_errmsg(db_));
+	}
+	return Result::Ok();
+}
+
 Result Statement::BindNull(int index) {
 	if (stmt_ == nullptr) {
 		return Result::Fail("Statement::BindNull: 未初期化のStatement");
@@ -139,6 +153,22 @@ std::string Statement::ColumnText(int index) const {
 	}
 	int bytes = sqlite3_column_bytes(stmt_, index);
 	return std::string(reinterpret_cast<const char*>(text), static_cast<std::size_t>(bytes));
+}
+
+std::vector<std::uint8_t> Statement::ColumnBlob(int index) const {
+	if (stmt_ == nullptr) {
+		return {};
+	}
+	const void* data = sqlite3_column_blob(stmt_, index);
+	if (data == nullptr) {
+		return {};
+	}
+	const int bytes = sqlite3_column_bytes(stmt_, index);
+	if (bytes <= 0) {
+		return {};
+	}
+	const auto* begin = static_cast<const std::uint8_t*>(data);
+	return std::vector<std::uint8_t>(begin, begin + bytes);
 }
 
 bool Statement::ColumnIsNull(int index) const {

@@ -23,6 +23,11 @@ void EvidenceBuilder::MarkPlannedTask(TaskId taskId, int requestRevision) {
 	plannedTaskRevisions_[taskId] = revision;
 }
 
+void EvidenceBuilder::RequestRetireTask(TaskId taskId) {
+	// ここでは要求を記録するだけ。実際に撤回してよいかはBuild内で判定する。
+	retireRequests_.insert(taskId);
+}
+
 namespace {
 
 std::string DedupKey(const Evidence& e) {
@@ -78,8 +83,33 @@ EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {
 		built.activeRevision = (std::max)(built.activeRevision, EvidenceRevision(evidence));
 	}
 
+	// --- 撤回してよいTaskを決める（決定的な安全ガード） ---
+	// 使えるEvidenceを1件でも産んだTaskは撤回しない。
+	// 撤回の判断はLLMが行うため、誤判断で有用な観測が消えないよう
+	// ここでプログラム側が拒否できるようにしておく。
+	std::unordered_set<TaskId> retired;
+	for (const TaskId taskId : retireRequests_) {
+		bool producedUsableEvidence = false;
+		for (const Evidence& evidence : evidences_) {
+			if (evidence.taskId != taskId) continue;
+			if (!IsFailureEvidence(evidence)) {
+				producedUsableEvidence = true;
+				break;
+			}
+		}
+		if (!producedUsableEvidence) {
+			retired.insert(taskId);
+			built.retiredTasks.push_back(taskId);
+		}
+	}
+	std::sort(built.retiredTasks.begin(), built.retiredTasks.end());
+
 	std::unordered_set<std::string> seenKeys;
 	for (const Evidence& evidence : evidences_) {
+		// 撤回されたTaskのEvidence（失敗のみ）は集計から外す。
+		// これによりfailedEvidenceCountが回復する。
+		if (retired.count(evidence.taskId) != 0) continue;
+
 		if (EvidenceRevision(evidence) != built.activeRevision) {
 			++built.supersededEvidenceCount;
 			continue;
@@ -129,6 +159,10 @@ EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {
 
 	std::vector<TaskId> activePlannedTasks;
 	for (const auto& [taskId, revision] : plannedTaskRevisions_) {
+		// 撤回されたTaskはcoverageの分母から外す。
+		// これによりcoverageが1.0へ戻れるようになり、
+		// tasksWithoutEvidenceからも消える。
+		if (retired.count(taskId) != 0) continue;
 		if (revision == built.activeRevision) activePlannedTasks.push_back(taskId);
 	}
 
@@ -171,6 +205,8 @@ Json EvidenceBuilder::ToJson(const BuiltEvidence& built) {
 	j["failedEvidenceCount"] = built.failedEvidenceCount;
 	j["supersededEvidenceCount"] = built.supersededEvidenceCount;
 	j["activeRevision"] = built.activeRevision;
+	// 撤回は監査対象。何が計画から外れたかがtranscriptに残るようにする。
+	j["retiredTasks"] = built.retiredTasks;
 
 	const Json requestContext = prompts::CurrentConversationRequestContext();
 	if (requestContext.is_object() && !requestContext.empty()) j["requestContext"] = requestContext;

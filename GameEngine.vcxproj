@@ -1,4 +1,4 @@
-<?xml version="1.0" encoding="utf-8"?>
+﻿<?xml version="1.0" encoding="utf-8"?>
 <Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup Label="ProjectConfigurations">
     <ProjectConfiguration Include="Debug|Win32">
@@ -2809,6 +2809,17 @@
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Orchestrator\EarlyStopping.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Orchestrator\Orchestrator.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Orchestrator\Supervisor.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeChunk.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeIndexBuilder.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeIndexService.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeIndexStore.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeParser.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeSearch.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeSearchTool.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\IEmbeddingBackend.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\MockEmbeddingBackend.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\SourceMasker.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\VectorMath.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Store\SqliteDb.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\Store\TaskStore.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\EngineTools\EngineToolContext.h" />
@@ -3651,6 +3662,16 @@
     <ClCompile Include="Source\GameApplication\AgentOS\Core\Orchestrator\EarlyStopping.cpp" />
     <ClCompile Include="Source\GameApplication\AgentOS\Core\Orchestrator\Orchestrator.cpp" />
     <ClCompile Include="Source\GameApplication\AgentOS\Core\Orchestrator\Supervisor.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeChunk.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeIndexBuilder.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeIndexService.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeIndexStore.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeParser.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeSearch.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeSearchTool.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\MockEmbeddingBackend.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\SourceMasker.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\VectorMath.cpp" />
     <ClCompile Include="Source\GameApplication\AgentOS\Core\Store\SqliteDb.cpp" />
     <ClCompile Include="Source\GameApplication\AgentOS\Core\Store\TaskStore.cpp" />
     <ClCompile Include="Source\GameApplication\AgentOS\EngineTools\EngineToolRegistry.cpp" />

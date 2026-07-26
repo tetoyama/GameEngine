@@ -62,10 +62,13 @@ int main() {
 		"\"constraints\":[\"Fieldを確認する\"],\"requiredCapabilities\":[\"ListEntities\"],"
 		"\"unresolvedReferences\":[],\"requestType\":\"conversation\"}\n"
 		"```");
+	// このテストの主旨は「new turnで過去のField話題が挨拶応答へ漏れない（隔離）」こと。
+	// モック応答は隔離が効いた正常な挨拶を表す（reply検証: 「こんにちは」を含み「Field」を含まない）。
+	// 以前はField文（別テストからの流用と思われる）が入っており、:94/:95のassertと自己矛盾していた。
 	llm.AddRule(
 		"DirectReply担当",
 		"```json\n"
-		"{\"reply\":\"Entity 'Field' にはComponentが登録されていません。\","
+		"{\"reply\":\"こんにちは。ご用件をうかがいます。\","
 		"\"toolCall\":null,\"escalate\":false}\n"
 		"```");
 
