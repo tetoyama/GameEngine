@@ -428,7 +428,6 @@ PromptPair Plan(const Json& intake, const Json& toolCatalog, int maxTasks) {
 }
 
 PromptPair GenerateQueries(const Json& taskSpec, const Json& toolCatalog) {
-	SetCurrentToolCatalog(toolCatalog);
 	PromptPair p;
 	p.system = BuildSystem(
 		"Task遂行用Tool呼び出しを最大5件提案するWorker担当。\n"
