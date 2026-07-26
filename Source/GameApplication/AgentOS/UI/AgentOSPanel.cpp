@@ -24,6 +24,7 @@
 #include "Resources/resourceService.h"
 
 #include "../Core/Json.h"
+#include "../Core/TextUtf8.h"
 #include "../Service/AgentOSService.h"
 
 namespace agentos {
@@ -283,15 +284,16 @@ std::string CurrentOperationLabel(
 	return {};
 }
 
+// UTF-8の文字境界で切る（Core/TextUtf8.h参照）。
+// ImGuiは不正なUTF-8を渡されると文字化けするため、表示側でも守る。
 std::string CompactLabel(const std::string& text, std::size_t maxChars) {
 	if(text.size() <= maxChars) return text;
-	if(maxChars <= 3) return text.substr(0, maxChars);
-	return text.substr(0, maxChars - 3) + "...";
+	if(maxChars <= 3) return TruncateUtf8(text, maxChars);
+	return TruncateUtf8(text, maxChars - 3, "...");
 }
 
 std::string TruncateText(const std::string& text, std::size_t maxChars) {
-	if(text.size() <= maxChars) return text;
-	return text.substr(0, maxChars) + "\n...(truncated)...";
+	return TruncateUtf8(text, maxChars, "\n...(truncated)...");
 }
 
 void DrawPhaseGlyph(

@@ -166,17 +166,6 @@ CommandResult CommandPipeline::Submit(CommandRequest request) {
 		return result;
 	}
 
-	// 会話上の「私は誰」「あなたは誰」をScene Entity探索へ変換することを、
-	// DirectReplyのプロンプトだけでなく実行境界でも拒否する。
-	if(request.issuer == "QuickPath" && prompts::CurrentRequestIsPersonalIdentityQuestion()){
-		CommandResult result = CommandResult::Fail(
-			CommandStatus::PreconditionRejected,
-			"personal conversation request cannot be executed as an Engine Tool"
-		);
-		Audit(request, result);
-		return result;
-	}
-
 	if(capabilityRegistry_){
 		Result capabilityResult = capabilityRegistry_->Validate(
 			request.capability,

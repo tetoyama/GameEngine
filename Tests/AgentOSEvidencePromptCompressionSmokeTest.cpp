@@ -81,16 +81,60 @@ void TestLatestEvidenceIsPrioritized() {
 	assert(compressed.value("failedEvidenceCount", 1) == 0);
 	assert(compressed.contains("evidences"));
 	assert(compressed.at("evidences").is_array());
-	assert(!compressed.at("evidences").empty());
-	assert(compressed.at("evidences").at(0).value("id", 0LL) == 3);
 	assert(text.find("LATEST_REPAIR_EVIDENCE") != std::string::npos);
 	assert(text.find("LATEST_REPAIR_MARKER") != std::string::npos);
 	assert(text.find(std::string(2000, 'A')) == std::string::npos);
 
+	// 最新Evidenceは詳細側の先頭に来る（押し出されない）。
 	assert(compressed.contains("recentEvidenceDetails"));
 	assert(compressed.at("recentEvidenceDetails").is_array());
 	assert(!compressed.at("recentEvidenceDetails").empty());
 	assert(compressed.at("recentEvidenceDetails").at(0).value("id", 0LL) == 3);
+
+	// 索引と詳細は互いに素であること。
+	//
+	// 以前は両方とも最新から詰めていたため、詳細に載るEvidenceは必ず索引にも
+	// 載っていた（詳細集合が索引集合の先頭部分になる構造的重複）。
+	// 実機ではEvidence 1件のとき、出力2421文字のうちclaimが5回・595文字を占め、
+	// 肝心のコード本文503文字より多くなっていた。
+	// 索引には「詳細に入らなかった古いEvidence」だけを載せる。
+	for(const Json& indexed : compressed.at("evidences")) {
+		for(const Json& detailed : compressed.at("recentEvidenceDetails")) {
+			assert(indexed.value("id", -1LL) != detailed.value("id", -2LL));
+		}
+	}
+
+	// 詳細側は payload を持つので、その要約である payloadSignals は持たない。
+	for(const Json& detailed : compressed.at("recentEvidenceDetails")) {
+		assert(!detailed.contains("payloadSignals"));
+	}
+}
+
+// -----------------------------------------------------------------------
+// 同じclaimが何度も現れないこと（実機で観測した水増しの回帰テスト）。
+// -----------------------------------------------------------------------
+void TestClaimIsNotDuplicated() {
+	const std::string claim = "UNIQUE_CLAIM_MARKER: シンボルの定義位置";
+	const Json built = Json::object({
+		{"coverage", 1.0},
+		{"failedEvidenceCount", 0},
+		{"evidences", Json::array({
+			MakeEvidence(1, 10, claim, "Tool:GetSymbolInfo", Json::object({
+				// Toolの慣習でpayload側にもclaimが入る。これも重複なので落とす。
+				{"claim", claim},
+				{"code", "BODY_MARKER"},
+			})),
+		})},
+	});
+
+	const std::string text = evidence_prompt::CompressToString(built, 9800);
+	std::size_t count = 0;
+	for(std::size_t pos = text.find(claim); pos != std::string::npos;
+	    pos = text.find(claim, pos + claim.size())) {
+		++count;
+	}
+	assert(count == 1);
+	assert(text.find("BODY_MARKER") != std::string::npos);
 }
 
 void TestAllEvidencePromptsUseCompression() {
@@ -160,6 +204,7 @@ void TestProgressPreventsEarlyStop() {
 int main() {
 	std::cout << "=== AgentOS Evidence Prompt Compression Smoke Test ===\n";
 	TestLatestEvidenceIsPrioritized();
+	TestClaimIsNotDuplicated();
 	TestAllEvidencePromptsUseCompression();
 	TestLargeTaskDefaults();
 	TestProgressPreventsEarlyStop();

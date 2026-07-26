@@ -13,6 +13,7 @@
 #include "AgentOS/Core/Command/CapabilitySet.h"
 #include "AgentOS/Core/Command/CommandPipeline.h"
 #include "AgentOS/Core/Command/CommandTypes.h"
+#include "AgentOS/Core/Conversation/RespondTool.h"
 #include "AgentOS/Core/Llm/MockLlmBackend.h"
 #include "AgentOS/Core/Orchestrator/Orchestrator.h"
 #include "AgentOS/Core/Store/TaskStore.h"
@@ -449,268 +450,79 @@ int main() {
 	}
 
 	// ============================================================
-	// シナリオ3: 会話/雑談の高速パス
-	// IntakeがrequestType="conversation"を返した場合、Planner以降の調査
-	// パイプラインを一切呼ばず、DirectReplyの応答をそのまま報告として返すこと。
-	// （実機失敗事例: 「あなたは何ができますか？」がPlanner 300秒タイムアウトを
-	//   二度踏んだ問題への対処。Plannerが一度も呼ばれないことを直接検証する）
+	// ============================================================
+	// シナリオ3: 会話応答もツールとして計画される
+	//
+	// 旧シナリオ3〜5（conversational fast path / quick tool path /
+	// escalation fall-through）は、要求の種類を先回りで分類して調査
+	// パイプラインを飛ばす3段のfast pathを検証していた。
+	// 分類が外れるたびにキーワードが増える構造だったため、経路ごと廃止した。
+	//
+	// いまは会話応答もRespondというツールであり、Plannerがツール一覧から
+	// 普通に選ぶ。完了かどうかはCriticが出力を見て判定する。
 	// ============================================================
 	{
 		const std::string convDbPath = "/tmp/agentos_e2e_conv.db";
 		RemoveDb(convDbPath);
 
 		TaskStore store;
-		Result openResult = store.Open(convDbPath);
-		assert(openResult.ok);
+		assert(store.Open(convDbPath).ok);
 
 		CapabilityRegistry registry;
 		CommandPipeline pipeline(&registry);
-		pipeline.RegisterTool(std::make_shared<DescribeEntityTool>());
-		pipeline.RegisterTool(std::make_shared<GetWriteTraceTool>());
-		pipeline.RegisterTool(std::make_shared<FindWritersTool>());
-
 		MockLlmBackend llm;
-		// Intake: 役割記述中の "Intake担当" が目印。requestType="conversation"を返す。
+		RegisterRespondTool(pipeline, [&]() -> ILlmBackend* { return &llm; });
+
 		llm.AddRule("Intake担当",
 			"```json\n"
-			"{\"goal\": \"AgentOSの能力について説明する\", \"symptoms\": [], \"constraints\": [], "
-			"\"requiredCapabilities\": [], \"requestType\": \"conversation\"}\n"
+			"{\"goal\": \"AgentOSの能力について説明する\", \"symptoms\": [], "
+			"\"constraints\": [], \"requiredCapabilities\": [], "
+			"\"requestType\": \"conversation\"}\n"
 			"```");
-		// DirectReply: 役割記述中の "DirectReply担当" が目印。
-		llm.AddRule("DirectReply担当",
-			"```json\n"
-			"{\"reply\": \"私はエンジンの調査ができます。Component値の観測やWrite Traceの取得などが可能です。\"}\n"
-			"```");
-		// Plannerルールはあえて登録しない → 呼ばれたら"{}"が返りIntakeでの
-		// requestType欠落と同義になるため、Plannerが一切呼ばれないことを
-		// GetCalls()で直接検証する。
-
-		OrchestratorConfig config;
-		config.maxRepairRounds = 2;
-		Orchestrator orchestrator(&llm, &pipeline, &store, &registry, config);
-
-		std::vector<std::string> stages;
-		orchestrator.SetProgressCallback([&](const std::string& stage, const Json& detail) {
-			(void)detail;
-			stages.push_back(stage);
-		});
-
-		const OrchestratorResult result = orchestrator.RunSession("あなたは何ができますか？");
-
-		assert(result.completed);
-		assert(result.report.find("私はエンジンの調査ができます") != std::string::npos);
-
-		// Plan/Retrieve等の調査ステージへ進んでいないこと
-		bool sawPlanStage = false;
-		for (const auto& st : stages) {
-			if (st == "Plan" || st == "Retrieve" || st == "Reason" || st == "Critic" || st == "Synthesize") {
-				sawPlanStage = true;
-			}
-		}
-		assert(!sawPlanStage);
-
-		// PlannerのLLM呼び出しが一度も発生していないこと（目印: "Planner担当"）
-		const std::vector<std::pair<std::string, std::string>> calls = llm.GetCalls();
-		bool sawPlannerCall = false;
-		for (const auto& call : calls) {
-			if (call.first.find("Planner担当") != std::string::npos) {
-				sawPlannerCall = true;
-			}
-		}
-		assert(!sawPlannerCall);
-
-		// --- Store検証: DirectReply種別のTaskがSucceededで記録されていること ---
-		const Json summary = store.GetSessionSummary(result.sessionId);
-		assert(summary.at("tasksByState").contains("Succeeded"));
-
-		bool foundDirectReplyTask = false;
-		const std::vector<TaskRow> succeededTasks = store.GetTasksByState(result.sessionId, TaskState::Succeeded);
-		for (const auto& task : succeededTasks) {
-			if (task.type == "DirectReply") {
-				foundDirectReplyTask = true;
-			}
-		}
-		assert(foundDirectReplyTask);
-
-		std::cout << "  - Scenario 3 (conversation fast path, no Planner call): OK" << std::endl;
-	}
-
-	// ============================================================
-	// シナリオ4: クイックToolパス（3-tier fast path）
-	// 実機失敗事例「このシーンのEntityを一覧して」を模す: Intakeが実データ要求を
-	// 誤ってrequestType="conversation"と判定しても、DirectReplyが検証済みRead
-	// Toolを1回だけ要求し、Orchestratorが決定的検証を経て実行→要約まで完了する
-	// ことで、旧来の「実行していないのに実行したと言う」劣化を防げていること。
-	// ============================================================
-	{
-		const std::string quickDbPath = "/tmp/agentos_e2e_quick.db";
-		RemoveDb(quickDbPath);
-
-		TaskStore store;
-		Result openResult = store.Open(quickDbPath);
-		assert(openResult.ok);
-
-		CapabilityRegistry registry;
-		CommandPipeline pipeline(&registry);
-		pipeline.RegisterTool(std::make_shared<ListEntitiesTool>());
-
-		MockLlmBackend llm;
-		// Intake: 実データ要求だが意図的にconversationへ誤判定させる（EVIDENCE再現）。
-		llm.AddRule("Intake担当",
-			"```json\n"
-			"{\"goal\": \"シーンのEntity一覧を確認する\", \"symptoms\": [], \"constraints\": [], "
-			"\"requiredCapabilities\": [], \"requestType\": \"conversation\"}\n"
-			"```");
-		// DirectReply: 役割記述中の "DirectReply担当" が目印。toolCallでListEntitiesを要求する。
-		llm.AddRule("DirectReply担当",
-			"```json\n"
-			"{\"reply\": null, \"toolCall\": {\"tool\": \"ListEntities\", \"arguments\": {}}, "
-			"\"escalate\": false}\n"
-			"```");
-		// FormatToolResult: 役割記述中の "Reporter担当" が目印。
-		llm.AddRule("Reporter担当",
-			"```json\n"
-			"{\"reply\": \"生存Entityは Boss と Player の2件です。\"}\n"
-			"```");
-		// Plannerルールはあえて登録しない → クイックパスがPlannerへ到達しないことを検証する。
-
-		OrchestratorConfig config;
-		config.maxRepairRounds = 2;
-		Orchestrator orchestrator(&llm, &pipeline, &store, &registry, config);
-
-		const OrchestratorResult result = orchestrator.RunSession("このシーンのEntityを一覧して");
-
-		assert(result.completed);
-		assert(result.report.find("Boss") != std::string::npos);
-		assert(result.report.find("Player") != std::string::npos);
-		assert(result.stopInfo.value("reason", std::string()) == "quick tool path");
-
-		// --- 監査ログ: ListEntitiesがissuer "QuickPath" によりOkで正確に1回だけ実行されたこと ---
-		const auto auditLog = pipeline.GetAuditLog();
-		int quickPathOkCount = 0;
-		for (const auto& entry : auditLog) {
-			if (entry.first.tool == "ListEntities" && entry.first.issuer == "QuickPath" &&
-			    entry.second.status == CommandStatus::Ok) {
-				++quickPathOkCount;
-			}
-		}
-		assert(quickPathOkCount == 1);
-		assert(auditLog.size() == 1); // クイックパスで許すTool実行は最大1回
-
-		// --- Plannerが一度も呼ばれていないこと（目印: "Planner担当"） ---
-		const std::vector<std::pair<std::string, std::string>> calls = llm.GetCalls();
-		bool sawPlannerCall = false;
-		for (const auto& call : calls) {
-			if (call.first.find("Planner担当") != std::string::npos) {
-				sawPlannerCall = true;
-			}
-		}
-		assert(!sawPlannerCall);
-
-		std::cout << "  - Scenario 4 (quick tool path rescues misclassified request): OK" << std::endl;
-	}
-
-	// ============================================================
-	// シナリオ5: エスカレーション
-	// DirectReplyがescalate=trueを返した場合、DirectReplyは何もTaskを作らず・
-	// 何もSubmitせずreturnもしない。Intake結果（変数intake）を再利用したまま
-	// 通常の調査パイプライン（Planner以降）へフォールスルーし、最後まで完了する
-	// こと。MockLlm呼び出し履歴に "Planner担当" が実際に現れることを直接検証する。
-	// ============================================================
-	{
-		const std::string escDbPath = "/tmp/agentos_e2e_esc.db";
-		RemoveDb(escDbPath);
-
-		TaskStore store;
-		Result openResult = store.Open(escDbPath);
-		assert(openResult.ok);
-
-		CapabilityRegistry registry;
-		CommandPipeline pipeline(&registry);
-		pipeline.RegisterTool(std::make_shared<DescribeEntityTool>());
-		pipeline.RegisterTool(std::make_shared<GetWriteTraceTool>());
-		pipeline.RegisterTool(std::make_shared<FindWritersTool>());
-
-		MockLlmBackend llm;
-		// Intake: 意図的にconversationへ誤判定させる。
-		llm.AddRule("Intake担当",
-			"```json\n"
-			"{\"goal\": \"Bossが Idle 状態なのに Velocity.y が異常な値になっている原因Systemを特定する\", "
-			"\"symptoms\": [\"Boss.Velocity.y が Idle 中に 8.2 になっている\"], \"constraints\": [], "
-			"\"requiredCapabilities\": [], \"requestType\": \"conversation\"}\n"
-			"```");
-		// DirectReply: escalate=trueを返す（reply/toolCallともにnull）。
-		llm.AddRule("DirectReply担当",
-			"```json\n"
-			"{\"reply\": null, \"toolCall\": null, \"escalate\": true}\n"
-			"```");
-		// 以降はシナリオ1（ハッピーパス）と同一内容の調査パイプライン用モック。
-		// Intakeルールはconversation誤判定版を使うため重複登録しない。
 		llm.AddRule("Planner担当",
 			"```json\n"
-			"{\"tasks\": ["
-			"{\"taskId\": \"T1\", \"type\": \"RuntimeObservation\", "
-			"\"description\": \"Boss entityの現況とVelocity書込元候補を調べる\", "
-			"\"dependencies\": [], \"allowedTools\": [\"DescribeEntity\", \"FindWriters\"], "
-			"\"searchHints\": [\"Boss\", \"Velocity\"]}, "
-			"{\"taskId\": \"T2\", \"type\": \"Trace\", "
-			"\"description\": \"Velocityの書込トレースを取得する\", "
-			"\"dependencies\": [\"T1\"], \"allowedTools\": [\"GetWriteTrace\"], "
-			"\"searchHints\": [\"Velocity\"]}"
-			"]}\n"
+			"{\"tasks\": [{\"taskId\": \"T1\", \"type\": \"Analysis\", "
+			"\"description\": \"能力について応答する\", \"dependencies\": [], "
+			"\"allowedTools\": [\"Respond\"], \"searchHints\": []}]}\n"
 			"```");
 		llm.AddRule("\"taskId\": \"T1\"",
 			"```json\n"
-			"{\"commands\": ["
-			"{\"tool\": \"DescribeEntity\", \"arguments\": {\"entityName\": \"Boss\"}}, "
-			"{\"tool\": \"FindWriters\", \"arguments\": {\"component\": \"Velocity\"}}"
-			"]}\n"
+			"{\"commands\": [{\"tool\": \"Respond\", "
+			"\"arguments\": {\"instruction\": \"AgentOSの能力を説明する\"}}]}\n"
 			"```");
-		llm.AddRule("\"taskId\": \"T2\"",
+		llm.AddRule("応答担当",
 			"```json\n"
-			"{\"commands\": ["
-			"{\"tool\": \"GetWriteTrace\", \"arguments\": {\"entityName\": \"Boss\", \"component\": \"Velocity\"}}"
-			"]}\n"
+			"{\"reply\": \"私はエンジンの調査ができます。Component値の観測やWrite Traceの取得などが可能です。\"}\n"
 			"```");
 		llm.AddRule("Reasoning担当",
 			"```json\n"
-			"{\"hypotheses\": ["
-			"{\"description\": \"JumpAttack終了時にVelocity.yがリセットされていない\", \"rubricBase\": 0.9, "
-			"\"supports\": [1, 2, 3], \"contradicts\": [], \"missingEvidence\": []}"
-			"]}\n"
+			"{\"hypotheses\": [{\"description\": \"能力についての応答を提示した\", "
+			"\"rubricBase\": 0.9, \"supports\": [1], \"contradicts\": [], "
+			"\"missingEvidence\": []}]}\n"
 			"```");
 		llm.AddRule("Critic担当",
 			"```json\n"
-			"{\"scores\": {\"evidenceCoverage\": 0.9, \"contradictionHandling\": 1.0, "
-			"\"causalCompleteness\": 0.8, \"testability\": 0.7}, "
-			"\"failures\": [], \"additionalTasksSuggested\": []}\n"
+			"{\"scores\": {\"evidenceCoverage\": 1.0, \"contradictionHandling\": 1.0, "
+			"\"causalCompleteness\": 1.0, \"testability\": 1.0}, \"failures\": [], "
+			"\"goalSatisfied\": true, \"unmetAspects\": [], "
+			"\"additionalTasksSuggested\": [], \"obsoleteTasks\": []}\n"
 			"```");
 		llm.AddRule("Synthesis担当",
 			"```json\n"
-			"{\"report\": \"## 調査結果\\n\\nBossJumpAttackSystem がJumpAttack中にVelocity.y=8.2を書き込んだ後、"
-			"Idle状態へ遷移してもリセットする処理が存在しないため、Idle中もVelocity.yが残存していると考えられます。\"}\n"
+			"{\"report\": \"私はエンジンの調査ができます。\"}\n"
 			"```");
 
 		OrchestratorConfig config;
-		config.maxRepairRounds = 2;
+		config.maxRepairRounds = 1;
 		Orchestrator orchestrator(&llm, &pipeline, &store, &registry, config);
+		const OrchestratorResult result = orchestrator.RunSession("あなたは何ができますか？");
 
-		const OrchestratorResult result = orchestrator.RunSession(
-			"Bossが Idle 状態なのに Velocity.y が 8.2 のままで、想定外に落下しているように見える。"
-			"原因Systemを特定してほしい。");
-
+		// 観測ツールを1つも使っていないので、Criticの観測要件は適用されない。
+		// 適用されると挨拶や能力質問が必ず未完了になる。
 		assert(result.completed);
+		assert(result.report.find("エンジンの調査ができます") != std::string::npos);
 
-		const std::vector<std::pair<std::string, std::string>> calls = llm.GetCalls();
-		bool sawPlannerCall = false;
-		for (const auto& call : calls) {
-			if (call.first.find("Planner担当") != std::string::npos) {
-				sawPlannerCall = true;
-			}
-		}
-		assert(sawPlannerCall);
-
-		std::cout << "  - Scenario 5 (escalation falls through to full investigation): OK" << std::endl;
+		std::cout << "  - Scenario 3 (Respond tool completes a conversational request): OK" << std::endl;
 	}
 
 	std::cout << "AgentOSVerticalSliceSmokeTest: OK" << std::endl;

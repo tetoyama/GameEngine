@@ -14,15 +14,35 @@
 #include <string>
 
 #include "../Json.h"
+#include "../TextUtf8.h"
 
 namespace agentos::evidence_prompt {
 
+// dump時の共通設定。
+//
+// error_handler_t::replace を指定して、不正なUTF-8があっても例外を投げず
+// 置換文字へ倒す。Compressは「プロンプトに収まるサイズか」を測るために
+// dumpを何度も呼ぶため、ここが投げるとセッションごとプロセスが落ちる。
+// 切り詰め自体は文字境界で行っている（TruncateText）ので通常は不要だが、
+// Evidenceの中身は外部由来（ツール出力・LLM出力）で何が来るか保証できない。
+inline std::string SafeDump(const Json& value) {
+	return value.dump(-1, ' ', false, Json::error_handler_t::replace);
+}
+
+inline std::size_t SafeDumpSize(const Json& value) {
+	return SafeDump(value).size();
+}
+
 namespace detail {
 
+// UTF-8の文字境界で切る。
+// バイト位置で切っていた頃、CodeSearchが返すコード抜粋（日本語コメント入り）の
+// 途中で切断され、不正なUTF-8になってjson::dump()が例外を投げていた。
+// ワーカースレッドがそれを捕まえずterminateしていた。
 inline std::string TruncateText(const std::string& text, std::size_t limit) {
 	if(text.size() <= limit) return text;
-	if(limit <= 20) return text.substr(0, limit);
-	return text.substr(0, limit - 18) + "...(compressed)...";
+	if(limit <= 20) return TruncateUtf8(text, limit);
+	return TruncateUtf8(text, limit - 18, "...(compressed)...");
 }
 
 inline Json CompactValue(const Json& value, int depth, std::size_t stringLimit) {
@@ -108,10 +128,22 @@ inline Json IndexEntry(const Json& evidence) {
 	return out;
 }
 
+// 詳細版。payloadを丸ごと載せるので、payloadの要約であるpayloadSignalsは持たない。
+// 以前は IndexEntry をそのまま土台にしていたため、同じ文字列が本文と要約の
+// 両方に入っていた（実機では claim が1件のEvidenceにつき5回出現した）。
 inline Json DetailedEntry(const Json& evidence) {
 	Json out = IndexEntry(evidence);
+	out.erase("payloadSignals");
 	if(evidence.is_object() && evidence.contains("payload")) {
-		out["payload"] = CompactValue(evidence.at("payload"), 0, 900);
+		Json payload = CompactValue(evidence.at("payload"), 0, 900);
+		// Toolはpayloadの中にもclaimを入れる（CommandResult::Okの慣習）。
+		// EvidenceがそれをEvidence.claimへ持ち上げているので、同じ文が2度出る。
+		// 見出しはEntry側に既にあるため、payload側の複製は落とす。
+		if(payload.is_object() && payload.contains("claim") &&
+		   out.contains("claim") && payload.at("claim") == out.at("claim")) {
+			payload.erase("claim");
+		}
+		out["payload"] = std::move(payload);
 	}
 	return out;
 }
@@ -153,38 +185,51 @@ inline Json Compress(const Json& builtEvidence, std::size_t maxChars = 8500) {
 	out["evidences"] = Json::array();
 	out["recentEvidenceDetails"] = Json::array();
 
-	// Indexへ最大60%を使う。最新Evidenceから入れるため、巨大な古い検索結果が
-	// Repair Evidenceを押し出すことはない。最新1件だけは常に残す。
-	const std::size_t indexBudget = maxChars * 3 / 5;
-	for(std::size_t offset = 0; offset < evidences.size(); ++offset) {
-		const std::size_t index = evidences.size() - 1 - offset;
-		Json candidate = out;
-		candidate["evidences"].push_back(detail::IndexEntry(evidences.at(index)));
-		if(candidate.dump().size() > indexBudget && !out["evidences"].empty()) break;
-		out = std::move(candidate);
-		if(out.dump().size() > indexBudget) break;
-	}
-
-	// 残りには最新payloadの詳細を詰める。1件も入らない場合でもindexには最新claimがある。
+	// 詳細と索引は重ねない。
+	//
+	// 以前は両方とも「最新から」詰めていたため、詳細に入るEvidenceは
+	// 必ず索引にも入っていた（詳細集合は索引集合の先頭部分になる）。
+	// つまり重複は偶発ではなく構造的で、Evidenceが少ないほど比率が上がる。
+	// 実機（Evidence 1件）では出力2421文字のうち claim が5回・595文字を占め、
+	// 肝心のコード本文503文字より多かった。
+	//
+	// どちらを先に詰めるかは選ばざるを得ない。「索引＋最新の詳細」という
+	// 方針の主語は詳細側なので、詳細を先に確保し、索引には
+	// 詳細に入らなかった（＝より古い）Evidenceだけを載せる。
+	const std::size_t detailBudget = maxChars * 3 / 5;
+	std::size_t detailedCount = 0;
 	for(std::size_t offset = 0; offset < evidences.size(); ++offset) {
 		const std::size_t index = evidences.size() - 1 - offset;
 		Json candidate = out;
 		candidate["recentEvidenceDetails"].push_back(detail::DetailedEntry(evidences.at(index)));
-		if(candidate.dump().size() > maxChars) break;
+		if(SafeDumpSize(candidate) > detailBudget && !out["recentEvidenceDetails"].empty()) break;
+		out = std::move(candidate);
+		++detailedCount;
+		if(SafeDumpSize(out) > detailBudget) break;
+	}
+
+	// 残り予算へ、詳細に入らなかった古いEvidenceの索引を詰める。
+	for(std::size_t offset = detailedCount; offset < evidences.size(); ++offset) {
+		const std::size_t index = evidences.size() - 1 - offset;
+		Json candidate = out;
+		candidate["evidences"].push_back(detail::IndexEntry(evidences.at(index)));
+		if(SafeDumpSize(candidate) > maxChars) break;
 		out = std::move(candidate);
 	}
 
 	const std::size_t indexed = out.at("evidences").size();
 	const std::size_t detailed = out.at("recentEvidenceDetails").size();
+	// indexedとdetailedは互いに素なので、どちらにも載らなかった件数が本当の欠落。
+	const std::size_t represented = indexed + detailed;
 	out["compression"]["indexedEvidenceCount"] = indexed;
 	out["compression"]["detailedEvidenceCount"] = detailed;
-	out["compression"]["omittedFromIndexCount"] =
-		evidences.size() > indexed ? evidences.size() - indexed : 0;
+	out["compression"]["omittedEvidenceCount"] =
+		evidences.size() > represented ? evidences.size() - represented : 0;
 	out["compression"]["omittedDetailCount"] =
 		evidences.size() > detailed ? evidences.size() - detailed : 0;
 
 	// metadata追記で数十文字超えた場合は詳細を後ろから削る。
-	while(out.dump().size() > maxChars && !out["recentEvidenceDetails"].empty()) {
+	while(SafeDumpSize(out) > maxChars && !out["recentEvidenceDetails"].empty()) {
 		out["recentEvidenceDetails"].erase(out["recentEvidenceDetails"].end() - 1);
 		out["compression"]["detailedEvidenceCount"] = out["recentEvidenceDetails"].size();
 		out["compression"]["omittedDetailCount"] =
@@ -195,7 +240,7 @@ inline Json Compress(const Json& builtEvidence, std::size_t maxChars = 8500) {
 
 inline std::string CompressToString(const Json& builtEvidence, std::size_t maxChars = 8500) {
 	// compact JSONで返し、pretty-printによる再膨張でPrompt上限を越えないようにする。
-	return Compress(builtEvidence, maxChars).dump();
+	return SafeDump(Compress(builtEvidence, maxChars));
 }
 
 } // namespace agentos::evidence_prompt

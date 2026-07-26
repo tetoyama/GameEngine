@@ -16,7 +16,10 @@
 
 #include "LlamaLlmBackend.h"
 #include "../Core/Agents/AgentContext.h"
+#include "../Core/TextUtf8.h"
 #include "../Core/CodeIndex/CodeSearchTool.h"
+#include "../Core/Conversation/ConversationHistoryTool.h"
+#include "../Core/Conversation/RespondTool.h"
 #include "../Core/Llm/PromptTemplates.h"
 #include "../Core/Logic/ComponentQueryRouting.h"
 #include "../Core/Orchestrator/Orchestrator.h"
@@ -88,9 +91,10 @@ bool IsContextDependentRequest(const std::string& request) {
 	});
 }
 
+// UTF-8の文字境界で切る（Core/TextUtf8.h参照）。
+// transcriptへ書く文字列なので、壊れた文字が混ざると後段の解析も汚れる。
 std::string TruncateForLog(const std::string& text, std::size_t maxChars = 16000) {
-	if(text.size() <= maxChars) return text;
-	return text.substr(0, maxChars) + "\n...(truncated)...";
+	return TruncateUtf8(text, maxChars, "\n...(truncated)...");
 }
 
 std::string ModelFingerprint(const std::string& path) {
@@ -326,6 +330,18 @@ void AgentOSService::Initialize(AgentOSServiceContext context) {
 					+ m_context.codeIndexDbPath + ").");
 			}
 		}
+	}
+
+	// 過去のやり取りを引くTool。
+	// 履歴を読むかどうかをIntakeのキーワード一致で先回り判定するのをやめ、
+	// 要ると気づいた側（Planner/Worker/Repair）が取りに行けるようにする。
+	RegisterConversationHistoryTool(*m_pipeline, &m_taskStore);
+
+	// 会話応答もツール。要求の種類を先回りで分類せず、Plannerに選ばせる。
+	// LLMは後から非同期にロードされるので、ポインタではなくプロバイダを渡す。
+	RegisterRespondTool(*m_pipeline, [this]() -> ILlmBackend* { return m_llmBackend.get(); });
+	if(m_context.debugLog){
+		m_context.debugLog->LOG_INFO("AgentOSService: GetConversationHistory tool registered.");
 	}
 
 	if(m_context.debugLog){

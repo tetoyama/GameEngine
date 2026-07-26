@@ -293,6 +293,10 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	ctx.token = token;
 	ctx.sessionId = sessionId;
 
+	// GetConversationHistoryツールは「今より前」の境界として現在セッションIDを要る。
+	// ToolはAgentContextを受け取れないため、Worker thread単位で共有する。
+	SetCurrentSessionId(sessionId);
+
 	Supervisor supervisor(store_);
 
 	// --- Intake（root task として記録） ---
@@ -312,187 +316,19 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	}
 	supervisor.CompleteTask(rootTaskId, intake);
 
-	// --- 会話/雑談/能力質問など: 調査パイプライン（Plan〜Synthesis）を丸ごと
-	//     スキップする3-tier fast path。実機ログで「あなたは何ができますか？」のような
-	//     conversational要求がPlanner 300秒タイムアウトを二度も踏んだ事例への対処。
-	//     さらに「このシーンのEntityを一覧して」がIntakeに誤ってconversation判定
-	//     された事例（実データ要求なのにToolを一切実行できず終わる）への対処として、
-	//     DirectReplyへ決定的検証付きのRead専用Tool呼び出しを1回だけ許可する。
-	//     クイックパスで許すTool実行は最大1回（DirectReply→[Submit]→FormatToolResult
-	//     で、Intake後のLLM呼び出しは最大2回）というハードキャップを設ける。
-	//     複数Toolや多段調査が必要と判定された場合（escalate）は、ここでは何も
-	//     実行・returnせず、そのまま下の通常調査パイプラインへフォールスルーする
-	//     （Intake結果は再利用する＝Intakeをやり直さない）。
-	const std::string requestType = intake.value("requestType", std::string("investigation"));
-	if (requestType == "conversation") {
-		ReportProgress("reply", Json::object());
-
-		const Json toolCatalogForReply = pipeline_->DescribeTools();
-		const std::string compactCatalog = prompts::CompactToolCatalog(toolCatalogForReply);
-		const PromptPair replyPrompt = prompts::DirectReply(userRequest, compactCatalog);
-
-		Json replyJson;
-		Result replyResult = CallLlmJson(ctx, replyPrompt, &replyJson);
-
-		// 新スキーマ: {reply: string|null, toolCall: {tool, arguments}|null, escalate: boolean}
-		// 旧スキーマ（{reply: string}のみ）で書かれた既存モックとの後方互換のため、
-		// toolCall/escalateの欠損・null・型不一致はいずれも「無し/false」として
-		// 寛容に扱う（LLM出力・旧テストモックはuntrusted）。
-		std::string reply;
-		bool hasReply = false;
-		Json toolCallJson;
-		bool hasToolCall = false;
-		bool escalate = false;
-		std::string llmError;
-
-		if (!replyResult) {
-			llmError = replyResult.error;
-		} else if (!replyJson.is_object()) {
-			llmError = "DirectReply応答がJSONオブジェクトではありません";
-		} else {
-			if (replyJson.contains("reply") && replyJson.at("reply").is_string() &&
-			    !replyJson.at("reply").get<std::string>().empty()) {
-				reply = replyJson.at("reply").get<std::string>();
-				hasReply = true;
-			}
-			if (replyJson.contains("toolCall") && replyJson.at("toolCall").is_object()) {
-				toolCallJson = replyJson.at("toolCall");
-				hasToolCall = true;
-			}
-			if (replyJson.contains("escalate") && replyJson.at("escalate").is_boolean()) {
-				escalate = replyJson.at("escalate").get<bool>();
-			}
-		}
-
-		if (!replyResult) {
-			// LLM呼び出し自体（JSON抽出含む）が失敗 → 決定的フォールバックで即終了。
-			// エスカレーションはしない（Intake自体は成功しているが、DirectReplyが
-			// 応答不能な状況で調査パイプラインへ進んでも同じLLMが使われる可能性が高い）。
-			const std::string fallback = "会話応答の生成に失敗しました: " + llmError;
-			const TaskId replyTaskId = store_->CreateTask(sessionId, rootTaskId, "DirectReply", Json::object(), 1);
-			supervisor.StartTask(replyTaskId);
-			supervisor.CompleteTask(replyTaskId, Json::object({{"reply", fallback}}));
-			store_->UpdateSessionState(sessionId, "Stopped");
-
-			sessionResult.completed = false;
-			sessionResult.report = fallback;
-			sessionResult.stopInfo =
-				Json::object({{"reason", "conversational fast path: reply generation failed: " + llmError}});
-			return sessionResult;
-		}
-
-		// --- toolCallの決定的検証（LLMを介さない）: catalogに実在しRead権限であること ---
-		std::string toolName;
-		Json toolArgs = Json::object();
-		bool toolValid = false;
-		if (hasToolCall) {
-			toolName = toolCallJson.value("tool", std::string());
-			if (toolCallJson.contains("arguments") && toolCallJson.at("arguments").is_object()) {
-				toolArgs = toolCallJson.at("arguments");
-			}
-			for (const auto& t : toolCatalogForReply) {
-				if (t.is_object() && t.value("name", std::string()) == toolName &&
-				    t.value("requiredPermission", std::string()) == "Read") {
-					toolValid = true;
-					break;
-				}
-			}
-			if (!toolValid) {
-				// catalog外のTool、またはRead以外の権限を要求 → escalate扱いに落とす。
-				escalate = true;
-			}
-		}
-
-		if (escalate) {
-			// --- エスカレーション: 通常の調査パイプラインへフォールスルー ---
-			ReportProgress("escalate", Json::object());
-			// ここではreturnしない。下の通常調査パイプライン（Planner以降）が
-			// このIntake結果（変数intake）を再利用してそのまま実行される。
-		} else if (hasToolCall && toolValid) {
-			// --- クイックToolパス: DirectReplyの提案Toolを検証済みで1回だけ実行する ---
-			const TaskId replyTaskId = store_->CreateTask(sessionId, rootTaskId, "DirectReply", Json::object(), 1);
-			supervisor.StartTask(replyTaskId);
-			supervisor.CompleteTask(replyTaskId, replyJson);
-
-			const Json toolTaskSpec = Json::object({{"tool", toolName}, {"arguments", toolArgs}});
-			const TaskId toolTaskId = store_->CreateTask(sessionId, rootTaskId, "QuickTool", toolTaskSpec, 1);
-			supervisor.StartTask(toolTaskId);
-
-			CommandRequest request;
-			request.taskId = toolTaskId;
-			request.issuer = "QuickPath";
-			request.tool = toolName;
-			request.arguments = toolArgs;
-			request.capability = ctx.token;
-			const CommandResult cmdResult = pipeline_->Submit(request);
-
-			if (!cmdResult.IsOk()) {
-				supervisor.FailTask(toolTaskId, cmdResult.error);
-				const std::string fallback = "Tool実行に失敗しました: " + cmdResult.error;
-				store_->UpdateSessionState(sessionId, "Stopped");
-
-				sessionResult.completed = false;
-				sessionResult.report = fallback;
-				sessionResult.stopInfo =
-					Json::object({{"reason", "quick tool path: execution failed: " + cmdResult.error}});
-				return sessionResult;
-			}
-			supervisor.CompleteTask(toolTaskId, cmdResult.payload);
-
-			// --- Tool結果の要約（Reporter担当）: クイックパス内2回目かつ最後のLLM呼び出し ---
-			const PromptPair formatPrompt = prompts::FormatToolResult(userRequest, toolName, cmdResult.payload);
-			Json formatJson;
-			Result formatResult = CallLlmJson(ctx, formatPrompt, &formatJson);
-
-			std::string finalReply;
-			if (formatResult && formatJson.is_object() && formatJson.contains("reply") &&
-			    formatJson.at("reply").is_string() && !formatJson.at("reply").get<std::string>().empty()) {
-				// スキーマ違反でtoolCall等が混ざっていても、reply文字列があればそれを使う。
-				finalReply = formatJson.at("reply").get<std::string>();
-			} else {
-				// 生成失敗・スキーマ違反いずれも決定的フォールバックへ落とす。
-				finalReply = "Tool " + toolName + " の実行結果: " + prompts::Truncate(cmdResult.payload.dump(2));
-			}
-
-			const TaskId reportTaskId = store_->CreateTask(sessionId, rootTaskId, "FormatToolResult", Json::object(), 1);
-			supervisor.StartTask(reportTaskId);
-			supervisor.CompleteTask(reportTaskId, Json::object({{"reply", finalReply}}));
-
-			store_->UpdateSessionState(sessionId, "Completed");
-
-			sessionResult.completed = true;
-			sessionResult.report = finalReply;
-			sessionResult.stopInfo = Json::object({{"reason", "quick tool path"}});
-			return sessionResult;
-		} else if (hasReply) {
-			// --- 既存の挙動: toolCall無しのプレーンなreply ---
-			const TaskId replyTaskId = store_->CreateTask(sessionId, rootTaskId, "DirectReply", Json::object(), 1);
-			supervisor.StartTask(replyTaskId);
-			supervisor.CompleteTask(replyTaskId, Json::object({{"reply", reply}}));
-
-			store_->UpdateSessionState(sessionId, "Completed");
-
-			sessionResult.completed = true;
-			sessionResult.report = reply;
-			sessionResult.stopInfo = Json::object({{"reason", "conversational fast path"}});
-			return sessionResult;
-		} else {
-			// reply/toolCall/escalateのいずれも有効な形で得られなかった → 決定的フォールバック。
-			const std::string fallback =
-				"会話応答の生成に失敗しました: DirectReply応答にreply/toolCall/escalateのいずれも"
-				"有効な値が含まれていません";
-			const TaskId replyTaskId = store_->CreateTask(sessionId, rootTaskId, "DirectReply", Json::object(), 1);
-			supervisor.StartTask(replyTaskId);
-			supervisor.CompleteTask(replyTaskId, Json::object({{"reply", fallback}}));
-			store_->UpdateSessionState(sessionId, "Stopped");
-
-			sessionResult.completed = false;
-			sessionResult.report = fallback;
-			sessionResult.stopInfo = Json::object(
-				{{"reason", "conversational fast path: reply generation failed: no reply/toolCall/escalate"}});
-			return sessionResult;
-		}
-	}
+	// --- 会話も調査も同じパイプラインを通る ---
+	//
+	// 以前はここに3段のfast path（DirectReply / quick tool path /
+	// conversational fast path）があり、IntakeのrequestTypeとキーワード一致で
+	// 調査パイプラインを丸ごと飛ばしていた。
+	// 判定が外れるたびに語を足す構造になっており、実際に
+	//   「私は誰ですか？」   → 身元をSceneに探しに行き修復2ラウンド空振り
+	//   「私の名前はTaroです」→ 自己紹介が ResolveEntity(Taro) になった
+	// という故障を出した（transcript_20260727_0208xx）。
+	//
+	// 会話応答自体をツール(Respond)にしたので、Plannerがツール一覧から
+	// 普通に選べばよい。要求の種類を先回りで分類しない。
+	// 完了かどうかは、その出力を見てCriticが判定する。
 
 	// --- Planner ---
 	ReportProgress("Plan", Json::object());
@@ -513,10 +349,16 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 
 	for (const Json& taskSpec : orderedTasks) {
 		const std::string planTaskId = taskSpec.value("taskId", std::string());
-		const std::string type = taskSpec.value("type", std::string());
 
-		const TaskId storeTaskId = store_->CreateTask(sessionId, rootTaskId, type, taskSpec, 1);
-		ReportProgress("Retrieve", Json::object({{"taskId", storeTaskId}, {"planTaskId", planTaskId}, {"type", type}}));
+		// Task種別(type)は廃止した。Taskの実体は「どのToolを使うか」であり、
+		// Toolを使わないTaskは実行しない。以前の "Analysis" 種別と同じ意味を
+		// allowedTools が空かどうかで表す（PlannerAgent.cppの注記参照）。
+		const Json allowedTools = taskSpec.value("allowedTools", Json::array());
+		const bool usesTool = allowedTools.is_array() && !allowedTools.empty();
+		const std::string taskLabel = usesTool ? "Retrieval" : "Analysis";
+
+		const TaskId storeTaskId = store_->CreateTask(sessionId, rootTaskId, taskLabel, taskSpec, 1);
+		ReportProgress("Retrieve", Json::object({{"taskId", storeTaskId}, {"planTaskId", planTaskId}}));
 
 		Result startResult = supervisor.StartTask(storeTaskId);
 		if (!startResult) {
@@ -529,8 +371,8 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 			continue;
 		}
 
-		if (type == "Analysis") {
-			// AnalysisタスクはWorkerを起動しない（ReasoningAgentが扱う）。
+		if (!usesTool) {
+			// Toolを使わないTaskはWorkerを起動しない（ReasoningAgentが扱う）。
 			supervisor.CompleteTask(storeTaskId, Json::object({{"note", "handled by ReasoningAgent"}}));
 			continue;
 		}
@@ -554,6 +396,7 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	// --- Evidence統合 ---
 	EvidenceBuilder::BuiltEvidence built = evidenceBuilder.Build();
 	Json builtJson = EvidenceBuilder::ToJson(built);
+	prompts::SetCurrentBuiltEvidence(builtJson);
 
 	// --- Reasoning ---
 	ReportProgress("Reason", Json::object());
@@ -623,17 +466,16 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 			}
 		}
 
+		// 追加Taskの件数上限は設けない。不足の数は要求が決めるものであり、
+		// 上限を置くと「足りないまま出す」方向にしか働かない。
 		for (const auto& add : additional) {
-			if (added >= 2) {
-				break;
-			}
 			if (!add.is_object()) {
 				continue;
 			}
-			const std::string addType = add.value("type", std::string());
-			if (addType != "RuntimeObservation" && addType != "CodeSearch" && addType != "Trace") {
-				continue; // Analysis/不明種別は追加検索Taskにできない
-			}
+			// 種別で弾かない。実在するToolを指しているかだけを見る
+			// （SanitizeRepairDescriptionが検証する）。
+			// 以前はRuntimeObservation/CodeSearch/Trace以外を捨てていたため、
+			// Criticが「応答すればよい」と提案してもコードが握り潰していた。
 
 			// 引数の不備は「計画の失敗」であって「調査の失敗」ではない。
 			// 実行前に検証し、直せないものはTaskにしない。
@@ -651,11 +493,10 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 
 			Json addSpec = Json::object();
 			addSpec["taskId"] = "repair_" + std::to_string(repairRoundsUsed) + "_" + std::to_string(added);
-			addSpec["type"] = addType;
 			addSpec["description"] = description;
 			addSpec["allowedTools"] = allToolNames; // 修復タスクはToken自体がObserve止まりなので全許可でも安全
 
-			const TaskId storeTaskId = store_->CreateTask(sessionId, rootTaskId, addType, addSpec, 1);
+			const TaskId storeTaskId = store_->CreateTask(sessionId, rootTaskId, "Repair", addSpec, 1);
 			supervisor.StartTask(storeTaskId);
 			evidenceBuilder.MarkPlannedTask(storeTaskId);
 
@@ -675,6 +516,7 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 
 		built = evidenceBuilder.Build();
 		builtJson = EvidenceBuilder::ToJson(built);
+	prompts::SetCurrentBuiltEvidence(builtJson);
 
 		ReportProgress("Reason", Json::object({{"round", repairRoundsUsed + 1}}));
 		LogicGraph newGraph;

@@ -5,6 +5,8 @@
 // =======================================================================
 #include "CriticAgent.h"
 
+#include "../Conversation/RespondTool.h"
+
 #include <algorithm>
 #include <cctype>
 #include <cstdint>
@@ -68,7 +70,7 @@ bool IsKatakanaTriple(unsigned char b0, unsigned char b1, unsigned char b2) {
 
 } // namespace
 
-std::vector<std::string> ExtractGoalIdentifiers(const std::string& text) {
+std::vector<std::string> ExtractGoalIdentifiers(const std::string& text, bool includeKatakana) {
 	std::vector<std::string> result;
 	std::unordered_set<std::string> seenKeys;
 
@@ -98,6 +100,7 @@ std::vector<std::string> ExtractGoalIdentifiers(const std::string& text) {
 	}
 
 	// 3) カタカナ連続（3文字以上、UTF-8バイト範囲スキャン、stoplist除外）。
+	if (!includeKatakana) return result;
 	std::size_t i = 0;
 	while (i + 2 < text.size()) {
 		const unsigned char b0 = static_cast<unsigned char>(text[i]);
@@ -136,6 +139,54 @@ std::vector<std::string> ExtractGoalIdentifiers(const std::string& text) {
 namespace {
 
 // ---------------------------------
+// 参照系Evidence
+// ---------------------------------
+// GetConversationHistoryは4種別を今回のEvidenceとして載せる。
+//   evidence      : 過去のTool実行結果 ＝ 観測。断定の根拠になれる
+//   userTurn      : ユーザの過去発話 ＝ 要求の記録であって観測ではない
+//   threadState   : Intakeが確定させた構造化要約 ＝ 解釈
+//   assistantTurn : 過去のAgent応答 ＝ 推測
+//
+// 後ろ3つは参照解決（「さっきの5件」が何を指すか）には要るが、
+// これだけを根拠に断定すると「昔そう言ったから正しい」が成立してしまう。
+// プロンプトで守らせず、ここで決定的に止める。
+bool IsReferenceOnlyEvidence(const Json& evidence) {
+	if (!evidence.is_object()) return false;
+	if (!evidence.contains("payload") || !evidence.at("payload").is_object()) return false;
+	const Json& payload = evidence.at("payload");
+	if (!payload.contains("entries") || !payload.at("entries").is_array()) return false;
+
+	// entriesを持つ履歴Evidenceのうち、観測が1件も含まれないものが参照系。
+	if (payload.contains("observationCount") && payload.at("observationCount").is_number_unsigned()) {
+		return payload.at("observationCount").get<std::size_t>() == 0;
+	}
+	for (const Json& entry : payload.at("entries")) {
+		if (entry.is_object() && entry.value("role", std::string()) == "observation") return false;
+	}
+	return true;
+}
+
+// supportsに挙がったEvidenceのうち、1件でも観測があればtrue。
+bool SupportsIncludeObservation(const Json& supports, const Json& builtEvidence) {
+	if (!supports.is_array() || supports.empty()) return false;
+	if (!builtEvidence.is_object() || !builtEvidence.contains("evidences") ||
+	    !builtEvidence.at("evidences").is_array()) {
+		return true; // Evidence一覧が読めないなら、この判定では落とさない
+	}
+	const Json& evidences = builtEvidence.at("evidences");
+	for (const Json& supportId : supports) {
+		if (!supportId.is_number_integer()) continue;
+		const std::int64_t id = supportId.get<std::int64_t>();
+		for (const Json& evidence : evidences) {
+			if (!evidence.is_object()) continue;
+			if (evidence.value("id", std::int64_t(-1)) != id) continue;
+			if (!IsReferenceOnlyEvidence(evidence)) return true;
+		}
+	}
+	return false;
+}
+
+// ---------------------------------
 // 最上位仮説が構造的に成立しているか
 // ---------------------------------
 //
@@ -156,17 +207,21 @@ namespace {
 struct TopHypothesisShape {
 	bool exists = false;
 	bool hasSupport = false;
+	// supportsに観測（Engine Tool結果 / 過去のTool結果）が1件でも含まれるか。
+	// 参照系Evidenceだけで支えられた仮説は「根拠あり」と認めない。
+	bool hasObservationSupport = false;
 	bool hasMissingEvidence = false;
 	bool hasContradiction = false;
 	double confidence = 0.0;
 
 	// 構造的に自立している仮説か
 	bool IsWellFormed() const {
-		return exists && hasSupport && !hasMissingEvidence && !hasContradiction;
+		return exists && hasSupport && hasObservationSupport &&
+			!hasMissingEvidence && !hasContradiction;
 	}
 };
 
-TopHypothesisShape InspectTopHypothesis(const Json& rankedHypotheses) {
+TopHypothesisShape InspectTopHypothesis(const Json& rankedHypotheses, const Json& builtEvidence) {
 	TopHypothesisShape shape;
 	if (!rankedHypotheses.is_object() || !rankedHypotheses.contains("hypotheses") ||
 	    !rankedHypotheses.at("hypotheses").is_array() || rankedHypotheses.at("hypotheses").empty()) {
@@ -181,6 +236,8 @@ TopHypothesisShape InspectTopHypothesis(const Json& rankedHypotheses) {
 	}
 	if (top.contains("supports") && top.at("supports").is_array()) {
 		shape.hasSupport = !top.at("supports").empty();
+		shape.hasObservationSupport =
+			SupportsIncludeObservation(top.at("supports"), builtEvidence);
 	}
 	if (top.contains("missingEvidence") && top.at("missingEvidence").is_array()) {
 		shape.hasMissingEvidence = !top.at("missingEvidence").empty();
@@ -189,6 +246,27 @@ TopHypothesisShape InspectTopHypothesis(const Json& rankedHypotheses) {
 		shape.hasContradiction = !top.at("contradicts").empty();
 	}
 	return shape;
+}
+
+// Respond以外のツール由来のEvidenceが1件でもあるか。
+// provenance.sourceTypeは RetrievalWorker が "Tool:<名前>" 形式で付ける。
+bool EvidenceUsesNonRespondTool(const Json& builtEvidence) {
+	if (!builtEvidence.is_object() || !builtEvidence.contains("evidences") ||
+	    !builtEvidence.at("evidences").is_array()) {
+		return true; // 読めないなら安全側（観測を要求する）
+	}
+	const std::string respondSource = std::string("Tool:") + RespondToolName();
+	for (const Json& evidence : builtEvidence.at("evidences")) {
+		if (!evidence.is_object() || !evidence.contains("provenance") ||
+		    !evidence.at("provenance").is_object()) {
+			continue;
+		}
+		const std::string sourceType =
+			evidence.at("provenance").value("sourceType", std::string());
+		if (sourceType.rfind("Tool:", 0) != 0) continue;
+		if (sourceType != respondSource) return true;
+	}
+	return false;
 }
 
 std::size_t ArraySize(const Json& parent, const char* key) {
@@ -257,26 +335,23 @@ void AddFailureOnce(CriticVerdict* verdict, const std::string& failure) {
 	}
 }
 
-std::string NormalizeRepairType(const std::string& rawType, const std::string& toolName) {
-	if (rawType == "RuntimeObservation" || rawType == "CodeSearch" || rawType == "Trace") {
-		return rawType;
-	}
-	if (!toolName.empty()) return "RuntimeObservation";
-	return {};
-}
-
+// Task種別(type)は廃止した。修復提案の実体も「どのToolを使うか」だけ。
+//
+// 以前は RuntimeObservation / CodeSearch / Trace のいずれかに正規化し、
+// それ以外を捨てていた。そのためCriticが「応答すればよい」と判断しても
+// 提案として通せず、修復の選択肢が調査に限定されていた。
+// 件数上限も設けない（不足の数は要求が決める）。
 Json NormalizeRepairTasks(const Json& rawTasks) {
 	Json normalized = Json::array();
 	if (!rawTasks.is_array()) return normalized;
 
 	for (const Json& task : rawTasks) {
-		if (!task.is_object() || normalized.size() >= 2) break;
+		if (!task.is_object()) continue;
 		const std::string tool = task.value("tool", std::string());
-		const std::string type = NormalizeRepairType(task.value("type", std::string()), tool);
-		if (type.empty()) continue;
+		if (tool.empty()) continue; // Toolを指さない提案は実行できない
 
 		std::string description = task.value("description", std::string());
-		if (description.empty()) description = "Criticが要求した追加調査";
+		if (description.empty()) description = "Criticが要求した追加Task";
 		if (!tool.empty()) {
 			const Json command = Json::object({
 				{"tool", tool},
@@ -285,10 +360,7 @@ Json NormalizeRepairTasks(const Json& rawTasks) {
 			description += "\nREPAIR_COMMAND " + command.dump();
 		}
 
-		normalized.push_back(Json::object({
-			{"type", type},
-			{"description", description},
-		}));
+		normalized.push_back(Json::object({{"description", description}}));
 	}
 	return normalized;
 }
@@ -374,9 +446,54 @@ std::string JoinIdentifiers(const std::vector<std::string>& identifiers) {
 // まだ空であれば、不足識別子を調べ直すための修復Taskを1件合成し、Repairループ
 // が実際に到達できるようにする。IsCompleteSceneSnapshotの決定的バイパスからも
 // 必ず呼び出すこと（Snapshotとして内部完結していても目的未達を見逃さないため）。
+// 目的識別子を「要求の権威ある表現」から集める。
+//
+// 実機失敗（transcript_20260726_230620）:
+//   入力     「SqliteDb::Prepareの実装を見せて」
+//   Intake   「SqliteDb::Prepare メソッドの実装コードを表示する」へ言い換え
+//   結果     Intakeが足しただけの「メソッド」「コード」を目的識別子として
+//            要求し、Evidenceに無いためhard fail。修復Taskが2つ合成され、
+//            どちらもEvidenceを産まず coverage 1.0 → 0.333 へ悪化した。
+//
+//   このときLLM Criticはプロンプト内でcurrentUserInputを見ており、
+//   goalSatisfied=true・全項目1.0と正しく判定していた。
+//   つまり「原文を見ている側には決定権がなく、決定権を持つ決定的ゲートは
+//   原文を見ていない」という配線の欠落が原因である。
+//
+// よってここではresolvedRequest（自由文の言い換え）を読まない。
+std::vector<std::string> CollectAuthoritativeGoalIdentifiers() {
+	const std::string userInput = prompts::CurrentUserInput();
+	const std::string targetConcept = prompts::CurrentTargetConcept();
+	const std::string resolvedEntity = prompts::CurrentResolvedEntityName();
+
+	std::vector<std::string> identifiers;
+	std::unordered_set<std::string> seen;
+	auto append = [&](const std::vector<std::string>& source) {
+		for (const std::string& id : source) {
+			const std::string key = IsAsciiOnlyIdentifier(id) ? ToLowerAsciiIdentifier(id) : id;
+			if (seen.count(key) != 0) continue;
+			seen.insert(key);
+			identifiers.push_back(id);
+		}
+	};
+
+	// 原文からはASCII識別子と引用トークンのみ。理由はCriticAgent.hを参照。
+	append(critic_internal::ExtractGoalIdentifiers(userInput, /*includeKatakana=*/false));
+	// 構造化フィールドはIntakeが対象として確定させたものなので全形式を取る。
+	append(critic_internal::ExtractGoalIdentifiers(targetConcept));
+	append(critic_internal::ExtractGoalIdentifiers(resolvedEntity));
+
+	// 原文も構造化フィールドも一切無いときだけresolvedRequestへ退避する。
+	// 本番のIntakeは両経路でcurrentUserInputを必ず設定するため、
+	// ここへ来るのはContextが未設定の場合（単体テスト等）に限られる。
+	if (userInput.empty() && targetConcept.empty() && resolvedEntity.empty()) {
+		append(critic_internal::ExtractGoalIdentifiers(prompts::CurrentResolvedRequest()));
+	}
+	return identifiers;
+}
+
 bool ApplyGoalIdentifierGate(const Json& builtEvidence, CriticVerdict* out) {
-	const std::string resolvedRequest = prompts::CurrentResolvedRequest();
-	const std::vector<std::string> identifiers = critic_internal::ExtractGoalIdentifiers(resolvedRequest);
+	const std::vector<std::string> identifiers = CollectAuthoritativeGoalIdentifiers();
 	if (identifiers.empty()) return true;
 
 	const std::vector<std::string> missing = FindMissingGoalIdentifiers(identifiers, builtEvidence);
@@ -388,9 +505,7 @@ bool ApplyGoalIdentifierGate(const Json& builtEvidence, CriticVerdict* out) {
 	if (!out->additionalTasks.is_array() || out->additionalTasks.empty()) {
 		out->additionalTasks = Json::array({
 			Json::object({
-				{"type", "RuntimeObservation"},
-				{"description", "不足識別子 " + joined +
-					" に関するEvidenceを取得する（ResolveEntity/DescribeEntity/ReadComponent等）"},
+				{"description", "不足識別子 " + joined + " に関するEvidenceを取得する"},
 			}),
 		});
 	}
@@ -491,7 +606,16 @@ Result CriticAgent::Run(
 	}
 
 	const double coverage = builtEvidence.is_object() ? builtEvidence.value("coverage", 0.0) : 0.0;
-	const TopHypothesisShape topHypothesis = InspectTopHypothesis(rankedHypotheses);
+	const TopHypothesisShape topHypothesis = InspectTopHypothesis(rankedHypotheses, builtEvidence);
+
+	// 観測要件を適用するかは「要求の種類」ではなく「実際に使ったツール」で決める。
+	//
+	// 会話応答（Respond）は観測ではないので、常に観測を要求すると
+	// 挨拶や「私は誰ですか？」が必ず未完了になる。
+	// かといって要求の種類で分岐すると、キーワード判定に逆戻りする。
+	// Respond以外のツールが1つでも使われていれば、それはEngine/コードの
+	// 事実を主張しているので観測が要る。使われていなければ要らない。
+	const bool requiresObservation = EvidenceUsesNonRespondTool(builtEvidence);
 	const double topConfidence = topHypothesis.confidence;
 	const std::size_t contradictionCount = ArraySize(builtEvidence, "contradictions");
 	const std::size_t evidenceCount = ArraySize(builtEvidence, "evidences");
@@ -547,6 +671,14 @@ Result CriticAgent::Run(
 		hardFail = true;
 	} else if (!topHypothesis.hasSupport) {
 		AddFailureOnce(out, "programmatic hard fail: top hypothesis has no supporting evidence");
+		hardFail = true;
+	} else if (!topHypothesis.hasObservationSupport && requiresObservation) {
+		// 会話履歴の参照系Evidence（過去発話・要約・過去のAgent応答）だけで
+		// 支えられた仮説。参照解決には使えるが観測ではないので断定できない。
+		AddFailureOnce(
+			out,
+			"programmatic hard fail: top hypothesis is supported only by conversation "
+			"references (no observation)");
 		hardFail = true;
 	} else if (topHypothesis.hasMissingEvidence) {
 		AddFailureOnce(out, "programmatic hard fail: top hypothesis declares missing evidence");

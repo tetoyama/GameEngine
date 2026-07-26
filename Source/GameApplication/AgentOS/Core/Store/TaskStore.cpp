@@ -5,6 +5,7 @@
 // =======================================================================
 #include "TaskStore.h"
 
+#include <cctype>
 #include <string>
 #include <vector>
 
@@ -351,6 +352,140 @@ Json TaskStore::GetConversationContext(SessionId beforeSessionId) {
 	context["threadStates"] = std::move(threadStates);
 	context["totalTurns"] = totalTurns;
 	return context;
+}
+
+namespace {
+
+bool WantsKind(const std::vector<std::string>& kinds, const char* kind) {
+	if (kinds.empty()) return true; // 指定なしは全種別
+	for (const std::string& k : kinds) {
+		if (k == kind) return true;
+	}
+	return false;
+}
+
+std::string LowerAscii(const std::string& s) {
+	std::string out = s;
+	for (char& c : out) {
+		c = static_cast<char>(std::tolower(static_cast<unsigned char>(c)));
+	}
+	return out;
+}
+
+// queryが空なら常に一致。ASCIIは大小無視、非ASCIIはそのまま部分一致。
+bool Matches(const std::string& haystack, const std::string& loweredQuery) {
+	if (loweredQuery.empty()) return true;
+	return LowerAscii(haystack).find(loweredQuery) != std::string::npos;
+}
+
+} // namespace
+
+Json TaskStore::SearchConversationHistory(
+	SessionId beforeSessionId,
+	const std::string& query,
+	const std::vector<std::string>& kinds,
+	int limitPerKind) {
+
+	std::lock_guard<std::mutex> lock(mutex_);
+	Json entries = Json::array();
+	if (limitPerKind <= 0) limitPerKind = 5;
+	const std::string lowered = LowerAscii(query);
+
+	// --- 過去Evidence（観測） ---
+	// 新しいセッションから遡る。同一セッション内はEvidence順。
+	if (WantsKind(kinds, "evidence")) {
+		Statement stmt;
+		Result r = db_.Prepare(
+			"SELECT Task.session_id, Evidence.source_type, Evidence.source_uri, "
+			"Evidence.claim, Evidence.payload_json, Evidence.confidence "
+			"FROM Evidence JOIN Task ON Evidence.task_id = Task.id "
+			"WHERE Task.session_id < ?1 ORDER BY Task.session_id DESC, Evidence.id DESC;",
+			&stmt);
+		if (r) {
+			stmt.BindInt64(1, beforeSessionId);
+			int taken = 0;
+			while (taken < limitPerKind && stmt.Step() == Statement::StepResult::Row) {
+				const std::string claim = stmt.ColumnText(3);
+				const std::string payloadText = stmt.ColumnText(4);
+				if (!Matches(claim, lowered) && !Matches(payloadText, lowered)) continue;
+				Json payload = Json::parse(payloadText, nullptr, false);
+				if (payload.is_discarded()) payload = Json::object();
+				entries.push_back(Json::object({
+					{"kind", "evidence"},
+					{"sessionId", stmt.ColumnInt64(0)},
+					{"originSourceType", stmt.ColumnText(1)},
+					{"originSourceUri", stmt.ColumnText(2)},
+					{"claim", claim},
+					{"payload", std::move(payload)},
+					{"confidence", stmt.ColumnDouble(5)},
+				}));
+				++taken;
+			}
+		}
+	}
+
+	// --- ユーザ発話 / Agent応答 ---
+	const bool wantUser = WantsKind(kinds, "userTurn");
+	const bool wantAssistant = WantsKind(kinds, "assistantTurn");
+	if (wantUser || wantAssistant) {
+		Statement stmt;
+		Result r = db_.Prepare(
+			"SELECT session_id, user_text, assistant_text FROM ConversationTurn "
+			"WHERE session_id < ?1 ORDER BY session_id DESC;",
+			&stmt);
+		if (r) {
+			stmt.BindInt64(1, beforeSessionId);
+			int takenUser = 0;
+			int takenAssistant = 0;
+			while ((takenUser < limitPerKind || takenAssistant < limitPerKind) &&
+			       stmt.Step() == Statement::StepResult::Row) {
+				const std::int64_t session = stmt.ColumnInt64(0);
+				const std::string userText = stmt.ColumnText(1);
+				const std::string assistantText = stmt.ColumnText(2);
+				if (wantUser && takenUser < limitPerKind &&
+				    !userText.empty() && Matches(userText, lowered)) {
+					entries.push_back(Json::object({
+						{"kind", "userTurn"}, {"sessionId", session}, {"text", userText},
+					}));
+					++takenUser;
+				}
+				if (wantAssistant && takenAssistant < limitPerKind &&
+				    !assistantText.empty() && Matches(assistantText, lowered)) {
+					entries.push_back(Json::object({
+						{"kind", "assistantTurn"}, {"sessionId", session}, {"text", assistantText},
+					}));
+					++takenAssistant;
+				}
+			}
+		}
+	}
+
+	// --- Thread State（Intakeが確定させた構造化要約） ---
+	if (WantsKind(kinds, "threadState")) {
+		Statement stmt;
+		Result r = db_.Prepare(
+			"SELECT session_id, state_json FROM ConversationThreadState "
+			"WHERE session_id < ?1 ORDER BY session_id DESC;",
+			&stmt);
+		if (r) {
+			stmt.BindInt64(1, beforeSessionId);
+			int taken = 0;
+			while (taken < limitPerKind && stmt.Step() == Statement::StepResult::Row) {
+				const std::string stateText = stmt.ColumnText(1);
+				if (!Matches(stateText, lowered)) continue;
+				Json state = Json::parse(stateText, nullptr, false);
+				if (!state.is_object() || state.is_discarded()) continue;
+				entries.push_back(Json::object({
+					{"kind", "threadState"},
+					{"sessionId", stmt.ColumnInt64(0)},
+					{"state", std::move(state)},
+				}));
+				++taken;
+			}
+		}
+	}
+
+	return entries;
 }
 
 Result TaskStore::UpdateConversationSummary(

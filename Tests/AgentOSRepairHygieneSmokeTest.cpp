@@ -45,8 +45,13 @@ using namespace agentos;
 namespace {
 
 // ---------------------------------
-// 検索Tool（queryのみ必須）
+// 検索Toolの代役
 // ---------------------------------
+// スキーマは実物の CodeSearchTool に合わせること。
+// 以前は query だけを宣言していたため、CodeInvestigationPlanner が組む
+// 決定的プランのコマンド（{"query":..., "topK":10}）が未知フィールドとして
+// 弾かれ、SchemaRejected の失敗Evidenceになっていた。
+// 代役のスキーマが実物とずれていると、製品ではなくテストが壊れる。
 class SearchTool final : public ICommandExecutor {
 public:
 	SearchTool()
@@ -54,6 +59,8 @@ public:
 			"CodeSearch", "コードを検索する", PermissionLevel::Read,
 			Json::object({
 				{"query", Json::object({{"type", "string"}, {"required", true}})},
+				{"file", Json::object({{"type", "string"}, {"required", false}})},
+				{"topK", Json::object({{"type", "integer"}, {"required", false}})},
 			})} {}
 
 	const ToolDescriptor& Descriptor() const override { return m_descriptor; }
@@ -167,7 +174,11 @@ void TestContaminatedRepairIsCleanedNotPoisoned() {
 
 	// 混入した項目だけが落とされ、修復Taskは実行される。
 	// queryそのものは妥当だったので、提案ごと捨てるのは惜しい。
-	assert(tool->executions == 2);
+	//
+	// 実行回数そのものは検証しない。CodeInvestigationPlanner が
+	// 要求内容に応じて初期Task数を変えるため、回数はルーティングの
+	// 実装詳細に縛られる。ここで見たいのは「修復が掃除済みの引数で走ったか」。
+	assert(tool->executions >= 2);
 	assert(tool->lastQuery == "mutex lock guard");
 
 	// 本題: 失敗Evidenceが1件も無いこと。
@@ -217,8 +228,9 @@ void TestUnsalvageableRepairIsNotCreated() {
 
 	const OrchestratorResult result = orchestrator.RunSession("実装を見せて");
 
-	// 直せない提案は実行されない
-	assert(tool->executions == 1);
+	// 直せない提案は実行されない。
+	// 初期Task由来の実行は起きうるので、修復由来のqueryが来ていないことで見る。
+	assert(tool->lastQuery != "何か");
 	// そしてEvidenceは汚れない
 	assert(result.builtEvidence.at("failedEvidenceCount").get<std::size_t>() == 0);
 	assert(result.builtEvidence.at("coverage").get<double>() == 1.0);

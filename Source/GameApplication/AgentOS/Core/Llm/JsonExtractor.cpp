@@ -6,6 +6,7 @@
 #include "JsonExtractor.h"
 
 #include <regex>
+#include <vector>
 
 namespace agentos {
 
@@ -50,7 +51,55 @@ std::string StripTrailingCommas(const std::string& text) {
 	return current;
 }
 
-// candidateを（必要ならtrailing comma修復してから）パースする。
+// 閉じ括弧の欠落を補う簡易修復。
+//
+// 小規模モデルは構造的には正しいJSONを出しながら、末尾の '}' や ']' を
+// 落とすことがある。実機では Planner が
+//   {"tasks":[{"taskId":"1", ... ,"allowedTools":["Respond"],"searchHints":[]}]
+// という「最後の1文字だけ足りない」出力を返し、パースに失敗して
+// 「tasks array must not be empty」で計画失敗になった
+// （transcript_20260727_042057。stopReason=completedなのでトークン切れではない）。
+//
+// 文字列の途中で切れている場合は中身が壊れているので修復しない。
+// 開いたままの括弧を、開いた順の逆順に閉じるだけに留める。
+std::string CloseUnterminated(const std::string& text) {
+	std::vector<char> stack;
+	bool inString = false;
+	bool escaped = false;
+
+	for (const char c : text) {
+		if (inString) {
+			if (escaped) {
+				escaped = false;
+			} else if (c == '\\') {
+				escaped = true;
+			} else if (c == '"') {
+				inString = false;
+			}
+			continue;
+		}
+		if (c == '"') {
+			inString = true;
+		} else if (c == '{' || c == '[') {
+			stack.push_back(c);
+		} else if (c == '}' || c == ']') {
+			if (stack.empty()) return text; // 対応が壊れている。触らない
+			const char open = stack.back();
+			if ((c == '}') != (open == '{')) return text; // 種類が食い違う
+			stack.pop_back();
+		}
+	}
+
+	if (inString || stack.empty()) return text;
+
+	std::string repaired = text;
+	for (auto it = stack.rbegin(); it != stack.rend(); ++it) {
+		repaired += (*it == '{') ? '}' : ']';
+	}
+	return repaired;
+}
+
+// candidateを（必要なら修復してから）パースする。
 bool TryParse(const std::string& candidate, Json* out) {
 	try {
 		*out = Json::parse(candidate);
@@ -58,12 +107,22 @@ bool TryParse(const std::string& candidate, Json* out) {
 	} catch (const Json::exception&) {
 		// フォールスルーして修復を試みる。
 	}
-	try {
-		*out = Json::parse(StripTrailingCommas(candidate));
-		return true;
-	} catch (const Json::exception&) {
-		return false;
+	// 修復は「末尾カンマ除去」→「閉じ括弧の補完」の順に重ねて試す。
+	const std::string noTrailingComma = StripTrailingCommas(candidate);
+	for (const std::string& repaired : {
+		noTrailingComma,
+		CloseUnterminated(candidate),
+		CloseUnterminated(noTrailingComma),
+	}) {
+		if (repaired == candidate) continue;
+		try {
+			*out = Json::parse(repaired);
+			return true;
+		} catch (const Json::exception&) {
+			// 次の修復案へ
+		}
 	}
+	return false;
 }
 
 // startIndexにある'{'からブレースの対応を文字列・エスケープを考慮して追跡し、

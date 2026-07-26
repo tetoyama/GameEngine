@@ -342,44 +342,6 @@ void ApplyMemoryGroundingFilter(
 	(*normalized)["memoryDerivedNotes"] = std::move(memoryDerivedNotes);
 }
 
-bool IsSimpleConversationInput(const std::string& userRequest) {
-	if (userRequest.empty() || userRequest.size() > 96) return false;
-	const bool greeting = ContainsAny(userRequest, {
-		"こんにちは", "こんばんは", "おはよう", "はじめまして", "ありがとう", "よろしく",
-		"Hello", "hello", "Hi", "hi"
-	});
-	const bool engineRequest = ContainsAny(userRequest, {
-		"Entity", "Component", "System", "シーン", "コード", "調査", "確認", "一覧", "修正"
-	});
-	return greeting && !engineRequest;
-}
-
-bool IsFreshRuntimeRequest(const std::string& userRequest) {
-	return ContainsAny(userRequest, {
-		"今のシーン", "現在のシーン", "最新のシーン", "今の状態", "現在の状態",
-		"今いるEntity", "現在のEntity", "シーンの状況", "runtime state", "current scene"
-	});
-}
-
-bool IsExplicitCorrection(const std::string& userRequest) {
-	return ContainsAny(userRequest, {
-		"違う", "そうじゃなくて", "ではなく", "じゃなく", "正しくは", "訂正",
-		"あるはず", "のはず"
-	});
-}
-
-bool IsContinuationReferenceInput(const std::string& userRequest) {
-	if (userRequest.empty() || userRequest.size() > 320) return false;
-	return ContainsAny(userRequest, {
-		"続けて", "続き", "それ", "これ", "この件", "前の", "さっき", "先ほど",
-		"もう一度", "どういうこと", "同じ", "引き続き", "その"
-	});
-}
-
-bool RequiresPriorThreadContext(const std::string& userRequest) {
-	return IsExplicitCorrection(userRequest) || IsContinuationReferenceInput(userRequest);
-}
-
 Json EmptyStructuredContext(const std::string& policy, const Json& fullContext = Json::object()) {
 	Json selected = Json::object();
 	selected["summary"] = "";
@@ -407,17 +369,14 @@ Json BoundedRecentTurn(const Json& turn) {
 	return result;
 }
 
+// 履歴を渡すかどうかを先回りで決めない。
+//
+// 以前は「続けて」「それ」「さっき」等14語の部分一致で決めていたため、
+// 「5件全部知りたい」のような明らかな継続を取りこぼし、DBに51件あるのに
+// totalTurns=0 のままIntakeへ渡していた（transcript_20260727_013726）。
+// Intakeの仕事は参照解決なので、材料は常に渡す。
 Json BuildIntakePromptContext(const std::string& userRequest, const Json& fullContext) {
-	if (IsSimpleConversationInput(userRequest)) {
-		return EmptyStructuredContext("active_turn_only", fullContext);
-	}
-	if (IsFreshRuntimeRequest(userRequest)) {
-		return EmptyStructuredContext("fresh_runtime_observation", fullContext);
-	}
-	if (!RequiresPriorThreadContext(userRequest)) {
-		return EmptyStructuredContext("active_turn_only", fullContext);
-	}
-
+	(void)userRequest;
 	Json selected = EmptyStructuredContext("structured_thread_reference", fullContext);
 	if (fullContext.contains("threadStates") && fullContext.at("threadStates").is_array()) {
 		const Json& states = fullContext.at("threadStates");
@@ -563,43 +522,9 @@ Result IntakeAgent::Run(
 	prompts::ClearCurrentConversationRequestContext();
 	if (intakeOut == nullptr) return Result::Fail("IntakeAgent: intakeOut is null");
 
-	// 挨拶は履歴解決を必要としない。LLMへ全Conversation Storeを渡してから
-	// newへ戻す旧順序では、過去の未完了調査が入力を上書きしていた。
-	if (IsSimpleConversationInput(userRequest)) {
-		Json normalized = Json::object({
-			{"goal", "ユーザーの挨拶または短い会話へ応答する"},
-			{"resolvedRequest", "現在のユーザー入力に対して短く自然に会話応答する"},
-			{"rootGoal", "ユーザーの挨拶または短い会話へ応答する"},
-			{"rootResolvedRequest", "現在のユーザー入力に対して短く自然に会話応答する"},
-			{"turnRelation", "new"},
-			{"referencedSessionIds", Json::array()},
-			{"symptoms", Json::array()},
-			{"constraints", Json::array()},
-			{"requiredCapabilities", Json::array()},
-			{"unresolvedReferences", Json::array()},
-			{"memoryDerivedNotes", Json::array()},
-			{"targetKind", "unknown"},
-			{"targetConcept", nullptr},
-			{"resolvedEntityName", nullptr},
-			{"requestType", "conversation"},
-			{"currentUserInput", userRequest},
-			{"requestRevision", 0},
-			{"historyIdentifiers", Json::array()},
-			{"simpleConversation", true},
-		});
-		const Json selectedContext = EmptyStructuredContext("active_turn_only");
-		normalized["conversationContext"] = selectedContext;
-		if (ctx.store != nullptr && ctx.sessionId != kInvalidId) {
-			(void)ctx.store->SetConversationThreadState(ctx.sessionId, BuildThreadState(ctx.sessionId, normalized));
-		}
-		prompts::SetCurrentConversationRequestContext(selectedContext, normalized);
-		*intakeOut = std::move(normalized);
-		return Result::Ok();
-	}
-
+	// 履歴は常に読む。キーワード一致で読むかどうかを決めない（上の注記参照）。
 	Json fullContext = conversationContext;
-	if (RequiresPriorThreadContext(userRequest) &&
-	    (!fullContext.is_object() || fullContext.empty()) &&
+	if ((!fullContext.is_object() || fullContext.empty()) &&
 	    ctx.store != nullptr && ctx.sessionId != kInvalidId) {
 		fullContext = ctx.store->GetConversationContext(ctx.sessionId);
 	}
@@ -665,13 +590,8 @@ Result IntakeAgent::Run(
 		 !promptContext.at("threadStates").empty()) ||
 		(promptContext.contains("recentTurns") && promptContext.at("recentTurns").is_array() &&
 		 !promptContext.at("recentTurns").empty());
-	if (IsFreshRuntimeRequest(userRequest)) {
-		relation = "refresh";
-		requestType = "investigation";
-		normalized["referencedSessionIds"] = Json::array();
-	} else if (hasPreviousTurns && IsExplicitCorrection(userRequest)) {
-		relation = "correct";
-	}
+	// turnRelationをキーワードで上書きしない。Intakeの判定をそのまま使う。
+	(void)hasPreviousTurns;
 	normalized["turnRelation"] = relation;
 	normalized["requestType"] = requestType;
 

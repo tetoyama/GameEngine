@@ -88,6 +88,44 @@ void SetResolvedRequest(const std::string& resolvedRequest) {
 		Json::object({{"resolvedRequest", resolvedRequest}}));
 }
 
+void SetIntake(const Json& intake) {
+	prompts::ClearCurrentConversationRequestContext();
+	prompts::SetCurrentConversationRequestContext(Json::object(), intake);
+}
+
+// ゲート#8だけが落としたかを見る。CriticAgent::Runは他の決定的ゲート
+// （仮説の有無等）でもpass=falseになるため、pass単体では判別できない。
+bool Gate8Failed(const CriticVerdict& verdict) {
+	for (const auto& failure : verdict.failures) {
+		if (failure.find("goal identifiers not covered") != std::string::npos) return true;
+	}
+	return false;
+}
+
+Json CodeSymbolEvidence() {
+	return Json::object({
+		{"coverage", 1.0},
+		{"failedEvidenceCount", 0},
+		{"evidences", Json::array({
+			Json::object({
+				{"id", 204},
+				{"taskId", 322},
+				{"claim", "シンボル「SqliteDb::Prepare」の定義は agentos::SqliteDb::Prepare"
+					"（Source/GameApplication/AgentOS/Core/Store/SqliteDb.cpp:253-267）。"},
+				{"payload", Json::object({
+					{"name", "SqliteDb::Prepare"},
+					{"code", "Result SqliteDb::Prepare(const std::string& sql, Statement* out) { ... }"},
+				})},
+				{"provenance", Json::object({
+					{"sourceType", "Tool:GetSymbolInfo"}, {"sourceUri", "GetSymbolInfo"},
+					{"session", "s70"}, {"frame", -1},
+				})},
+				{"confidence", 1.0},
+			}),
+		})},
+	});
+}
+
 // =======================================================================
 // 1) ExtractGoalIdentifiers 単体テスト
 // =======================================================================
@@ -177,8 +215,9 @@ void TestCriticFailsOnUncoveredGoalIdentifier() {
 	// Repairループが実際に到達できるよう、additionalTaskが合成されていること。
 	assert(verdict.additionalTasks.is_array());
 	assert(!verdict.additionalTasks.empty());
+	// Task種別(type)は廃止した。修復提案の実体は description と tool だけ。
 	const Json& task = verdict.additionalTasks[0];
-	assert(task.value("type", std::string()) == "RuntimeObservation");
+	assert(!task.contains("type"));
 	assert(task.value("description", std::string()).find("不足識別子") != std::string::npos);
 
 	prompts::ClearCurrentConversationRequestContext();
@@ -316,6 +355,90 @@ void TestPlannerStillFiresGenericSnapshotRoute() {
 	std::cout << "  - PlannerAgent: generic scene snapshot request still deterministic: OK\n";
 }
 
+// =======================================================================
+// 6) ゲート#8は「要求の権威ある表現」だけを見ること。
+//
+// 実機失敗（transcript_20260726_230620）:
+//   入力     「SqliteDb::Prepareの実装を見せて」
+//   Intake   「SqliteDb::Prepare メソッドの実装コードを表示する」へ言い換え
+//   結果     Intakeが装飾で足しただけの「メソッド」「コード」を
+//            ユーザ指定の調査対象と解釈し、達成済みの調査をhard failにした。
+//            修復Taskが2つ合成されたがどちらもEvidenceを産まず、
+//            coverage 1.0 → 0.333 へ悪化して「未完了」で終わった。
+//
+//   このときLLM Criticはプロンプト内でcurrentUserInputを見ており、
+//   goalSatisfied=true・全項目1.0と正しく判定していた。
+//   決定的ゲート側にだけ原文が渡っていなかったのが原因である。
+// =======================================================================
+void TestGate8UsesAuthoritativeRequestOnly() {
+	AgentContext ctx;
+	const Json rankedHypotheses = Json::object({{"hypotheses", Json::array()}});
+
+	// 6a: 言い換えで足された「メソッド」「コード」で落とされないこと。
+	{
+		SetIntake(Json::object({
+			{"currentUserInput", "SqliteDb::Prepareの実装を見せて"},
+			{"resolvedRequest", "SqliteDb::Prepare メソッドの実装コードを表示する"},
+			{"targetConcept", "SqliteDb::Prepare"},
+			{"resolvedEntityName", nullptr},
+		}));
+		CriticVerdict verdict;
+		const Result result = CriticAgent::Run(ctx, rankedHypotheses, CodeSymbolEvidence(), &verdict);
+		assert(result.ok);
+		assert(!Gate8Failed(verdict));
+		prompts::ClearCurrentConversationRequestContext();
+	}
+
+	// 6b: ゲート#8本来の目的は維持されること。
+	//     構造化フィールドで確定した対象(JumpForce)がEvidenceに無ければ落とす。
+	{
+		SetIntake(Json::object({
+			{"currentUserInput", "Playerのジャンプ力を教えて"},
+			{"resolvedRequest", "Entity 'Player' の ジャンプ力 (JumpForce) を読み取る"},
+			{"targetConcept", "JumpForce"},
+			{"resolvedEntityName", "Player"},
+		}));
+		CriticVerdict verdict;
+		const Result result = CriticAgent::Run(ctx, rankedHypotheses, BuildSnapshotCompleteEvidence(), &verdict);
+		assert(result.ok);
+		assert(Gate8Failed(verdict));
+		assert(!verdict.pass);
+		prompts::ClearCurrentConversationRequestContext();
+	}
+
+	// 6c: 原文のカタカナで誤爆しないこと。
+	//     ユーザは「プレイヤー」と書くがEngine Evidenceは"Player"であり、
+	//     原文のカタカナをそのまま識別子にすると必ず未カバーになる。
+	//     カタカナの対象名はresolvedEntityName側で拾う。
+	{
+		SetIntake(Json::object({
+			{"currentUserInput", "プレイヤーのEntity一覧を見せて"},
+			{"resolvedRequest", "Entity 'Player' の一覧を表示する"},
+			{"targetConcept", nullptr},
+			{"resolvedEntityName", "Player"},
+		}));
+		CriticVerdict verdict;
+		const Result result = CriticAgent::Run(ctx, rankedHypotheses, BuildSnapshotCompleteEvidence(), &verdict);
+		assert(result.ok);
+		assert(!Gate8Failed(verdict));
+		prompts::ClearCurrentConversationRequestContext();
+	}
+
+	// 6d: 原文も構造化フィールドも無い場合はresolvedRequestへ退避すること。
+	//     本番Intakeは必ずcurrentUserInputを設定するため、この経路へ来るのは
+	//     Contextが未設定の場合（上記2)3)のような単体テスト）に限られる。
+	{
+		SetResolvedRequest("Entity 'Player' の ジャンプ力 (JumpForce) を読み取る");
+		CriticVerdict verdict;
+		const Result result = CriticAgent::Run(ctx, rankedHypotheses, BuildSnapshotCompleteEvidence(), &verdict);
+		assert(result.ok);
+		assert(Gate8Failed(verdict));
+		prompts::ClearCurrentConversationRequestContext();
+	}
+
+	std::cout << "  - CriticAgent gate#8 reads authoritative request, not the paraphrase: OK\n";
+}
+
 } // namespace
 
 int main() {
@@ -324,6 +447,7 @@ int main() {
 	TestExtractGoalIdentifiers();
 	TestCriticFailsOnUncoveredGoalIdentifier();
 	TestCriticPassesWhenGoalIdentifiersCoveredOrGeneric();
+	TestGate8UsesAuthoritativeRequestOnly();
 	TestPlannerExcludesSpecificTargetFromSnapshotRoute();
 	TestPlannerStillFiresGenericSnapshotRoute();
 

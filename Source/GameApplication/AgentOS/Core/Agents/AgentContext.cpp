@@ -13,57 +13,17 @@
 
 namespace agentos {
 
+// 定数初期化のみ。動的初期化を伴うthread_localは置かないこと（AgentContext.h参照）。
+namespace {
+thread_local SessionId g_currentSessionId = 0;
+}
+
+void SetCurrentSessionId(SessionId sessionId) noexcept { g_currentSessionId = sessionId; }
+SessionId CurrentSessionId() noexcept { return g_currentSessionId; }
+
 namespace {
 
 const char* kFenceReminder = "\n\n出力は```jsonフェンス内の単一JSONオブジェクトのみ。";
-
-bool ReplyContainsHistoryOnlyIdentifier(const std::string& reply) {
-	if (prompts::CurrentTurnRelation() != "new" || reply.empty()) return false;
-
-	const Json current = prompts::CurrentConversationRequestContext();
-	std::string activeText = prompts::CurrentResolvedRequest();
-	if (current.is_object() && current.contains("intake") && current.at("intake").is_object()) {
-		activeText += "\n" + current.at("intake").value("currentUserInput", std::string());
-	}
-
-	const Json identifiers = prompts::CurrentHistoryIdentifiers();
-	if (!identifiers.is_array()) return false;
-	for (const Json& value : identifiers) {
-		if (!value.is_string()) continue;
-		const std::string identifier = value.get<std::string>();
-		if (identifier.size() < 3) continue;
-		if (reply.find(identifier) != std::string::npos &&
-		    activeText.find(identifier) == std::string::npos) {
-			return true;
-		}
-	}
-	return false;
-}
-
-// DirectReplyのTool誤提案と、new Turnへの過去トピック混入をJSON抽出直後に遮断する。
-void SanitizeConversationResult(Json* value) {
-	if (value == nullptr || !value->is_object()) return;
-
-	const bool directReplyShape =
-		value->contains("reply") || value->contains("toolCall") || value->contains("escalate");
-	if (!directReplyShape) return;
-
-	if (prompts::CurrentRequestIsPersonalIdentityQuestion()) {
-		(*value)["toolCall"] = nullptr;
-		(*value)["escalate"] = false;
-	}
-
-	if (value->contains("reply") && value->at("reply").is_string()) {
-		const std::string reply = value->at("reply").get<std::string>();
-		if (ReplyContainsHistoryOnlyIdentifier(reply)) {
-			(*value)["reply"] = prompts::CurrentRequestIsSimpleConversation()
-				? Json("こんにちは。何を確認する？")
-				: Json("今回の話題について、もう少し具体的に教えて。");
-			(*value)["toolCall"] = nullptr;
-			(*value)["escalate"] = false;
-		}
-	}
-}
 
 } // namespace
 
@@ -93,7 +53,6 @@ Result CallLlmJson(AgentContext& ctx, const PromptPair& prompt, Json* out) {
 	Json extracted;
 	Result extractResult = JsonExtractor::Extract(response, &extracted);
 	if (extractResult) {
-		SanitizeConversationResult(&extracted);
 		*out = std::move(extracted);
 		return Result::Ok();
 	}
@@ -109,7 +68,6 @@ Result CallLlmJson(AgentContext& ctx, const PromptPair& prompt, Json* out) {
 		return Result::Fail(
 			"CallLlmJson: JSON extraction failed after retry: " + retryExtractResult.error);
 	}
-	SanitizeConversationResult(&retryExtracted);
 	*out = std::move(retryExtracted);
 	return Result::Ok();
 }

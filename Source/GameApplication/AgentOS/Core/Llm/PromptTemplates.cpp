@@ -5,10 +5,10 @@
 // =======================================================================
 #include "PromptTemplates.h"
 
-#include <initializer_list>
 #include <string>
 
 #include "../Evidence/EvidencePromptCompressor.h"
+#include "../TextUtf8.h"
 
 namespace agentos {
 namespace prompts {
@@ -43,6 +43,12 @@ Json& ToolCatalogRef() {
 	return value;
 }
 
+// Respondツール用。上と同じ理由で関数内 static thread_local にする。
+Json& BuiltEvidenceRef() {
+	static thread_local Json value = Json::object();
+	return value;
+}
+
 const char* kContractJa =
 	"あなたはAgentOSのサブシステムとして動作するアシスタントです。\n"
 	"出力契約（厳守）:\n"
@@ -59,13 +65,6 @@ std::string BuildSystem(const std::string& roleDescription, const std::string& s
 	s += schemaJson;
 	s += "\n/no_think\n";
 	return s;
-}
-
-bool ContainsAny(const std::string& text, std::initializer_list<const char*> needles) {
-	for (const char* needle : needles) {
-		if (needle != nullptr && text.find(needle) != std::string::npos) return true;
-	}
-	return false;
 }
 
 Json IntakeWithoutRawConversation(const Json& source) {
@@ -126,6 +125,11 @@ std::string ContextText(const Json& supplied) {
 	return packed.dump(2);
 }
 
+// dumpは不正UTF-8で例外を投げる。Evidenceの中身は外部由来なので置換へ倒す。
+std::string SafeContextDump(const Json& value) {
+	return value.dump(2, ' ', false, Json::error_handler_t::replace);
+}
+
 std::string RequestContextText() {
 	const Json intake = IntakeWithoutRawConversation(NormalizedIntakeRef());
 	const std::string rootGoal = intake.value("rootGoal", intake.value("goal", std::string()));
@@ -139,9 +143,10 @@ std::string RequestContextText() {
 
 } // namespace
 
+// UTF-8の文字境界で切る。バイト位置で切ると多バイト文字が分断され、
+// 不正なUTF-8になってjson::dump()が例外を投げる（Core/TextUtf8.h参照）。
 std::string Truncate(const std::string& text, std::size_t maxChars) {
-	if (text.size() <= maxChars) return text;
-	return text.substr(0, maxChars) + "\n...(truncated)...";
+	return TruncateUtf8(text, maxChars, "\n...(truncated)...");
 }
 
 void SetCurrentConversationRequestContext(
@@ -163,10 +168,19 @@ Json CurrentToolCatalog() {
 	return ToolCatalogRef();
 }
 
+void SetCurrentBuiltEvidence(const Json& builtEvidence) {
+	BuiltEvidenceRef() = builtEvidence.is_object() ? builtEvidence : Json::object();
+}
+
+Json CurrentBuiltEvidence() {
+	return BuiltEvidenceRef();
+}
+
 void ClearCurrentConversationRequestContext() {
 	ConversationContextRef() = Json::object();
 	NormalizedIntakeRef() = Json::object();
 	ToolCatalogRef() = Json::array();
+	BuiltEvidenceRef() = Json::object();
 }
 
 Json CurrentConversationRequestContext() {
@@ -184,6 +198,32 @@ std::string CurrentResolvedRequest(const std::string& fallback) {
 		return NormalizedIntakeRef().at("resolvedRequest").get<std::string>();
 	}
 	return fallback;
+}
+
+namespace {
+
+// NormalizedIntakeから文字列フィールドを取り出す。null/非文字列は空扱い。
+std::string IntakeStringField(const char* key) {
+	if (!NormalizedIntakeRef().is_object()) return {};
+	if (!NormalizedIntakeRef().contains(key)) return {};
+	const Json& value = NormalizedIntakeRef().at(key);
+	if (!value.is_string()) return {};
+	return value.get<std::string>();
+}
+
+} // namespace
+
+std::string CurrentUserInput(const std::string& fallback) {
+	const std::string value = IntakeStringField("currentUserInput");
+	return value.empty() ? fallback : value;
+}
+
+std::string CurrentTargetConcept() {
+	return IntakeStringField("targetConcept");
+}
+
+std::string CurrentResolvedEntityName() {
+	return IntakeStringField("resolvedEntityName");
 }
 
 std::string CurrentTurnRelation() {
@@ -209,26 +249,6 @@ Json CurrentHistoryIdentifiers() {
 		return NormalizedIntakeRef().at("historyIdentifiers");
 	}
 	return Json::array();
-}
-
-bool CurrentRequestIsPersonalIdentityQuestion() {
-	const std::string request = CurrentResolvedRequest();
-	return ContainsAny(request, {
-		"私は誰", "わたしは誰", "僕は誰", "自分は誰",
-		"あなたは誰", "君は誰", "who am i", "Who am I",
-		"who are you", "Who are you"
-	});
-}
-
-bool CurrentRequestIsSimpleConversation() {
-	if (NormalizedIntakeRef().is_object() && NormalizedIntakeRef().value("simpleConversation", false)) {
-		return true;
-	}
-	const std::string request = CurrentResolvedRequest();
-	return ContainsAny(request, {
-		"こんにちは", "こんばんは", "おはよう", "はじめまして", "ありがとう",
-		"よろしく", "hello", "Hello", "hi", "Hi"
-	});
 }
 
 Result ApplyCurrentRequestPatch(const Json& requestPatch, Json* revisedIntakeOut) {
@@ -341,30 +361,21 @@ PromptPair Intake(const std::string& userRequest, const Json& conversationContex
 	return p;
 }
 
-PromptPair DirectReply(
-	const std::string& userRequest,
-	const std::string& compactToolCatalog,
-	const Json& conversationContext) {
-
+PromptPair Respond(const std::string& instruction, const Json& dependencyEvidence) {
 	PromptPair p;
 	p.system = BuildSystem(
-		"AgentOSの対話窓口として日本語で応答するDirectReply担当。\n"
-		"優先順位は current input/resolvedRequest > structured Thread State。\n"
-		"- turnRelation=newでは過去の話題、固有Entity名、以前の調査結果を継続しない。\n"
-		"- structured Thread Stateは補助情報であり、現在要求を上書きしてはならない。\n"
-		"- Conversation Memoryのassistant回答をEngine Evidenceとして扱わない。\n"
-		"- 人物情報や『私は誰』をScene Entity検索へ変換しない。\n"
-		"- Toolはゲーム内実データを明示的に求め、1回のRead Toolで完結する場合だけ提案する。\n"
-		"- 履歴だけで回答できるならreply。多段調査が必要ならescalate=true。\n"
-		"- 実行していない操作を実行済みと言わない。",
-		"{\"reply\": string|null, \"toolCall\": {\"tool\": string, \"arguments\": object}|null, "
-		"\"escalate\": boolean}");
+		"AgentOSの応答担当。日本語で、要求に対する応答文をそのまま作る。\n"
+		"- 根拠は「収集済みEvidence」に載っているものだけ。載っていないことを断定しない。\n"
+		"- 分からない・この系では答えられない場合は、そう正直に書く。それも正しい応答である。\n"
+		"- 推測を事実として書かない。実行していない操作を実行済みと言わない。\n"
+		"- ユーザ個人の身元や好みはEngineの観測対象ではない。知らないことは知らないと書く。\n"
+		"- 前置き・謝罪・自己紹介で埋めず、要求に直接答える。",
+		"{\"reply\": string}");
 
-	p.user = "現在のユーザー入力:\n" + userRequest +
-		"\n\n今回の解決済み要求:\n" + CurrentResolvedRequest(userRequest) +
-		"\n\nturnRelation: " + CurrentTurnRelation() +
-		"\n\n選択済み会話Context:\n" + ContextText(conversationContext) +
-		"\n\n利用可能なTool一覧:\n" + compactToolCatalog;
+	p.user = RequestContextText() +
+		"\n\nこのTaskの指示:\n" + Truncate(instruction, 1200) +
+		"\n\n収集済みEvidence（これ以外を根拠にしない）:\n" +
+		Truncate(SafeContextDump(dependencyEvidence), 6000);
 	return p;
 }
 
@@ -405,27 +416,42 @@ PromptPair CompressConversationMemory(
 
 PromptPair Plan(const Json& intake, const Json& toolCatalog, int maxTasks) {
 	SetCurrentToolCatalog(toolCatalog);
+	(void)maxTasks; // 件数上限は設けない（下記注記）
+
+	// ---------------------------------
+	// 役割の書き方について（重要）
+	// ---------------------------------
+	// 以前の役割は「Task DAGを作るPlanner担当」で、指示7行のうち6行が
+	// Engine観測Toolの個別の使い方だった（ListEntities/ResolveEntity/
+	// FindWriters/Exact Access Tool…）。そのため出口が常に「調べる」になり、
+	// 「こんにちは」に対して ListEntities と WriteTrace を並べた計画が出た
+	// （transcript_20260727_024705 / 033215）。
+	//
+	// 個別Toolの使い方はTool一覧の説明文に既に書いてある。ここへ重ねて書くと
+	// 二重管理になる上、書かれているEngine系だけが偏って想起される。
+	// Tool一覧を正本とし、ここには一覧からは読み取れない規律だけを残す。
+	//
+	// task数の上限は設けない。手順の長さは要求が決めるものであり、
+	// 上限を置くと「足りないまま出す」方向にしか働かない。
 	PromptPair p;
 	p.system = BuildSystem(
-		"Intake結果とTool一覧からTask DAGを作るPlanner担当。task数は" +
-		std::to_string(maxTasks) + "件以内。\n"
+		"現在の要求を満たすまでの手順を組むPlanner担当。\n"
+		"- 手順は「必要な情報を集めるTask」と「応答を作るTask」で構成する。\n"
+		"  集める情報が無い要求は、応答Taskだけでよい。\n"
+		"- 各Taskは使うToolをallowedToolsで指名する。Tool一覧に無いToolを創作しない。\n"
+		"  Toolを使わないTaskはallowedToolsを空にする（そのTaskは実行されない）。\n"
+		"- 名前や値が不確かなうちは、それを確定させるTaskを先に置く。\n"
+		"  確定後のTaskはdependenciesで先行Taskへ繋ぎ、その成功Evidenceの値を使う。\n"
 		"- resolvedRequestと最新constraintsを正とし、訂正前の条件を復活させない。\n"
-		"- snapshot観測ではListEntities/ListSystems/DescribeEntity等を使い、"
-		"時間変化が明示されない限りWriteTraceを使わない。\n"
-		"- Toolを実行するTaskはAnalysisにしない。\n"
-		"- ユーザー語が役割・概念（例: プレイヤー、ジャンプ力）なら、Entity名・Component名・Field名へ即断しない。\n"
-		"- 曖昧なEntityはResolveEntity/FindEntityByName等のDiscovery Taskで候補化し、DescribeEntityで実在Componentを確認する。\n"
-		"- FindReaders/FindWritersのcomponent引数へJumpForce等のField/Property概念を入れない。\n"
-		"- Exact Access ToolのEntity名・Component名は先行Taskの成功EvidenceからdependenciesでGroundingする。",
-		"{\"tasks\": [{\"taskId\": string, "
-		"\"type\": \"RuntimeObservation\"|\"CodeSearch\"|\"Trace\"|\"Analysis\", "
-		"\"description\": string, \"dependencies\": [string], "
-		"\"allowedTools\": [string], \"searchHints\": [string]}]}");
+		"- ユーザー語が役割・概念（例: プレイヤー、ジャンプ力）なら、"
+		"Entity名・Component名・Field名へ即断しない。",
+		"{\"tasks\": [{\"taskId\": string, \"description\": string, "
+		"\"dependencies\": [string], \"allowedTools\": [string], "
+		"\"searchHints\": [string]}]}");
 
 	const Json planningIntake = IntakeWithoutRawConversation(intake);
 	p.user = "解決済みIntake:\n" + Truncate(planningIntake.dump(2), 7000) +
-		"\n\nTool一覧:\n" + Truncate(CompactToolCatalog(toolCatalog)) +
-		"\n\n最大Task数: " + std::to_string(maxTasks);
+		"\n\nTool一覧:\n" + Truncate(CompactToolCatalog(toolCatalog));
 	return p;
 }
 
@@ -466,11 +492,11 @@ PromptPair Critique(const Json& hypotheses, const Json& builtEvidence) {
 		"最新Request Revisionに対して仮説とEvidenceを検証するCritic担当。\n"
 		"- ToolError、found=false、Unsatisfied等は成功Evidenceとして扱わない。\n"
 		"- 要求の対象名が誤っている場合はrequestPatchでBindingを修正する。ただしrootGoal/rootResolvedRequestの目的を、Schema確認・権限調査などの修復サブゴールへ置き換えない。\n"
-		"- 追加調査は必ずtypeをRuntimeObservation/CodeSearch/Traceのいずれかにする。\n"
+		"- 不足を埋めるTaskを提案する。埋め方は追加の観測とは限らない。"
+		"要求に答えるだけで足りるならRespondを提案する。\n"
 		"- 各追加Taskは、下記Tool一覧に実在するTool名とargumentsを具体的に指定する。\n"
 		"- Tool一覧に存在しないTool名を創作しない。\n"
 		"- argumentsはTool一覧のargumentSchemaにある正式フィールド名だけを使う。\n"
-		"- 修正後要求を満たすために必要なEvidenceを再取得できるTaskを最大2件提案する。\n"
 		"- rootGoalの達成に不要だったTaskはobsoleteTasksへtaskIdを挙げて計画から外す。"
 		"対象は「立てるべきでなかったTask」に限る。例: 静的なコードの問いに対する実行時トレース、"
 		"存在しないEntityを前提にした観測。\n"
@@ -485,9 +511,8 @@ PromptPair Critique(const Json& hypotheses, const Json& builtEvidence) {
 		"\"goalSatisfied\": boolean, \"unmetAspects\": [string], "
 		"\"requestPatch\": {\"goal\": string|null, \"resolvedRequest\": string|null, "
 		"\"constraints\": [string]|null, \"reason\": string}|null, "
-		"\"additionalTasksSuggested\": [{"
-		"\"type\": \"RuntimeObservation\"|\"CodeSearch\"|\"Trace\", "
-		"\"description\": string, \"tool\": string, \"arguments\": object}], "
+		"\"additionalTasksSuggested\": "
+		"[{\"description\": string, \"tool\": string, \"arguments\": object}], "
 		"\"obsoleteTasks\": [{\"taskId\": integer, \"reason\": string}]} ");
 	const std::string toolCatalog = CompactToolCatalog(ToolCatalogRef());
 	p.user = RequestContextText() +

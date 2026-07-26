@@ -2,7 +2,14 @@
 //
 // AgentOSContextIsolationSmokeTest.cpp
 //
-// new Turnで過去Topicを生成Contextから隔離し、DirectReply汚染を遮断する。
+// new Turnで過去Topicを生成Contextから隔離する。
+//
+// 旧DirectReply（会話高速パス）は廃止した。会話応答はRespondツールになり、
+// 会話も調査も同じパイプラインを通る。隔離の主旨自体は変わらないので、
+// 検証対象をRespondへ移す。
+//
+// あわせて、Intakeへ履歴を渡すかどうかのキーワード判定も廃止した。
+// 履歴は常に読み、どのturnを参照するかはIntakeが判定する。
 //
 // =======================================================================
 #include "AgentOS/Core/Agents/AgentContext.h"
@@ -62,14 +69,11 @@ int main() {
 		"\"constraints\":[\"Fieldを確認する\"],\"requiredCapabilities\":[\"ListEntities\"],"
 		"\"unresolvedReferences\":[],\"requestType\":\"conversation\"}\n"
 		"```");
-	// このテストの主旨は「new turnで過去のField話題が挨拶応答へ漏れない（隔離）」こと。
-	// モック応答は隔離が効いた正常な挨拶を表す（reply検証: 「こんにちは」を含み「Field」を含まない）。
-	// 以前はField文（別テストからの流用と思われる）が入っており、:94/:95のassertと自己矛盾していた。
+	// このテストの主旨は「new turnで過去のField話題が現在の応答へ漏れない（隔離）」こと。
 	llm.AddRule(
-		"DirectReply担当",
+		"応答担当",
 		"```json\n"
-		"{\"reply\":\"こんにちは。ご用件をうかがいます。\","
-		"\"toolCall\":null,\"escalate\":false}\n"
+		"{\"reply\":\"こんにちは。ご用件をうかがいます。\"}\n"
 		"```");
 
 	Budget budget;
@@ -85,19 +89,21 @@ int main() {
 	Json intake;
 	assert(IntakeAgent::Run(ctx, "こんにちはあなた", &intake));
 	assert(intake.value("turnRelation", std::string()) == "new");
-	assert(intake.value("simpleConversation", false));
-	assert(intake.at("requiredCapabilities").empty());
-	assert(intake.at("constraints").empty());
+
+	// turnRelation=new なので、過去turnは生成Contextへ選択されない。
 	assert(intake.at("conversationContext").at("recentTurns").empty());
 	assert(intake.at("conversationContext").value("summary", std::string()).empty());
 
-	const PromptPair direct = prompts::DirectReply("こんにちはあなた", "");
+	// 過去turnの話題（Field）が会話Contextへ選択されていないこと。
+	// 現在turnのIntake出力そのものは検証対象ではない（それは今回の要求の一部）。
+	assert(intake.at("conversationContext").dump().find("Field") == std::string::npos);
+
+	const PromptPair respond = prompts::Respond("こんにちはあなた", Json::object());
+
 	Json reply;
-	assert(CallLlmJson(ctx, direct, &reply));
+	assert(CallLlmJson(ctx, respond, &reply));
 	assert(reply.value("reply", std::string()).find("こんにちは") != std::string::npos);
 	assert(reply.value("reply", std::string()).find("Field") == std::string::npos);
-	assert(reply.contains("toolCall") && reply.at("toolCall").is_null());
-	assert(!reply.value("escalate", true));
 
 	prompts::ClearCurrentConversationRequestContext();
 	RemoveDb();

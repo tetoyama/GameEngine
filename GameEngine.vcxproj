@@ -2816,6 +2816,8 @@
     <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeParser.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeSearch.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeSearchTool.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Conversation\ConversationHistoryTool.h" />
+    <ClInclude Include="Source\GameApplication\AgentOS\Core\Conversation\RespondTool.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\IEmbeddingBackend.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\MockEmbeddingBackend.h" />
     <ClInclude Include="Source\GameApplication\AgentOS\Core\CodeIndex\SourceMasker.h" />
@@ -3669,6 +3671,8 @@
     <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeParser.cpp" />
     <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeSearch.cpp" />
     <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\CodeSearchTool.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Conversation\ConversationHistoryTool.cpp" />
+    <ClCompile Include="Source\GameApplication\AgentOS\Core\Conversation\RespondTool.cpp" />
     <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\MockEmbeddingBackend.cpp" />
     <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\SourceMasker.cpp" />
     <ClCompile Include="Source\GameApplication\AgentOS\Core\CodeIndex\VectorMath.cpp" />
