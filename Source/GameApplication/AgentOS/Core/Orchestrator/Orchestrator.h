@@ -24,7 +24,11 @@ namespace agentos {
 
 struct OrchestratorConfig {
 	Budget budget;
-	int maxRepairRounds = 2;
+
+	// 実質的な停止判断はBudgetとEarlyStoppingが担う。
+	// 大規模調査を固定2ラウンドで切らないため、これは暴走時だけ届く
+	// 最終ハードセーフティ上限として十分大きくしておく。
+	int maxRepairRounds = 1000000;
 };
 
 struct OrchestratorResult {
