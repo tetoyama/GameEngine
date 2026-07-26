@@ -154,14 +154,15 @@ inline Json Compress(const Json& builtEvidence, std::size_t maxChars = 8500) {
 	out["recentEvidenceDetails"] = Json::array();
 
 	// Indexへ最大60%を使う。最新Evidenceから入れるため、巨大な古い検索結果が
-	// Repair Evidenceを押し出すことはない。
+	// Repair Evidenceを押し出すことはない。最新1件だけは常に残す。
 	const std::size_t indexBudget = maxChars * 3 / 5;
 	for(std::size_t offset = 0; offset < evidences.size(); ++offset) {
 		const std::size_t index = evidences.size() - 1 - offset;
 		Json candidate = out;
 		candidate["evidences"].push_back(detail::IndexEntry(evidences.at(index)));
-		if(candidate.dump().size() > indexBudget) break;
+		if(candidate.dump().size() > indexBudget && !out["evidences"].empty()) break;
 		out = std::move(candidate);
+		if(out.dump().size() > indexBudget) break;
 	}
 
 	// 残りには最新payloadの詳細を詰める。1件も入らない場合でもindexには最新claimがある。
@@ -193,7 +194,8 @@ inline Json Compress(const Json& builtEvidence, std::size_t maxChars = 8500) {
 }
 
 inline std::string CompressToString(const Json& builtEvidence, std::size_t maxChars = 8500) {
-	return Compress(builtEvidence, maxChars).dump(2);
+	// compact JSONで返し、pretty-printによる再膨張でPrompt上限を越えないようにする。
+	return Compress(builtEvidence, maxChars).dump();
 }
 
 } // namespace agentos::evidence_prompt
