@@ -3,8 +3,8 @@
 // CommandPipeline.h
 //
 // LLM出力（Command提案）を実行に至るまで通す検証パイプライン本体（構想§3, §5）。
-// 順序: Tool検索 → Schema検証 → Capability検証 → Budget消費 → Approval Gate →
-//        Precondition → (DryRunならここで停止) → Execute → Audit
+// 順序: Tool検索 → Schema検証 → Command Monitor → Capability検証 → Budget消費 →
+//        Approval Gate → Precondition → (DryRunならここで停止) → Execute → Audit
 // すべての結果（拒否含む）をAuditSinkへ流す。
 //
 // =======================================================================
@@ -38,6 +38,8 @@ struct CommandPipelineConfig {
 
 class CommandPipeline {
 public:
+	using CommandMonitor = std::function<Result(const CommandRequest&)>;
+
 	explicit CommandPipeline(CapabilityRegistry* capabilityRegistry, CommandPipelineConfig config = {});
 
 	void RegisterTool(std::shared_ptr<ICommandExecutor> tool);
@@ -49,6 +51,12 @@ public:
 
 	void SetApprovalHandler(std::function<bool(const CommandRequest&)> handler);
 	void SetBudgetTracker(BudgetTracker* budgetTracker);
+	BudgetTracker* GetBudgetTracker() const;
+
+	// Workerが具体化したCommandを、Capability/Budget消費とExecuteの前に検査する。
+	// Planner由来とCritic/Repair由来のCommandが同じGateを通る。
+	void SetCommandMonitor(CommandMonitor monitor);
+	CommandMonitor GetCommandMonitor() const;
 
 	CommandResult Submit(CommandRequest request);
 
@@ -62,6 +70,7 @@ private:
 	CommandPipelineConfig config_;
 	BudgetTracker* budgetTracker_ = nullptr;
 	std::function<bool(const CommandRequest&)> approvalHandler_;
+	CommandMonitor commandMonitor_;
 
 	mutable std::mutex mutex_;
 	std::unordered_map<ToolName, std::shared_ptr<ICommandExecutor>> tools_;
