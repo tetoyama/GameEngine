@@ -50,6 +50,7 @@ TESTS = AgentOSCommandPipelineSmokeTest \
         AgentOSRepairHygieneSmokeTest \
         AgentOSUtf8SafetySmokeTest \
         AgentOSRecursiveFlowControlSmokeTest \
+        AgentOSRecursiveFlowEndToEndSmokeTest \
         AgentOSVerticalSliceSmokeTest
 
 # ---------------------------------
