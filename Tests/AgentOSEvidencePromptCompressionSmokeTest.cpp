@@ -8,11 +8,13 @@
 // =======================================================================
 #include "AgentOS/Core/Evidence/EvidencePromptCompressor.h"
 #include "AgentOS/Core/Llm/PromptTemplates.h"
+#include "AgentOS/Core/Orchestrator/EarlyStopping.h"
 #include "AgentOS/Core/Orchestrator/Orchestrator.h"
 
 #include <cassert>
 #include <iostream>
 #include <string>
+#include <utility>
 
 using namespace agentos;
 
@@ -131,6 +133,28 @@ void TestLargeTaskDefaults() {
 	assert(config.budget.maxMillis >= 3600000);
 }
 
+void TestProgressPreventsEarlyStop() {
+	Budget budget;
+	BudgetTracker tracker(budget);
+
+	EarlyStopping progressing;
+	for(int round = 0; round < 6; ++round) {
+		progressing.RecordRound(1, 100 + round, 0, true);
+		assert(!progressing.Evaluate(tracker).stop);
+	}
+
+	// Evidenceが増えず、同じ失敗だけが続く場合は仮説IDが変化していても止める。
+	EarlyStopping stalled;
+	stalled.RecordRound(0, 201, 0, true);
+	assert(!stalled.Evaluate(tracker).stop);
+	stalled.RecordRound(0, 202, 0, true);
+	assert(!stalled.Evaluate(tracker).stop);
+	stalled.RecordRound(0, 203, 0, true);
+	const EarlyStopping::StopDecision decision = stalled.Evaluate(tracker);
+	assert(decision.stop);
+	assert(decision.reason.find("without new evidence") != std::string::npos);
+}
+
 } // namespace
 
 int main() {
@@ -138,6 +162,7 @@ int main() {
 	TestLatestEvidenceIsPrioritized();
 	TestAllEvidencePromptsUseCompression();
 	TestLargeTaskDefaults();
+	TestProgressPreventsEarlyStop();
 	std::cout << "=== ALL PASSED ===\n";
 	return 0;
 }
