@@ -30,7 +30,8 @@ public:
 		if (!flow.active) {
 			return Result::Fail("CreateChildFlow was requested without an active FlowContext");
 		}
-		if (flow.depth >= flow.maxDepth) {
+		// 子Flow自身のTaskは depth+1 になるため、次のFlow深度がmaxDepth以上なら作らない。
+		if (flow.depth + 1 >= flow.maxDepth) {
 			return Result::Fail(
 				"CreateChildFlow would exceed max flow depth " + std::to_string(flow.maxDepth));
 		}
