@@ -73,6 +73,12 @@ void TestCriticPromptUsesPlannerCatalog() {
 	assert(plan.value("route", std::string()) == "deterministic_code_investigation");
 	assert(prompts::CurrentToolCatalog() == catalog);
 
+	// WorkerはTask単位に絞ったCatalogを受け取るが、それでPlannerの完全な
+	// Catalogを上書きしてはならない。Criticは全候補から修復Toolを選ぶ必要がある。
+	const Json filteredCatalog = Json::array({catalog.at(0)});
+	(void)prompts::GenerateQueries(Json::object(), filteredCatalog);
+	assert(prompts::CurrentToolCatalog() == catalog);
+
 	const Json hypotheses = Json::object({
 		{"hypotheses", Json::array({Json::object({
 			{"description", "追加の参照検索が必要"},
