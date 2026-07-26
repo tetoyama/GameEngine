@@ -10,11 +10,15 @@
 #include <string>
 #include <unordered_map>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
+#include "CreateChildFlowTool.h"
 #include "EarlyStopping.h"
+#include "FlowContext.h"
 #include "Supervisor.h"
 #include "../Agents/AgentContext.h"
+#include "../Agents/CommandMonitorAgent.h"
 #include "../Agents/CriticAgent.h"
 #include "../Agents/IntakeAgent.h"
 #include "../Agents/PlannerAgent.h"
@@ -35,7 +39,7 @@ namespace {
 // 修復Taskの引数を「計画の時点で」検証する
 // ---------------------------------
 //
-// Criticが提案する追加Taskの引数は、そのままではTool스キーマに合わないことがある。
+// Criticが提案する追加Taskの引数は、そのままではToolスキーマに合わないことがある。
 // 実機で観測した例:
 //   - Evidenceのペイロードに押される内部項目 requestRevision を引数へ混入させる
 //   - fileという正式名の代わりにtargetFileを創作する
@@ -61,7 +65,6 @@ bool SanitizeRepairCommand(const Json& toolCatalog, Json* command, std::string* 
 		return false;
 	}
 
-	// Tool記述子を引く
 	Json schema;
 	bool found = false;
 	if (toolCatalog.is_array()) {
@@ -81,8 +84,6 @@ bool SanitizeRepairCommand(const Json& toolCatalog, Json* command, std::string* 
 	Json arguments = command->value("arguments", Json::object());
 	if (!arguments.is_object()) arguments = Json::object();
 
-	// スキーマに無い項目を落とす。
-	// queryが正しいのにrequestRevisionが付いていただけで捨てるのは惜しい。
 	if (schema.is_object()) {
 		Json cleaned = Json::object();
 		for (auto it = arguments.begin(); it != arguments.end(); ++it) {
@@ -91,7 +92,6 @@ bool SanitizeRepairCommand(const Json& toolCatalog, Json* command, std::string* 
 		arguments = std::move(cleaned);
 	}
 
-	// 残った引数がスキーマを満たすか（必須欠けなど）を実行前に確認する。
 	const Result validation = SchemaValidator::Validate(arguments, schema);
 	if (!validation) {
 		if (rejectReason) *rejectReason = validation.error;
@@ -102,14 +102,12 @@ bool SanitizeRepairCommand(const Json& toolCatalog, Json* command, std::string* 
 	return true;
 }
 
-// descriptionへ埋め込まれたREPAIR_COMMANDを取り出して検証し、書き戻す。
-// 埋め込みが無いTask（Workerがdescriptionから自力でCommandを組む）はそのまま通す。
 bool SanitizeRepairDescription(const Json& toolCatalog, std::string* description, std::string* rejectReason) {
 	if (description == nullptr) return true;
 
 	static const std::string marker = "REPAIR_COMMAND ";
 	const std::size_t pos = description->find(marker);
-	if (pos == std::string::npos) return true; // 埋め込み無し
+	if (pos == std::string::npos) return true;
 
 	const std::string encoded = description->substr(pos + marker.size());
 	Json command = Json::parse(encoded, nullptr, false);
@@ -126,9 +124,6 @@ bool SanitizeRepairDescription(const Json& toolCatalog, std::string* description
 
 // ---------------------------------
 // TaskStoreAuditSink
-// CommandPipeline::Submit()の結果を全てCommandテーブルへ永続化する。
-// どのAgent/Workerが発行したCommandかに関わらず一律に記録することで、
-// 監査ログの取りこぼしを防ぐ（構想§8）。
 // ---------------------------------
 class TaskStoreAuditSink : public IAuditSink {
 public:
@@ -147,14 +142,10 @@ private:
 
 // ---------------------------------
 // Plan中のtasks配列を依存関係に従ってトポロジカル順に並べる（Kahn法）。
-// PlannerAgentが循環無し・依存先実在をすでに検証済みの前提で使う。
-// 万一の不整合があっても無限ループはせず、残りを末尾へ追加して終了する。
 // ---------------------------------
 std::vector<Json> TopologicalOrder(const Json& tasks) {
 	std::vector<Json> result;
-	if (!tasks.is_array()) {
-		return result;
-	}
+	if (!tasks.is_array()) return result;
 
 	std::vector<std::string> order;
 	std::unordered_map<std::string, Json> byId;
@@ -171,13 +162,9 @@ std::vector<Json> TopologicalOrder(const Json& tasks) {
 		const std::string id = t.value("taskId", std::string());
 		if (t.contains("dependencies") && t.at("dependencies").is_array()) {
 			for (const auto& d : t.at("dependencies")) {
-				if (!d.is_string()) {
-					continue;
-				}
+				if (!d.is_string()) continue;
 				const std::string depId = d.get<std::string>();
-				if (byId.count(depId) == 0) {
-					continue;
-				}
+				if (byId.count(depId) == 0) continue;
 				dependents[depId].push_back(id);
 				indegree[id] += 1;
 			}
@@ -186,73 +173,154 @@ std::vector<Json> TopologicalOrder(const Json& tasks) {
 
 	std::vector<std::string> queue;
 	for (const auto& id : order) {
-		if (indegree[id] == 0) {
-			queue.push_back(id);
-		}
+		if (indegree[id] == 0) queue.push_back(id);
 	}
 
 	std::unordered_set<std::string> visited;
 	std::size_t qi = 0;
 	while (qi < queue.size()) {
 		const std::string id = queue[qi++];
-		if (visited.count(id) != 0) {
-			continue;
-		}
+		if (visited.count(id) != 0) continue;
 		visited.insert(id);
 		result.push_back(byId[id]);
 		for (const auto& dependent : dependents[id]) {
 			indegree[dependent] -= 1;
-			if (indegree[dependent] == 0) {
-				queue.push_back(dependent);
-			}
+			if (indegree[dependent] == 0) queue.push_back(dependent);
 		}
 	}
 
-	// 防御的フォールバック: 循環等で取りこぼしたタスクは末尾に追加する。
 	for (const auto& id : order) {
-		if (visited.count(id) == 0) {
-			result.push_back(byId[id]);
-		}
+		if (visited.count(id) == 0) result.push_back(byId[id]);
 	}
-
 	return result;
 }
 
-// ---------------------------------
-// ScopedBudgetTracker
-// pipeline->SetBudgetTracker()はraw pointerを保持するだけなので、RunSession
-// 内のローカルBudgetTrackerを指したまま関数を抜けるとダングリングポインタに
-// なる。RAIIで関数を抜ける際に必ずnullptrへ戻す（早期returnが複数あるため）。
-// ---------------------------------
+// 再帰Flowは同じCommandPipelineを使う。子Flow終了時に親のBudgetTrackerと
+// Command Monitorを必ず戻さないと、親の残りTaskが子のスタック変数を参照する。
 class ScopedBudgetTracker {
 public:
-	ScopedBudgetTracker(CommandPipeline* pipeline, BudgetTracker* tracker) : pipeline_(pipeline) {
-		pipeline_->SetBudgetTracker(tracker);
+	ScopedBudgetTracker(CommandPipeline* pipeline, BudgetTracker* tracker)
+		: pipeline_(pipeline), previous_(pipeline ? pipeline->GetBudgetTracker() : nullptr) {
+		if (pipeline_) pipeline_->SetBudgetTracker(tracker);
 	}
 	~ScopedBudgetTracker() {
-		pipeline_->SetBudgetTracker(nullptr);
+		if (pipeline_) pipeline_->SetBudgetTracker(previous_);
 	}
 	ScopedBudgetTracker(const ScopedBudgetTracker&) = delete;
 	ScopedBudgetTracker& operator=(const ScopedBudgetTracker&) = delete;
 
 private:
 	CommandPipeline* pipeline_ = nullptr;
+	BudgetTracker* previous_ = nullptr;
 };
+
+class ScopedCommandMonitor {
+public:
+	ScopedCommandMonitor(CommandPipeline* pipeline, CommandPipeline::CommandMonitor monitor)
+		: pipeline_(pipeline), previous_(pipeline ? pipeline->GetCommandMonitor() : CommandPipeline::CommandMonitor{}) {
+		if (pipeline_) pipeline_->SetCommandMonitor(std::move(monitor));
+	}
+	~ScopedCommandMonitor() {
+		if (pipeline_) pipeline_->SetCommandMonitor(std::move(previous_));
+	}
+	ScopedCommandMonitor(const ScopedCommandMonitor&) = delete;
+	ScopedCommandMonitor& operator=(const ScopedCommandMonitor&) = delete;
+
+private:
+	CommandPipeline* pipeline_ = nullptr;
+	CommandPipeline::CommandMonitor previous_;
+};
+
+class ScopedCurrentSession {
+public:
+	explicit ScopedCurrentSession(SessionId sessionId)
+		: previous_(CurrentSessionId()) {
+		SetCurrentSessionId(sessionId);
+	}
+	~ScopedCurrentSession() { SetCurrentSessionId(previous_); }
+	ScopedCurrentSession(const ScopedCurrentSession&) = delete;
+	ScopedCurrentSession& operator=(const ScopedCurrentSession&) = delete;
+
+private:
+	SessionId previous_ = kInvalidId;
+};
+
+// IntakeAgentはPrompt用thread_localを初期化する。子Flowが同じthreadで走るため、
+// 子Flow終了時に親のRequest/Evidence/Tool Catalogを復元する。
+class ScopedPromptRuntimeState {
+public:
+	ScopedPromptRuntimeState()
+		: previousContext_(prompts::CurrentConversationRequestContext()),
+		  previousToolCatalog_(prompts::CurrentToolCatalog()),
+		  previousEvidence_(prompts::CurrentBuiltEvidence()) {}
+
+	~ScopedPromptRuntimeState() {
+		prompts::SetCurrentConversationRequestContext(
+			previousContext_.value("conversation", Json::object()),
+			previousContext_.value("intake", Json::object()));
+		prompts::SetCurrentToolCatalog(previousToolCatalog_);
+		prompts::SetCurrentBuiltEvidence(previousEvidence_);
+	}
+
+	ScopedPromptRuntimeState(const ScopedPromptRuntimeState&) = delete;
+	ScopedPromptRuntimeState& operator=(const ScopedPromptRuntimeState&) = delete;
+
+private:
+	Json previousContext_;
+	Json previousToolCatalog_;
+	Json previousEvidence_;
+};
+
+Json FlowMetadata(const FlowContext& flow) {
+	return Json::object({
+		{"rootSessionId", flow.rootSessionId},
+		{"parentSessionId", flow.parentSessionId},
+		{"flowDepth", flow.depth},
+		{"maxFlowDepth", flow.maxDepth},
+		{"rootGoal", flow.rootGoal},
+		{"rootResolvedRequest", flow.rootResolvedRequest},
+		{"parentTask", flow.parentTask},
+		{"currentTask", flow.currentTask},
+		{"ancestorTasks", flow.ancestorTasks},
+	});
+}
+
+Json CollectEvidenceIds(const Json& builtEvidence) {
+	Json ids = Json::array();
+	if (!builtEvidence.is_object() || !builtEvidence.contains("evidences") ||
+	    !builtEvidence.at("evidences").is_array()) return ids;
+	for (const Json& evidence : builtEvidence.at("evidences")) {
+		if (evidence.is_object() && evidence.contains("id") &&
+		    evidence.at("id").is_number_integer()) {
+			ids.push_back(evidence.at("id"));
+		}
+	}
+	return ids;
+}
 
 } // namespace
 
 Orchestrator::Orchestrator(ILlmBackend* llm, CommandPipeline* pipeline, TaskStore* store,
-                            CapabilityRegistry* capabilityRegistry, OrchestratorConfig config)
-	: llm_(llm), pipeline_(pipeline), store_(store), capabilityRegistry_(capabilityRegistry), config_(config) {}
+                             CapabilityRegistry* capabilityRegistry, OrchestratorConfig config)
+	: llm_(llm), pipeline_(pipeline), store_(store), capabilityRegistry_(capabilityRegistry), config_(config) {
+	if (pipeline_) RegisterCreateChildFlowTool(*pipeline_);
+}
 
 void Orchestrator::SetProgressCallback(std::function<void(const std::string&, const Json&)> callback) {
 	progressCallback_ = std::move(callback);
 }
 
 void Orchestrator::ReportProgress(const std::string& stage, const Json& detail) {
-	if (progressCallback_) {
-		progressCallback_(stage, detail);
+	if (!progressCallback_) return;
+	Json enriched = detail.is_object() ? detail : Json::object({{"detail", detail}});
+	if (HasCurrentFlowContext()) {
+		const FlowContext& flow = CurrentFlowContext();
+		enriched["flowDepth"] = flow.depth;
+		enriched["rootSessionId"] = flow.rootSessionId;
+		enriched["parentSessionId"] = flow.parentSessionId;
+		enriched["currentTask"] = flow.currentTask;
 	}
+	progressCallback_(stage, enriched);
 }
 
 CapabilityToken Orchestrator::GetLastIssuedToken() const {
@@ -262,11 +330,33 @@ CapabilityToken Orchestrator::GetLastIssuedToken() const {
 OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	OrchestratorResult sessionResult;
 
-	BudgetTracker budgetTracker(config_.budget);
-	ScopedBudgetTracker budgetGuard(pipeline_, &budgetTracker); // 関数を抜けたら必ずnullptrに戻す
+	// 外側にFlowContextが無い場合だけRoot Flowを作る。CreateChildFlowからの再帰では
+	// 呼び出し側がRoot Goalを継承した子Contextを既に積んでいる。
+	std::unique_ptr<ScopedFlowContext> rootFlowGuard;
+	if (!HasCurrentFlowContext()) {
+		FlowContext root;
+		root.active = true;
+		root.depth = 0;
+		root.maxDepth = config_.budget.maxDepth;
+		root.rootGoal = userRequest;
+		root.rootResolvedRequest = userRequest;
+		root.currentTask = userRequest;
+		rootFlowGuard = std::make_unique<ScopedFlowContext>(std::move(root));
+	}
+	FlowContext& flow = MutableCurrentFlowContext();
 
-	// --- Session作成 ---
-	const Json goalJson = Json::object({{"userRequest", userRequest}});
+	ScopedPromptRuntimeState promptStateGuard;
+
+	// Root FlowだけがBudgetを所有し、子Flowは同じTrackerを共有する。
+	BudgetTracker ownedBudget(config_.budget);
+	BudgetTracker* budgetTracker = flow.sharedBudget ? flow.sharedBudget : &ownedBudget;
+	if (flow.sharedBudget == nullptr) flow.sharedBudget = budgetTracker;
+	ScopedBudgetTracker budgetGuard(pipeline_, budgetTracker);
+
+	const Json goalJson = Json::object({
+		{"userRequest", userRequest},
+		{"flow", FlowMetadata(flow)},
+	});
 	const SessionId sessionId = store_->CreateSession(goalJson);
 	sessionResult.sessionId = sessionId;
 	if (sessionId == kInvalidId) {
@@ -275,13 +365,15 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 		sessionResult.report = "セッションを作成できませんでした。";
 		return sessionResult;
 	}
+
+	flow.sessionId = sessionId;
+	if (flow.rootSessionId == kInvalidId) flow.rootSessionId = sessionId;
 	store_->UpdateSessionState(sessionId, "Running");
 
-	// --- Agentトークン発行（Observe止まり。Modifyは絶対に付与しない） ---
-	const CapabilityToken token = capabilityRegistry_->IssueToken("Orchestrator", {"*"}, PermissionLevel::Observe);
+	const CapabilityToken token = capabilityRegistry_->IssueToken(
+		"Orchestrator", {"*"}, PermissionLevel::Observe);
 	lastToken_ = token;
 
-	// --- 監査シンク登録: pipeline経由の全CommandをTaskStoreへ永続化する ---
 	auto auditSink = std::make_shared<TaskStoreAuditSink>(store_);
 	pipeline_->AddAuditSink(auditSink);
 
@@ -289,18 +381,72 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	ctx.llm = llm_;
 	ctx.pipeline = pipeline_;
 	ctx.store = store_;
-	ctx.budget = &budgetTracker;
+	ctx.budget = budgetTracker;
 	ctx.token = token;
 	ctx.sessionId = sessionId;
 
-	// GetConversationHistoryツールは「今より前」の境界として現在セッションIDを要る。
-	// ToolはAgentContextを受け取れないため、Worker thread単位で共有する。
-	SetCurrentSessionId(sessionId);
+	ScopedCurrentSession sessionGuard(sessionId);
+	ScopedCommandMonitor monitorGuard(
+		pipeline_, [&ctx](const CommandRequest& request) {
+			return CommandMonitorAgent::Review(ctx, request);
+		});
+
+	// CreateChildFlowは通常Toolと同様にCommandPipelineから実行される。
+	// runnerはこのRunSession中だけ有効で、子Flowは同じOrchestratorと総Budgetを使う。
+	ScopedChildFlowRunner childFlowRunnerGuard(
+		[this](const Json& arguments) -> CommandResult {
+			const FlowContext parent = CurrentFlowContext();
+			if (!parent.active) {
+				return CommandResult::Fail(
+					CommandStatus::PreconditionRejected, "parent FlowContext is unavailable");
+			}
+
+			FlowContext child = parent;
+			child.sessionId = kInvalidId;
+			child.parentSessionId = parent.sessionId;
+			child.depth = parent.depth + 1;
+			child.parentTask = parent.currentTask;
+			child.currentTask = arguments.value("childTask", std::string());
+			if (!parent.currentTask.empty()) child.ancestorTasks.push_back(parent.currentTask);
+
+			if (child.currentTask.empty() || child.depth >= child.maxDepth) {
+				return CommandResult::Fail(
+					CommandStatus::PreconditionRejected,
+					"child Flow is empty or exceeds max depth");
+			}
+
+			ScopedFlowContext childContextGuard(std::move(child));
+			const CapabilityToken parentToken = lastToken_;
+			const OrchestratorResult childResult = RunSession(
+				arguments.value("childTask", std::string()));
+			lastToken_ = parentToken;
+
+			const FlowContext& activeChild = CurrentFlowContext();
+			const std::string report = prompts::Truncate(childResult.report, 5000);
+			Json payload = Json::object({
+				{"claim", childResult.completed
+					? std::string("Child Flow completed: ") + report
+					: std::string("Child Flow incomplete: ") + report},
+				{"satisfied", childResult.completed},
+				{"childSessionId", childResult.sessionId},
+				{"rootSessionId", activeChild.rootSessionId},
+				{"parentSessionId", activeChild.parentSessionId},
+				{"flowDepth", activeChild.depth},
+				{"childTask", arguments.value("childTask", std::string())},
+				{"purpose", arguments.value("purpose", std::string())},
+				{"successCondition", arguments.value("successCondition", std::string())},
+				{"report", report},
+				{"stopInfo", childResult.stopInfo},
+				{"evidenceIds", CollectEvidenceIds(childResult.builtEvidence)},
+			});
+			return CommandResult::Ok(std::move(payload));
+		});
 
 	Supervisor supervisor(store_);
 
 	// --- Intake（root task として記録） ---
-	const TaskId rootTaskId = store_->CreateTask(sessionId, kInvalidId, "Intake", Json::object(), 0);
+	const TaskId rootTaskId = store_->CreateTask(
+		sessionId, kInvalidId, "Intake", FlowMetadata(flow), flow.depth);
 	ReportProgress("Intake", Json::object({{"taskId", rootTaskId}}));
 	supervisor.StartTask(rootTaskId);
 
@@ -314,21 +460,27 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 		sessionResult.report = "調査を開始できませんでした（Intake失敗）: " + intakeResult.error;
 		return sessionResult;
 	}
-	supervisor.CompleteTask(rootTaskId, intake);
 
-	// --- 会話も調査も同じパイプラインを通る ---
-	//
-	// 以前はここに3段のfast path（DirectReply / quick tool path /
-	// conversational fast path）があり、IntakeのrequestTypeとキーワード一致で
-	// 調査パイプラインを丸ごと飛ばしていた。
-	// 判定が外れるたびに語を足す構造になっており、実際に
-	//   「私は誰ですか？」   → 身元をSceneに探しに行き修復2ラウンド空振り
-	//   「私の名前はTaroです」→ 自己紹介が ResolveEntity(Taro) になった
-	// という故障を出した（transcript_20260727_0208xx）。
-	//
-	// 会話応答自体をツール(Respond)にしたので、Plannerがツール一覧から
-	// 普通に選べばよい。要求の種類を先回りで分類しない。
-	// 完了かどうかは、その出力を見てCriticが判定する。
+	if (flow.depth == 0) {
+		// Root Goalは最初のIntakeで確定し、以後の子Flowでは変更しない。
+		flow.rootGoal = intake.value("rootGoal", intake.value("goal", userRequest));
+		flow.rootResolvedRequest = intake.value(
+			"rootResolvedRequest", intake.value("resolvedRequest", userRequest));
+		flow.currentTask = flow.rootResolvedRequest;
+	} else {
+		// 子Intakeが親目的を言い換えても、Root Goalだけは親Contextから上書きする。
+		intake["rootGoal"] = flow.rootGoal;
+		intake["rootResolvedRequest"] = flow.rootResolvedRequest;
+		intake["goal"] = flow.currentTask;
+		intake["resolvedRequest"] = flow.currentTask;
+		intake["currentUserInput"] = flow.currentTask;
+		intake["turnRelation"] = "new";
+		intake["referencedSessionIds"] = Json::array();
+		intake["conversationContext"] = Json::object();
+		prompts::SetCurrentConversationRequestContext(Json::object(), intake);
+	}
+	intake["flow"] = FlowMetadata(flow);
+	supervisor.CompleteTask(rootTaskId, intake);
 
 	// --- Planner ---
 	ReportProgress("Plan", Json::object());
@@ -346,51 +498,46 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	// --- Plan Taskのトポロジカル実行 ---
 	EvidenceBuilder evidenceBuilder;
 	const std::vector<Json> orderedTasks = TopologicalOrder(plan.value("tasks", Json::array()));
+	const int taskDepth = flow.depth + 1;
 
 	for (const Json& taskSpec : orderedTasks) {
 		const std::string planTaskId = taskSpec.value("taskId", std::string());
-
-		// Task種別(type)は廃止した。Taskの実体は「どのToolを使うか」であり、
-		// Toolを使わないTaskは実行しない。以前の "Analysis" 種別と同じ意味を
-		// allowedTools が空かどうかで表す（PlannerAgent.cppの注記参照）。
 		const Json allowedTools = taskSpec.value("allowedTools", Json::array());
 		const bool usesTool = allowedTools.is_array() && !allowedTools.empty();
 		const std::string taskLabel = usesTool ? "Retrieval" : "Analysis";
 
-		const TaskId storeTaskId = store_->CreateTask(sessionId, rootTaskId, taskLabel, taskSpec, 1);
+		const TaskId storeTaskId = store_->CreateTask(
+			sessionId, rootTaskId, taskLabel, taskSpec, taskDepth);
 		ReportProgress("Retrieve", Json::object({{"taskId", storeTaskId}, {"planTaskId", planTaskId}}));
 
 		Result startResult = supervisor.StartTask(storeTaskId);
-		if (!startResult) {
-			continue; // 状態遷移自体が拒否された（通常到達しない防御的分岐）
-		}
+		if (!startResult) continue;
 
-		Result depthCheck = supervisor.CheckDepth(1, config_.budget);
+		Result depthCheck = supervisor.CheckDepth(taskDepth, config_.budget);
 		if (!depthCheck) {
 			supervisor.FailTask(storeTaskId, depthCheck.error);
 			continue;
 		}
 
 		if (!usesTool) {
-			// Toolを使わないTaskはWorkerを起動しない（ReasoningAgentが扱う）。
 			supervisor.CompleteTask(storeTaskId, Json::object({{"note", "handled by ReasoningAgent"}}));
 			continue;
 		}
 
 		evidenceBuilder.MarkPlannedTask(storeTaskId);
-
 		std::vector<Evidence> evidences;
 		Json summary;
-		Result workerResult = RetrievalWorker::Run(ctx, storeTaskId, taskSpec, &evidences, &summary);
-		for (auto& e : evidences) {
-			evidenceBuilder.Add(e);
+		Result workerResult;
+		{
+			ScopedCurrentFlowTask currentTaskGuard(
+				taskSpec.value("description", std::string("Plan Task ")) + planTaskId);
+			workerResult = RetrievalWorker::Run(
+				ctx, storeTaskId, taskSpec, &evidences, &summary);
 		}
+		for (auto& evidence : evidences) evidenceBuilder.Add(evidence);
 
-		if (!workerResult) {
-			supervisor.FailTask(storeTaskId, workerResult.error);
-		} else {
-			supervisor.CompleteTask(storeTaskId, summary);
-		}
+		if (!workerResult) supervisor.FailTask(storeTaskId, workerResult.error);
+		else supervisor.CompleteTask(storeTaskId, summary);
 	}
 
 	// --- Evidence統合 ---
@@ -402,8 +549,7 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	ReportProgress("Reason", Json::object());
 	LogicGraph graph;
 	Json reasonRaw;
-	ReasoningAgent::Run(ctx, builtJson, &graph, &reasonRaw); // 失敗しても空グラフのまま続行する
-
+	ReasoningAgent::Run(ctx, builtJson, &graph, &reasonRaw);
 	Json rankedJson = graph.ToJson();
 
 	// --- Critic ---
@@ -428,9 +574,6 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 		const bool hasAdditions = additional.is_array() && !additional.empty();
 		const bool hasRetirements = obsolete.is_array() && !obsolete.empty();
 
-		// 修復には「追加」と「撤回」の2種類がある。
-		// 撤回が無かった頃は、不要Taskの失敗1件がcoverage/tasksWithoutEvidence/
-		// failedEvidenceCountを同時に踏み、追加をいくら重ねてもpassへ戻れなかった。
 		if (!hasAdditions && !hasRetirements) {
 			stopInfo = Json::object({
 				{"reason", "no remediation proposed (critic suggested neither additional tasks nor retractions)"},
@@ -441,8 +584,6 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 			break;
 		}
 
-		// --- 撤回を適用する ---
-		// 追加より先に行う。分母から不要Taskを外してから再評価したいため。
 		if (hasRetirements) {
 			for (const auto& entry : obsolete) {
 				if (!entry.is_number_integer()) continue;
@@ -459,28 +600,14 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 		const Json fullCatalogForRepair = pipeline_->DescribeTools();
 		Json allToolNames = Json::array();
 		if (fullCatalogForRepair.is_array()) {
-			for (const auto& t : fullCatalogForRepair) {
-				if (t.contains("name")) {
-					allToolNames.push_back(t.at("name"));
-				}
+			for (const auto& tool : fullCatalogForRepair) {
+				if (tool.contains("name")) allToolNames.push_back(tool.at("name"));
 			}
 		}
 
-		// 追加Taskの件数上限は設けない。不足の数は要求が決めるものであり、
-		// 上限を置くと「足りないまま出す」方向にしか働かない。
 		for (const auto& add : additional) {
-			if (!add.is_object()) {
-				continue;
-			}
-			// 種別で弾かない。実在するToolを指しているかだけを見る
-			// （SanitizeRepairDescriptionが検証する）。
-			// 以前はRuntimeObservation/CodeSearch/Trace以外を捨てていたため、
-			// Criticが「応答すればよい」と提案してもコードが握り潰していた。
+			if (!add.is_object()) continue;
 
-			// 引数の不備は「計画の失敗」であって「調査の失敗」ではない。
-			// 実行前に検証し、直せないものはTaskにしない。
-			// こうしないと壊れたCommandが失敗Evidenceとして記録され、
-			// カバレッジと失敗数を汚してrepairが状況を悪化させる（実機で観測）。
 			std::string description = add.value("description", std::string());
 			std::string rejectReason;
 			if (!SanitizeRepairDescription(fullCatalogForRepair, &description, &rejectReason)) {
@@ -488,35 +615,36 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 					{"round", repairRoundsUsed + 1},
 					{"rejectedRepairTask", rejectReason},
 				}));
-				continue; // Taskを作らない＝Evidenceを汚さない
+				continue;
 			}
 
 			Json addSpec = Json::object();
 			addSpec["taskId"] = "repair_" + std::to_string(repairRoundsUsed) + "_" + std::to_string(added);
 			addSpec["description"] = description;
-			addSpec["allowedTools"] = allToolNames; // 修復タスクはToken自体がObserve止まりなので全許可でも安全
+			addSpec["allowedTools"] = allToolNames;
 
-			const TaskId storeTaskId = store_->CreateTask(sessionId, rootTaskId, "Repair", addSpec, 1);
+			const TaskId storeTaskId = store_->CreateTask(
+				sessionId, rootTaskId, "Repair", addSpec, taskDepth);
 			supervisor.StartTask(storeTaskId);
 			evidenceBuilder.MarkPlannedTask(storeTaskId);
 
 			std::vector<Evidence> evidences;
 			Json summary;
-			Result wr = RetrievalWorker::Run(ctx, storeTaskId, addSpec, &evidences, &summary);
-			for (auto& e : evidences) {
-				evidenceBuilder.Add(e);
+			Result workerResult;
+			{
+				ScopedCurrentFlowTask currentTaskGuard(description);
+				workerResult = RetrievalWorker::Run(
+					ctx, storeTaskId, addSpec, &evidences, &summary);
 			}
-			if (!wr) {
-				supervisor.FailTask(storeTaskId, wr.error);
-			} else {
-				supervisor.CompleteTask(storeTaskId, summary);
-			}
+			for (auto& evidence : evidences) evidenceBuilder.Add(evidence);
+			if (!workerResult) supervisor.FailTask(storeTaskId, workerResult.error);
+			else supervisor.CompleteTask(storeTaskId, summary);
 			++added;
 		}
 
 		built = evidenceBuilder.Build();
 		builtJson = EvidenceBuilder::ToJson(built);
-	prompts::SetCurrentBuiltEvidence(builtJson);
+		prompts::SetCurrentBuiltEvidence(builtJson);
 
 		ReportProgress("Reason", Json::object({{"round", repairRoundsUsed + 1}}));
 		LogicGraph newGraph;
@@ -533,17 +661,20 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 		    !rankedJson.at("hypotheses").empty()) {
 			newTop = rankedJson.at("hypotheses")[0].value("id", kInvalidId);
 		}
-		const int newEvidenceCount = static_cast<int>(built.evidences.size()) - previousEvidenceCount;
-		const bool sameFailureRepeated = !verdict.failures.empty() && verdict.failures == previousFailures;
+		const int newEvidenceCount =
+			static_cast<int>(built.evidences.size()) - previousEvidenceCount;
+		const bool sameFailureRepeated =
+			!verdict.failures.empty() && verdict.failures == previousFailures;
 
-		earlyStopping.RecordRound(newEvidenceCount, newTop, static_cast<int>(built.contradictions.size()),
-		                           sameFailureRepeated);
+		earlyStopping.RecordRound(
+			newEvidenceCount, newTop, static_cast<int>(built.contradictions.size()),
+			sameFailureRepeated);
 
 		previousEvidenceCount = static_cast<int>(built.evidences.size());
 		previousFailures = verdict.failures;
 		++repairRoundsUsed;
 
-		const EarlyStopping::StopDecision decision = earlyStopping.Evaluate(budgetTracker);
+		const EarlyStopping::StopDecision decision = earlyStopping.Evaluate(*budgetTracker);
 		if (decision.stop) {
 			stopInfo = Json::object({{"reason", "early stopping: " + decision.reason}});
 			stopped = true;
@@ -552,9 +683,6 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	}
 
 	if (!stopped) {
-		// ラウンド数を併記する。以前は打ち切りの理由と実際のラウンド消化数が
-		// 一致せず（1/2ラウンドで抜けても"exhausted"と記録された）、
-		// 停止理由の調査を毎回誤誘導していた。
 		stopInfo = verdict.pass
 			? Json::object({{"reason", "critic passed"}})
 			: Json::object({
@@ -580,7 +708,6 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	sessionResult.report = report;
 	sessionResult.stopInfo = stopInfo;
 	sessionResult.rankedHypotheses = rankedJson;
-	// 判定の根拠（coverage / failedEvidenceCount / retiredTasks 等）を持ち帰る。
 	sessionResult.builtEvidence = builtJson;
 	return sessionResult;
 }
