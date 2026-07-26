@@ -196,19 +196,19 @@ int main() {
 	assert(result.completed);
 	assert(result.report.find("親Flow完了") != std::string::npos);
 	assert(probe->executeCount == 1);
-	assert(llm.intakeCalls == 2);       // 親 + 子
-	assert(llm.plannerCalls == 2);      // 親 + 子
+	assert(llm.intakeCalls == 2);         // 親 + 子
+	assert(llm.plannerCalls == 2);        // 親 + 子
 	assert(llm.workerPlanningCalls == 1); // CreateChildFlowだけ。Probeは決定的生成。
 	assert(llm.monitorCalls == 1);
 	assert(llm.reasonCalls == 2);
 	assert(llm.criticCalls == 2);
 	assert(llm.synthesisCalls == 2);
 
-	const Json audit = pipeline.GetAuditLog();
+	const auto audit = pipeline.GetAuditLog();
 	assert(audit.size() == 2); // 子Probe + 親CreateChildFlow
 	bool sawProbe = false;
 	bool sawChildFlow = false;
-	for (const auto& record : pipeline.GetAuditLog()) {
+	for (const auto& record : audit) {
 		sawProbe = sawProbe || record.first.tool == "Probe";
 		sawChildFlow = sawChildFlow || record.first.tool == "CreateChildFlow";
 	}
