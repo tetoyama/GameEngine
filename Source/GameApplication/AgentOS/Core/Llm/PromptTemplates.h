@@ -28,6 +28,12 @@ std::string CompactToolCatalog(const Json& toolCatalog);
 void SetCurrentConversationRequestContext(
 	const Json& conversationContext,
 	const Json& normalizedIntake);
+
+// Plannerが受け取ったTool Catalogを同一RunSessionのCritic/Repairへ引き継ぐ。
+// thread_localで保持し、ClearCurrentConversationRequestContext()で必ず破棄する。
+void SetCurrentToolCatalog(const Json& toolCatalog);
+Json CurrentToolCatalog();
+
 void ClearCurrentConversationRequestContext();
 Json CurrentConversationRequestContext();
 std::string CurrentResolvedRequest(const std::string& fallback = {});
