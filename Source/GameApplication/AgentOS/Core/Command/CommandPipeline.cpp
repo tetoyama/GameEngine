@@ -121,6 +121,21 @@ void CommandPipeline::SetBudgetTracker(BudgetTracker* budgetTracker) {
 	budgetTracker_ = budgetTracker;
 }
 
+BudgetTracker* CommandPipeline::GetBudgetTracker() const {
+	std::lock_guard<std::mutex> lock(mutex_);
+	return budgetTracker_;
+}
+
+void CommandPipeline::SetCommandMonitor(CommandMonitor monitor) {
+	std::lock_guard<std::mutex> lock(mutex_);
+	commandMonitor_ = std::move(monitor);
+}
+
+CommandPipeline::CommandMonitor CommandPipeline::GetCommandMonitor() const {
+	std::lock_guard<std::mutex> lock(mutex_);
+	return commandMonitor_;
+}
+
 void CommandPipeline::Audit(const CommandRequest& request, const CommandResult& result) {
 	std::vector<std::shared_ptr<IAuditSink>> sinksCopy;
 	{
@@ -164,6 +179,26 @@ CommandResult CommandPipeline::Submit(CommandRequest request) {
 		CommandResult result = CommandResult::Fail(CommandStatus::SchemaRejected, schemaResult.error);
 		Audit(request, result);
 		return result;
+	}
+
+	// Planner由来でもCritic/Repair由来でも、具体化されたCommandはここを通る。
+	// 特にCreateChildFlowのように制御構造を増やすToolは、CapabilityやBudgetを
+	// 消費する前にRoot Goal・親Taskとの整合性を監視する。
+	CommandMonitor monitor;
+	{
+		std::lock_guard<std::mutex> lock(mutex_);
+		monitor = commandMonitor_;
+	}
+	if(monitor){
+		Result monitorResult = monitor(request);
+		if(!monitorResult){
+			CommandResult result = CommandResult::Fail(
+				CommandStatus::PreconditionRejected,
+				"command monitor rejected: " + monitorResult.error
+			);
+			Audit(request, result);
+			return result;
+		}
 	}
 
 	if(capabilityRegistry_){
