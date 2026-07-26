@@ -82,8 +82,8 @@ public:
 					"\"requestType\":\"investigation\"}\n```";
 			}
 			return "```json\n"
-				"{\"goal\":\"AgentOSの複数領域を調査する\","
-				"\"resolvedRequest\":\"AgentOSの複数領域を調査する\","
+				"{\"goal\":\"複数領域を調査する\","
+				"\"resolvedRequest\":\"複数領域を調査する\","
 				"\"turnRelation\":\"new\",\"referencedSessionIds\":[],"
 				"\"symptoms\":[],\"constraints\":[],"
 				"\"requiredCapabilities\":[\"CreateChildFlow\"],"
@@ -191,7 +191,7 @@ int main() {
 	config.budget.maxLlmChars = 500000;
 
 	Orchestrator orchestrator(&llm, &pipeline, &store, &registry, config);
-	const OrchestratorResult result = orchestrator.RunSession("AgentOSの複数領域を調査する");
+	const OrchestratorResult result = orchestrator.RunSession("複数領域を調査する");
 
 	assert(result.completed);
 	assert(result.report.find("親Flow完了") != std::string::npos);
@@ -214,7 +214,6 @@ int main() {
 	}
 	assert(sawProbe && sawChildFlow);
 
-	store.Close();
 	RemoveDb(dbPath);
 	std::cout << "AgentOSRecursiveFlowEndToEndSmokeTest: OK\n";
 	return 0;
