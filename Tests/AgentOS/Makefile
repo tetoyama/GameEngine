@@ -43,6 +43,7 @@ TESTS = AgentOSCommandPipelineSmokeTest \
         AgentOSCodeIndexServiceSmokeTest \
         AgentOSCodeInvestigationRoutingSmokeTest \
         AgentOSToolCatalogPromptSmokeTest \
+        AgentOSEvidencePromptCompressionSmokeTest \
         AgentOSTaskRetirementSmokeTest \
         AgentOSRepairHygieneSmokeTest \
         AgentOSVerticalSliceSmokeTest
