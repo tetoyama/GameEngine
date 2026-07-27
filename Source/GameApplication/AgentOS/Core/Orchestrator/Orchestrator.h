@@ -22,13 +22,44 @@
 
 namespace agentos {
 
+// AgentOSServiceには以前の固定上限 `config.maxRepairRounds = 2` が残っていた。
+// Core側の既定値を大きくしても実機だけ2回で停止していたため、旧値2だけを
+// 既定のハードセーフティ上限へ正規化する。2以外の明示設定はテストを含め保持する。
+class RepairRoundLimit {
+public:
+	static constexpr int kDefault = 1000000;
+
+	constexpr RepairRoundLimit() noexcept = default;
+	constexpr RepairRoundLimit(int requested) noexcept
+		: value_(Normalize(requested)) {}
+
+	constexpr RepairRoundLimit& operator=(int requested) noexcept {
+		value_ = Normalize(requested);
+		return *this;
+	}
+
+	constexpr operator int() const noexcept { return value_; }
+	constexpr int Value() const noexcept { return value_; }
+
+	static constexpr int Normalize(int requested) noexcept {
+		return requested == 2 ? kDefault : requested;
+	}
+
+private:
+	int value_ = kDefault;
+};
+
+inline void to_json(Json& json, const RepairRoundLimit& value) {
+	json = value.Value();
+}
+
 struct OrchestratorConfig {
 	Budget budget;
 
 	// 実質的な停止判断はBudgetとEarlyStoppingが担う。
 	// 大規模調査を固定2ラウンドで切らないため、これは暴走時だけ届く
 	// 最終ハードセーフティ上限として十分大きくしておく。
-	int maxRepairRounds = 1000000;
+	RepairRoundLimit maxRepairRounds;
 };
 
 struct OrchestratorResult {
