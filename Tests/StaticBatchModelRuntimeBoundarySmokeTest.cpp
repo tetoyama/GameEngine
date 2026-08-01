@@ -4,6 +4,7 @@
 #include <memory>
 #include <string>
 
+#include "Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometryRuntimeStorage.h"
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
@@ -192,6 +193,7 @@ void ValidateCpuSnapshotGeometryKey(){
 	RenderPacket packet;
 	packet.kind = RenderPacketKind::Model;
 	packet.subMeshIndex = 0;
+	packet.modelResource = model;
 	packet.bindings.modelRenderer = &renderer;
 
 	assert(model->VertexBuffer.empty());
