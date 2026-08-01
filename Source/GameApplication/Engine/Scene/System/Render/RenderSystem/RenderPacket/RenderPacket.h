@@ -3,11 +3,13 @@
 #include <algorithm>
 #include <cstdint>
 #include <limits>
+#include <memory>
 
 #include "Scene/Entity/Entity.h"
 #include "System/Render/RenderSystem/renderLayer.h"
 
 struct SceneContext;
+struct ModelData;
 class TransformComponent;
 class MaterialComponent;
 class TextureComponent;
@@ -234,6 +236,9 @@ struct RenderPacket {
 	uint64_t sortKey = 0;
 	uint64_t stableSequence = 0;
 	RenderPacketTransformSnapshot transform;
+	// Frame-owned asset snapshot used by runtime synchronization. This keeps
+	// resource lifetime independent from the non-owning component bindings.
+	std::shared_ptr<ModelData> modelResource;
 	RenderPacketComponentBindings bindings;
 
 	constexpr bool TargetsAllSubMeshes() const noexcept {
@@ -259,7 +264,6 @@ inline bool RenderPacketLess(const RenderPacket& lhs, const RenderPacket& rhs) n
 	}
 	return lhs.stableSequence < rhs.stableSequence;
 }
-
 
 struct RenderPacketViewItem {
 	const RenderPacket* packet = nullptr;
