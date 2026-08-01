@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <utility>
 #include <vector>
@@ -231,16 +232,17 @@ private:
 	) noexcept {
 		if(packet.kind != RenderPacketKind::Model ||
 			!packet.TargetsAllSubMeshes() ||
-			!packet.bindings.modelRenderer){
+			!packet.modelResource){
 			return 0;
 		}
-		const std::shared_ptr<ModelData>& model =
-			packet.bindings.modelRenderer->model;
-		if(!model || !model->AiScene || !model->AiScene->mMeshes ||
-			model->AiScene->mNumMeshes == 0){
+		const std::size_t meshCount = packet.modelResource->MeshGeometry.size();
+		if(meshCount == 0 ||
+			meshCount > static_cast<std::size_t>(
+				(std::numeric_limits<std::uint32_t>::max)()
+			)){
 			return 0;
 		}
-		return model->AiScene->mNumMeshes;
+		return static_cast<std::uint32_t>(meshCount);
 	}
 
 	static size_t PublishedPacketMultiplicity(
