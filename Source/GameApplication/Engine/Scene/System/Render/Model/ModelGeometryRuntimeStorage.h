@@ -11,7 +11,6 @@
 #include <vector>
 
 #include "Resources/Data/modelData.h"
-#include "Scene/Component/modelRendererComponent.h"
 #include "Service/Graphics/RHI/RHIInterfaces.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacket.h"
 
@@ -219,13 +218,9 @@ public:
 		++m_synchronizationCount;
 
 		for(const RenderPacket& packet : packets){
-			if(packet.kind != RenderPacketKind::Model ||
-				!packet.bindings.modelRenderer){
-				continue;
-			}
+			if(packet.kind != RenderPacketKind::Model) continue;
 
-			const std::shared_ptr<ModelData>& model =
-				packet.bindings.modelRenderer->model;
+			const std::shared_ptr<ModelData>& model = packet.modelResource;
 			if(!model || model->MeshGeometry.empty()){
 				++m_rejectedModelCount;
 				continue;
