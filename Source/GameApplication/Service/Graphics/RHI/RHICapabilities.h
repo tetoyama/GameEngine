@@ -5,8 +5,8 @@
 #include "RHIDescriptors.h"
 
 // Windows SDK headers expose DeviceCapabilities as an A/W macro. RHI uses the
-// name as a backend-independent C++ type, so prevent include-order-dependent
-// macro substitution after d3d11.h / wingdi.h has been included.
+// name as a backend-independent C++ type, so prevent substitution while the
+// canonical type is declared.
 #ifdef DeviceCapabilities
 #undef DeviceCapabilities
 #endif
@@ -31,5 +31,11 @@ struct DeviceCapabilities {
 	bool supportsMultipleCommandQueues = false;
 	bool supportsTimelineSynchronization = false;
 };
+
+// If a Windows header defines DeviceCapabilities after this header has already
+// been consumed, later uses expand to DeviceCapabilitiesA/W. Keep those names
+// valid aliases so RHI headers remain include-order independent.
+using DeviceCapabilitiesA = DeviceCapabilities;
+using DeviceCapabilitiesW = DeviceCapabilities;
 
 } // namespace RHI
