@@ -1,3 +1,4 @@
+#include <atomic>
 #include <cassert>
 #include <fstream>
 #include <iterator>
@@ -6,6 +7,8 @@
 #include <type_traits>
 
 #include "Engine/Scene/System/Render/RenderSystem/RenderWorld/RenderWorld.h"
+
+std::atomic<ComponentTypeID> ComponentType::s_nextID{0};
 
 namespace {
 
