@@ -9,7 +9,6 @@
 #include <d3d11.h>
 #include <wrl/client.h>
 
-#include "Engine/Scene/Component/modelRendererComponent.h"
 #include "Engine/Scene/System/Render/Model/ModelGeometryRuntimeStorage.h"
 #include "Engine/Scene/System/Render/Model/ModelGeometryRuntimeTaskRegistrar.h"
 #include "Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
@@ -86,7 +85,7 @@ struct FakeRenderSystem {
 
 void ValidateTaskContract(){
 	const SystemAccess access = ModelGeometryRuntimeTaskRegistrar::BuildAccess();
-	assert(access.componentReads.contains(typeid(ModelRendererComponent)));
+	assert(access.componentReads.empty());
 	assert(access.resourceReads.contains(typeid(ModelData)));
 	assert(access.resourceReads.contains(typeid(RenderPacketFrameBuffer)));
 	assert(access.resourceWrites.contains(typeid(ModelGeometryRuntimeStorage)));
@@ -132,11 +131,9 @@ void ValidateRuntimeLifecycle(){
 	model->MeshGeometry[0].vertices.resize(3);
 	model->MeshGeometry[0].indices = {0, 1, 2};
 
-	ModelRendererComponent renderer;
-	renderer.model = model;
 	RenderPacket packet;
 	packet.kind = RenderPacketKind::Model;
-	packet.bindings.modelRenderer = &renderer;
+	packet.modelResource = model;
 	const std::array<RenderPacket, 1> packets{packet};
 
 	ModelGeometryRuntimeStorage storage;
@@ -192,6 +189,9 @@ void ValidateRenderableConnection(){
 	const std::string renderSystem = ReadTextFile(
 		"Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.cpp"
 	);
+	const std::string extraction = ReadTextFile(
+		"Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderWorld/RenderWorldExtraction.h"
+	);
 
 	assert(renderable.find("GetModelGeometryRuntime().Find(model)") !=
 		std::string::npos);
@@ -202,6 +202,8 @@ void ValidateRenderableConnection(){
 	assert(renderable.find("hasLegacyStaticVertexBuffer") !=
 		std::string::npos);
 	assert(renderSystem.find("ModelGeometryRuntimeTaskRegistrar::Register") !=
+		std::string::npos);
+	assert(extraction.find("packet.modelResource = modelRenderer->model") !=
 		std::string::npos);
 }
 
