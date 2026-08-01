@@ -1,4 +1,3 @@
-#include <array>
 #include <cassert>
 #include <fstream>
 #include <iterator>
@@ -93,8 +92,7 @@ int main(){
 	assert(world.Visibility().FrameSerial() == 42);
 	assert(!world.IsReady());
 
-	const std::array<RenderPacketWorkerBuffer, 0> noWorkers{};
-	world.Publish(std::span<const RenderPacketWorkerBuffer>(noWorkers));
+	world.Publish(std::span<const RenderPacketWorkerBuffer>{});
 	assert(world.IsReady());
 	assert(world.Packets().Size() == 0);
 	assert(world.StaticBatchCandidates().Candidates().empty());
