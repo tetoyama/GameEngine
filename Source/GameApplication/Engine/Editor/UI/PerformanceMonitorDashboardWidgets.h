@@ -194,6 +194,182 @@ inline void ShareBar(float ratio, float height = 5.0f){
 	}
 }
 
+inline void DiagnosticListHeader(bool showAverage){
+	const ImGuiStyle& style = ImGui::GetStyle();
+	const ImVec2 minimum = ImGui::GetCursorScreenPos();
+	const float width = ImGui::GetContentRegionAvail().x;
+	const float height = 23.0f;
+	ImGui::InvisibleButton("##DiagnosticListHeader", ImVec2(width, height));
+	const ImVec2 maximum(minimum.x + width, minimum.y + height);
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+	const ImU32 muted = ImGui::GetColorU32(style.Colors[ImGuiCol_TextDisabled]);
+	const float textY = minimum.y + 3.0f;
+	const float averageRight = maximum.x - 4.0f;
+	const float averageWidth = showAverage ? 82.0f : 0.0f;
+	const float currentRight = averageRight - averageWidth;
+
+	drawList->AddText(ImVec2(minimum.x + 4.0f, textY), muted, "Stage");
+	const char* currentLabel = "Current";
+	const float currentWidth = ImGui::CalcTextSize(currentLabel).x;
+	drawList->AddText(
+		ImVec2(currentRight - currentWidth, textY),
+		muted,
+		currentLabel
+	);
+	if(showAverage){
+		const char* averageLabel = "Average";
+		const float labelWidth = ImGui::CalcTextSize(averageLabel).x;
+		drawList->AddText(
+			ImVec2(averageRight - labelWidth, textY),
+			muted,
+			averageLabel
+		);
+	}
+	drawList->AddLine(
+		ImVec2(minimum.x, maximum.y - 1.0f),
+		ImVec2(maximum.x, maximum.y - 1.0f),
+		ImGui::GetColorU32(WithAlpha(style.Colors[ImGuiCol_Border], 0.34f)),
+		1.0f
+	);
+}
+
+inline void DiagnosticListRow(
+	const char* id,
+	const char* label,
+	float current,
+	float average,
+	float ratio,
+	bool showAverage,
+	const char* unit = "ms",
+	int precision = 3
+){
+	ImGui::PushID(id);
+	ratio = (std::max)(0.0f, (std::min)(1.0f, ratio));
+	const ImGuiStyle& style = ImGui::GetStyle();
+	const ImVec2 minimum = ImGui::GetCursorScreenPos();
+	const float width = ImGui::GetContentRegionAvail().x;
+	const float height = 34.0f;
+	ImGui::InvisibleButton("##DiagnosticRow", ImVec2(width, height));
+	const bool hovered = ImGui::IsItemHovered();
+	const ImVec2 maximum(minimum.x + width, minimum.y + height);
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
+
+	if(hovered){
+		drawList->AddRectFilled(
+			minimum,
+			maximum,
+			ImGui::GetColorU32(WithAlpha(style.Colors[ImGuiCol_HeaderHovered], 0.13f)),
+			3.0f
+		);
+	}
+
+	const float averageRight = maximum.x - 4.0f;
+	const float averageColumnWidth = showAverage ? 82.0f : 0.0f;
+	const float currentRight = averageRight - averageColumnWidth;
+	const float labelRight = currentRight - 88.0f;
+	const float textY = minimum.y + 6.0f;
+	const ImVec4 clip(
+		minimum.x + 4.0f,
+		minimum.y,
+		(std::max)(minimum.x + 4.0f, labelRight),
+		maximum.y
+	);
+	drawList->AddText(
+		nullptr,
+		0.0f,
+		ImVec2(minimum.x + 4.0f, textY),
+		ImGui::GetColorU32(style.Colors[ImGuiCol_Text]),
+		label,
+		nullptr,
+		0.0f,
+		&clip
+	);
+
+	char currentText[48]{};
+	std::snprintf(
+		currentText,
+		sizeof(currentText),
+		"%.*f %s",
+		precision,
+		current,
+		unit
+	);
+	const float currentWidth = ImGui::CalcTextSize(currentText).x;
+	drawList->AddText(
+		ImVec2(currentRight - currentWidth, textY),
+		ImGui::GetColorU32(style.Colors[ImGuiCol_Text]),
+		currentText
+	);
+
+	if(showAverage){
+		char averageText[48]{};
+		std::snprintf(
+			averageText,
+			sizeof(averageText),
+			"%.*f %s",
+			precision,
+			average,
+			unit
+		);
+		const float averageWidth = ImGui::CalcTextSize(averageText).x;
+		drawList->AddText(
+			ImVec2(averageRight - averageWidth, textY),
+			ImGui::GetColorU32(style.Colors[ImGuiCol_TextDisabled]),
+			averageText
+		);
+	}
+
+	const float barY = maximum.y - 4.0f;
+	const float barMinX = minimum.x + 4.0f;
+	const float barMaxX = maximum.x - 4.0f;
+	drawList->AddLine(
+		ImVec2(barMinX, barY),
+		ImVec2(barMaxX, barY),
+		ImGui::GetColorU32(WithAlpha(style.Colors[ImGuiCol_FrameBg], 0.82f)),
+		2.0f
+	);
+	if(ratio > 0.0f){
+		drawList->AddLine(
+			ImVec2(barMinX, barY),
+			ImVec2(barMinX + (barMaxX - barMinX) * ratio, barY),
+			ImGui::GetColorU32(WithAlpha(style.Colors[ImGuiCol_CheckMark], 0.72f)),
+			2.0f
+		);
+	}
+	drawList->AddLine(
+		ImVec2(minimum.x, maximum.y - 1.0f),
+		ImVec2(maximum.x, maximum.y - 1.0f),
+		ImGui::GetColorU32(WithAlpha(style.Colors[ImGuiCol_Border], 0.20f)),
+		1.0f
+	);
+
+	if(hovered){
+		if(showAverage){
+			ImGui::SetTooltip(
+				"%s\nCurrent %.*f %s\nAverage %.*f %s\nShare %.1f%%",
+				label,
+				precision,
+				current,
+				unit,
+				precision,
+				average,
+				unit,
+				ratio * 100.0f
+			);
+		}else{
+			ImGui::SetTooltip(
+				"%s\nCurrent %.*f %s\nShare %.1f%%",
+				label,
+				precision,
+				current,
+				unit,
+				ratio * 100.0f
+			);
+		}
+	}
+	ImGui::PopID();
+}
+
 inline void BudgetPlot(
 	const char* label,
 	const char* id,
