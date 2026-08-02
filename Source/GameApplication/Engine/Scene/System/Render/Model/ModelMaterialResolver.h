@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <memory>
 
 #include "Resources/Data/modelData.h"
@@ -40,6 +41,46 @@ inline const ModelSubMeshRenderState* FindRenderState(
 	ModelSubMeshID subMeshID
 ) noexcept {
 	return renderer ? renderer->FindSubMeshState(subMeshID) : nullptr;
+}
+
+inline bool IsLegacySingleMaterialComponent(
+	const MaterialComponent* component
+) noexcept {
+	return component && component->materials.empty();
+}
+
+inline void ApplyLegacySingleMaterialOverride(
+	const MaterialComponent& component,
+	ModelMaterialResolveResult& result
+){
+	const MaterialDescriptor* base = result.GetDescriptor();
+	MaterialDescriptor descriptor = base
+		? *base
+		: EngineDefaultDescriptor();
+
+	descriptor.shaderID = (std::max)(0, component.ShaderID);
+	descriptor.parameters.baseColor[0] *= component.Material.BaseColor.x;
+	descriptor.parameters.baseColor[1] *= component.Material.BaseColor.y;
+	descriptor.parameters.baseColor[2] *= component.Material.BaseColor.z;
+	descriptor.parameters.baseColor[3] *= component.Material.BaseColor.w;
+	descriptor.parameters.opacity *= component.Material.BaseColor.w;
+	descriptor.parameters.metallic = component.Material.Metallic;
+	descriptor.parameters.roughness = component.Material.Roughness;
+	descriptor.parameters.ambientOcclusion = component.Material.AO;
+	descriptor.parameters.emissiveColor = {
+		component.Material.EmissiveColor.x,
+		component.Material.EmissiveColor.y,
+		component.Material.EmissiveColor.z
+	};
+	descriptor.parameters.emissiveIntensity =
+		component.Material.EmissiveIntensity;
+	descriptor.legacyMaterialFlags = component.Material.MaterialFlags &
+		MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+
+	result.ownedDescriptor =
+		std::make_shared<MaterialDescriptor>(std::move(descriptor));
+	result.descriptor = result.ownedDescriptor.get();
+	result.source = ModelMaterialResolutionSource::LegacyMaterialOverride;
 }
 
 inline bool ResolveImportedDefault(
@@ -101,6 +142,9 @@ inline ModelMaterialResolveResult Resolve(
 			return result;
 		}
 	}else if(ResolveImportedDefault(model, subMesh, result, false)){
+		if(IsLegacySingleMaterialComponent(materialComponent)){
+			ApplyLegacySingleMaterialOverride(*materialComponent, result);
+		}
 		return result;
 	}else{
 		result.issue = result.fallbackIssue;
@@ -109,6 +153,10 @@ inline ModelMaterialResolveResult Resolve(
 	result.descriptor = &EngineDefaultDescriptor();
 	result.source = ModelMaterialResolutionSource::EngineDefault;
 	result.usedFallback = true;
+	if(assignment.source != SubMeshMaterialSource::CustomMaterial &&
+		IsLegacySingleMaterialComponent(materialComponent)){
+		ApplyLegacySingleMaterialOverride(*materialComponent, result);
+	}
 	return result;
 }
 
