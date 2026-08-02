@@ -7,7 +7,7 @@
 // - never redraw tab text or background
 // - never modify ContentWidth / RequestedWidth / tab.Width
 // - never replace Dear ImGui ellipsis, close-button, focus or hover behavior
-// - draw only inside the stock leading frame-padding region
+// - keep the glyph inside the stock leading region without touching labels
 //
 // =======================================================================
 #pragma once
@@ -58,18 +58,19 @@ inline void DrawDockTabOverlay(const EditorIconLibrary& icons){
 				false
 			);
 
-			// Use only the padding Dear ImGui already reserved before the label.
-			// This keeps the standard label, ellipsis and close-button geometry
-			// completely untouched while making the glyph deterministic.
-			const float leadingPadding = tabBar->FramePadding.x;
-			if(leadingPadding < 4.0f) break;
-
+			const float fontSize = window->FontRefSize > 0.0f
+				? window->FontRefSize
+				: context->FontSize;
 			const float iconSize = (std::max)(
-				4.0f,
-				(std::min)(7.0f, leadingPadding - 1.0f)
+				10.0f,
+				(std::min)(12.0f, fontSize * 0.78f)
 			);
-			const float iconX = tabRect.Min.x +
-				(std::max)(0.5f, (leadingPadding - iconSize) * 0.5f);
+
+			// Vector glyphs intentionally carry roughly 10% internal whitespace.
+			// Positioning the nominal bounds at the tab edge yields a readable
+			// 10–12 px mark while the visible stroke remains inside the stock
+			// leading padding and does not cover the first label glyph.
+			const float iconX = tabRect.Min.x + 0.5f;
 			const float centerY = (tabRect.Min.y + tabRect.Max.y) * 0.5f;
 
 			const bool focused =
