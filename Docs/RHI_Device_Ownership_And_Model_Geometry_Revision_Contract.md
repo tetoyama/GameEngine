@@ -7,6 +7,7 @@ Status: **Implemented foundation — 2026-08-02**
 - `refactor/ecs-scheduler-foundation`
 - PR #45
 - `ModelGeometryRuntimeStorage`
+- `StaticBatchUploadSystem`
 - `StaticBatchModelGeometryRuntimeStorage`
 - `StaticBatchD3D11GeometryBinding`
 - `RenderHardwareInterfaceService`
@@ -16,7 +17,7 @@ Status: **Implemented foundation — 2026-08-02**
 
 ## 1. 目的
 
-Model Geometry Runtimeが、破棄済みまたは交換済みのRHI DeviceへNative Resource破棄を発行することを防ぐ。
+Model Geometry RuntimeとStatic Batch GPU Runtimeが、破棄済みまたは交換済みのRHI DeviceへNative Resource破棄を発行することを防ぐ。
 
 また、ModelDataのPointer、Mesh数、Vertex数、Index数が変化しないGeometry更新でも、通常RenderableとStatic Batchの共有Vertex / Index Runtimeを確実に再生成する。
 
@@ -97,6 +98,8 @@ Abandonは通常のScene切替や、Deviceが有効な状態の停止処理に�
 
 ## 5. Device Transition
 
+### 5.1 通常Model Geometry Runtime
+
 `ModelGeometryRuntimeStorage::Synchronize`は、現在Binding中のDevice契約と入力Device契約を比較する。
 
 異なる場合:
@@ -107,7 +110,27 @@ Abandonは通常のScene切替や、Deviceが有効な状態の停止処理に�
 
 旧Device Handleを新Deviceへ渡してDestroyしてはならない。
 
-RHI共通契約は他のGPU Runtime Storageにも再利用可能だが、各StorageはDevice Binding、Reset、Abandonの採用を個別に行う。今回の実装対象は通常Model Geometry Runtimeである。
+### 5.2 Static Batch GPU Runtime
+
+`StaticBatchUploadSystem`は次を同じDevice Ownership Epochへ束ねる。
+
+- GBuffer Pipeline / Shader
+- Shadow Pipeline / Shader
+- Geometry Binding Cache
+- Main Instance Buffer
+- Shadow Visible Instance Buffer
+
+Device identity、Lifetime、Generationのいずれかが変化した場合:
+
+1. 旧GPU HandleをAbandonする
+2. CPU Geometry Snapshotと可視Instance SnapshotをResetする
+3. 新Device EpochへBindingする
+4. GBuffer / Shadow Pipelineを新Device上で再Bootstrapする
+5. 次の同期でGeometry BindingとInstance Bufferを再生成する
+
+`Stop`と`Finalize`では、現在のRHI Service Deviceと保存済みEpochが一致する場合だけNative Releaseを行う。一致しない場合はAbandonする。
+
+RHI共通契約は他のGPU Runtime Storageにも再利用可能だが、各StorageはDevice Binding、Reset、Abandonの採用を個別に行う。今回の実装対象はStep 18-Aの通常Model Geometry RuntimeとStatic Batch GPU Resource群である。
 
 ---
 
@@ -208,5 +231,7 @@ ModelData::Geometry Revision
 - 有効な同一DeviceでのResetはHandleをDestroyする
 - Device破棄後のResetは生Pointerを逆参照せずAbandonする
 - RHI ServiceのAdopt / Release / Re-adopt / ResetでGenerationが変化する
+- Static Batch GPU Resource群がDevice Epoch変更時にAbandonされる
+- Static Batch Pipelineが新Device上で再Bootstrapされる
 - Static Batch Bindingは同じGeometry KeyとCountでもSource Revision不一致を拒否する
 - Static Batch CPU SnapshotはGeometry Revision変更後に置換される
