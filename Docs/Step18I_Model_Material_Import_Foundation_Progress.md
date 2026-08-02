@@ -1,6 +1,6 @@
 # Step 18-I: Model Material Import Foundation Progress
 
-Status: **MMI-1 / MMI-2 / MMI-3 runtime foundation implemented; persistence foundation in verification — 2026-08-03**
+Status: **MMI-1 / MMI-2 / MMI-3 runtime・persistence・inspector foundation implemented; CI verification pending — 2026-08-03**
 
 対象:
 
@@ -228,6 +228,46 @@ MaterialやSubMeshが異なるPacketを同一Batchへ誤統合しない。
 
 SubMeshが削除済みCustom Material IDを参照した場合は、既存Resolver契約によりImported DefaultへFallbackする。
 
+### 1.10 Inspector Foundation
+
+`MaterialDescriptorInspector`を追加した。
+
+`MaterialComponent` Inspector:
+
+- Custom Material Add / Remove
+- Stable ID表示
+- Name
+- Shader
+- Base Color
+- Metallic / Roughness / Ambient Occlusion
+- Emissive Color / Intensity
+- Opacity / Normal Scale / Height Scale
+- Alpha Mode / Alpha Cutoff
+- Cull Mode / Depth Write / Receive Shadow
+- Texture Add / Remove
+- Texture Semantic / Color Space
+- Source Path / Asset Path
+- UV Channel / Scale / Offset / Rotation
+- Strength / Embedded状態
+
+旧単一Material UIはScene後方互換のため残す。
+
+`ModelRendererSubMeshInspector`を追加した。
+
+`ModelRendererComponent` Inspector:
+
+- Imported SubMesh Name / Stable ID / Geometry Index / Node Path
+- Model Default Material表示
+- Visible
+- Cast Shadow
+- Model Default / Custom Material Source
+- Custom Material ID
+- SubMesh State Reset
+
+Material適用範囲は`ModelRendererComponent`、Material定義は`MaterialComponent`という所有分離をUIでも維持する。
+
+現段階ではInspector APIが編集中EntityをComponentへ渡さないため、Custom Materialは名前ComboではなくStable ID入力とする。Runtime Component HeaderをEditor Serviceへ依存させる回避実装は採用しない。
+
 ---
 
 ## 2. 検証契約
@@ -278,6 +318,13 @@ SubMeshが削除済みCustom Material IDを参照した場合は、既存Resolve
 - Invalid / Duplicate ID Sanitize
 - 最大ID到達時の空きID探索
 
+`ModelMaterialInspectorHeaderSmokeTest`:
+
+- Inspector Headerの直接include
+- ImGui宣言依存
+- Custom Material Collection API
+- SubMesh State生成API
+
 `ModelMaterialSerializationSourceContractSmokeTest`:
 
 - Material / SubMesh YAML接続
@@ -285,6 +332,8 @@ SubMeshが削除済みCustom Material IDを参照した場合は、既存Resolve
 - 一時Load失敗時の状態保持
 - 別Model Path変更時の状態Clear
 - Component Collection API接続
+- Custom Material Inspector接続
+- SubMesh Assignment Inspector接続
 
 回帰確認:
 
@@ -300,7 +349,7 @@ SubMeshが削除済みCustom Material IDを参照した場合は、既存Resolve
 
 - Alpha RoutingまでのModel Material Foundation Smoke: 成功
 - Alpha RoutingまでのWindows Debug / Release x64 Build: 成功
-- YAML Persistence / Reimport Synchronization / Custom Material Collection追加後:
+- YAML Persistence / Reimport Synchronization / Custom Material Collection / Inspector追加後:
   - GitHub hosted runner待ち
   - 失敗ログなし
   - 成功は未確定
@@ -315,8 +364,8 @@ SubMeshが削除済みCustom Material IDを参照した場合は、既存Resolve
 - 全Texture SlotのStatic Batch Shader Binding
 - Static Batch Snapshot欠落用Assimp Fallbackの撤去
 - MaterialAsset YAMLと差分Override
-- Custom Material Descriptorの完全なInspector編集UI
-- ModelRenderer InspectorからMaterialComponentを解決するEntity-aware SubMesh Assignment Combo
+- Entity-aware Inspector ContextとCustom Material名前Combo
+- Inspector Combo / Vector操作の完全Undo Command化
 - Reimport Diagnostic UI
 - Tangent `float4` / Bitangent Sign
 - UV1以降のVertex Layout
@@ -326,10 +375,10 @@ SubMeshが削除済みCustom Material IDを参照した場合は、既存Resolve
 ## 5. 次工程
 
 ```text
-1. Persistence / Reimport / Collectionの専用CIとWindows Buildを緑化
-2. Custom Material Inspector編集UI
-3. Entity-aware Inspector Contextを導入
-4. ModelRenderer SubMesh -> Custom Material Assignment UI
+1. Persistence / Reimport / Collection / Inspectorの専用CIとWindows Buildを緑化
+2. Entity-aware Inspector Contextを設計
+3. ModelRenderer SubMesh -> Custom Material名前Combo
+4. Reimport / Resolver Diagnostic UI
 5. Texture Runtime Handle / RHI Binding境界
 6. Static Batchの全Texture Slot対応
 7. Snapshot欠落用aiMaterial Fallback撤去
