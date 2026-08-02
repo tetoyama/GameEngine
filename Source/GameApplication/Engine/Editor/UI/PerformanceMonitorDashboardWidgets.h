@@ -40,6 +40,10 @@ inline float Maximum(const float* samples, int count){
 	return maximum;
 }
 
+inline float PositiveExtent(float value){
+	return (std::max)(1.0f, value);
+}
+
 inline ImVec4 WithAlpha(ImVec4 color, float alpha){
 	color.w *= alpha;
 	return color;
@@ -99,9 +103,10 @@ inline bool SectionHeader(
 	bool open = storage->GetBool(openID, defaultOpen);
 
 	const ImGuiStyle& style = ImGui::GetStyle();
-	const float height = ImGui::GetFrameHeight() + 2.0f;
+	const float height = PositiveExtent(ImGui::GetFrameHeight() + 2.0f);
+	const float width = PositiveExtent(ImGui::GetContentRegionAvail().x);
 	const ImVec2 minimum = ImGui::GetCursorScreenPos();
-	const ImVec2 size(ImGui::GetContentRegionAvail().x, height);
+	const ImVec2 size(width, height);
 	ImGui::InvisibleButton("##Header", size);
 	const bool hovered = ImGui::IsItemHovered();
 	if(ImGui::IsItemClicked()){
@@ -170,7 +175,7 @@ inline bool SectionHeader(
 inline void DiagnosticListHeader(bool showAverage){
 	const ImGuiStyle& style = ImGui::GetStyle();
 	const ImVec2 minimum = ImGui::GetCursorScreenPos();
-	const float width = ImGui::GetContentRegionAvail().x;
+	const float width = PositiveExtent(ImGui::GetContentRegionAvail().x);
 	const float height = 23.0f;
 	ImGui::Dummy(ImVec2(width, height));
 	const ImVec2 maximum(minimum.x + width, minimum.y + height);
@@ -220,7 +225,7 @@ inline void DiagnosticListRow(
 	ratio = (std::max)(0.0f, (std::min)(1.0f, ratio));
 	const ImGuiStyle& style = ImGui::GetStyle();
 	const ImVec2 minimum = ImGui::GetCursorScreenPos();
-	const float width = ImGui::GetContentRegionAvail().x;
+	const float width = PositiveExtent(ImGui::GetContentRegionAvail().x);
 	const float height = 34.0f;
 	ImGui::InvisibleButton("##DiagnosticRow", ImVec2(width, height));
 	const bool hovered = ImGui::IsItemHovered();
@@ -294,7 +299,7 @@ inline void DiagnosticListRow(
 
 	const float barY = maximum.y - 4.0f;
 	const float barMinX = minimum.x + 4.0f;
-	const float barMaxX = maximum.x - 4.0f;
+	const float barMaxX = (std::max)(barMinX, maximum.x - 4.0f);
 	drawList->AddLine(
 		ImVec2(barMinX, barY),
 		ImVec2(barMaxX, barY),
@@ -381,7 +386,10 @@ inline void BudgetPlot(
 	}
 
 	const ImVec2 minimum = ImGui::GetCursorScreenPos();
-	const ImVec2 size(ImGui::GetContentRegionAvail().x, 46.0f);
+	const ImVec2 size(
+		PositiveExtent(ImGui::GetContentRegionAvail().x),
+		46.0f
+	);
 	ImGui::InvisibleButton("##Plot", size);
 	const ImVec2 maximum(minimum.x + size.x, minimum.y + size.y);
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
