@@ -122,7 +122,7 @@ public:
 
 private:
 	std::shared_ptr<const std::uint8_t> m_lifetimeToken =
-		std::make_shared<const std::uint8_t>(0);
+		std::make_shared<const std::uint8_t>(std::uint8_t{0});
 };
 
 } // namespace RHI
