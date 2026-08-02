@@ -18,7 +18,6 @@
 #include "UI/CB41.h"
 #include "UI/ModernImGui/EditorIconWidgets.h"
 #include "UI/ModernImGui/EditorEmptyState.h"
-#include "UI/ModernImGui/DockTabOverlay.h"
 
 #include "Analysis/AnalyzerManager.h"
 
@@ -101,11 +100,6 @@ void EditorService::Draw(EditorDrawContext ctx) {
 	if(!hierarchy || !hierarchy->selectedEntity || !hierarchy->sceneContext){
 		MImGui::DrawInspectorEmptyState(icons);
 	}
-
-	// Dear ImGui owns the complete tab presentation and interaction contract.
-	// We only add an optional glyph in unused trailing space; labels, ellipsis,
-	// surfaces, close buttons and dock geometry remain untouched.
-	MImGui::DrawDockTabOverlay(icons);
 
 	m_CompletedPanelTimings = m_CurrentPanelTimings;
 }
