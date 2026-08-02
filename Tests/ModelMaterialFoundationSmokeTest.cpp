@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "Engine/Resources/Data/modelData.h"
-#include "Engine/Resources/Data/modelAssimpMaterialNormalization.h"
+#include "Engine/Resources/Data/modelAssimpMaterialPropertyNormalization.h"
 #include "Engine/Scene/Component/materialComponent.h"
 #include "Engine/Scene/System/Render/Model/ModelMaterialResolver.h"
 
