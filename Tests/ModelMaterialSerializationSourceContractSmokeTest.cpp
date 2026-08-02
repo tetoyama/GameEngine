@@ -63,12 +63,28 @@ int main(){
 	Require(runtime, "component.model->SubMeshes");
 	Require(runtime, "SubMesh Overrideを保持する");
 
-	const std::string inspector = ReadText(
+	const std::string pathInspector = ReadText(
 		"Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererInspectorCommon.h"
 	);
-	Require(inspector, "ChangeModelPath");
-	Require(inspector, "component.subMeshes.clear();");
-	Require(inspector, "ReloadCoordinateMode");
+	Require(pathInspector, "ChangeModelPath");
+	Require(pathInspector, "component.subMeshes.clear();");
+	Require(pathInspector, "ReloadCoordinateMode");
+
+	const std::string subMeshInspector = ReadText(
+		"Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererSubMeshInspector.h"
+	);
+	Require(subMeshInspector, "EnsureState");
+	Require(subMeshInspector, "Model Default");
+	Require(subMeshInspector, "Custom Material ID");
+	Require(subMeshInspector, "Reset SubMesh State");
+	Require(subMeshInspector, "state.visible");
+	Require(subMeshInspector, "state.castShadow");
+
+	const std::string rendererInspector = ReadText(
+		"Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererInspectorMotion.h"
+	);
+	Require(rendererInspector, "ModelRendererSubMeshInspector::Draw");
+	Require(rendererInspector, "component.subMeshes");
 
 	const std::string yaml = ReadText(
 		"Source/GameApplication/Engine/Resources/Data/modelMaterialYamlSerialization.h"
