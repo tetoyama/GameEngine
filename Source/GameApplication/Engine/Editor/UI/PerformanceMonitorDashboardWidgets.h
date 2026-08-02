@@ -7,6 +7,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cfloat>
 #include <cstdio>
 
 #include <ImGui/imgui.h>
