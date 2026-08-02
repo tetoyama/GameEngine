@@ -16,6 +16,7 @@
 #include <cfloat>
 #include <cmath>
 #include <cstdio>
+#include <vector>
 
 #include <ImGui/imgui.h>
 
@@ -38,6 +39,51 @@ inline float Maximum(const float* samples, int count){
 		maximum = (std::max)(maximum, samples[index]);
 	}
 	return maximum;
+}
+
+inline float Percentile(
+	const float* samples,
+	int count,
+	float percentile,
+	bool ignoreZero = false
+){
+	if(!samples || count <= 0){
+		return 0.0f;
+	}
+
+	std::vector<float> values;
+	values.reserve(static_cast<std::size_t>(count));
+	for(int index = 0; index < count; ++index){
+		if(ignoreZero && samples[index] <= 0.0f) continue;
+		values.push_back(samples[index]);
+	}
+	if(values.empty()){
+		return 0.0f;
+	}
+
+	std::sort(values.begin(), values.end());
+	percentile = (std::max)(0.0f, (std::min)(1.0f, percentile));
+	const float position = percentile * static_cast<float>(values.size() - 1);
+	const std::size_t lower = static_cast<std::size_t>(std::floor(position));
+	const std::size_t upper = static_cast<std::size_t>(std::ceil(position));
+	if(lower == upper){
+		return values[lower];
+	}
+	const float fraction = position - static_cast<float>(lower);
+	return values[lower] + (values[upper] - values[lower]) * fraction;
+}
+
+inline int CountAbove(const float* samples, int count, float threshold){
+	if(!samples || count <= 0 || threshold <= 0.0f){
+		return 0;
+	}
+	int result = 0;
+	for(int index = 0; index < count; ++index){
+		if(samples[index] > threshold){
+			++result;
+		}
+	}
+	return result;
 }
 
 inline float PositiveExtent(float value){
@@ -428,19 +474,27 @@ inline void BudgetPlot(
 ){
 	ImGui::PushID(id);
 	const ImGuiStyle& style = ImGui::GetStyle();
+	const bool ignoreZeroForStatistics = targetValue <= 0.0f;
 	const float peak = Maximum(samples, sampleCount);
+	const float p95 = Percentile(
+		samples,
+		sampleCount,
+		0.95f,
+		ignoreZeroForStatistics
+	);
+	const int overTargetCount = CountAbove(samples, sampleCount, targetValue);
 	char valueText[128]{};
 	std::snprintf(
 		valueText,
 		sizeof(valueText),
-		"%.*f %s  ·  avg %.*f  ·  peak %.*f",
+		"%.*f %s  ·  avg %.*f  ·  P95 %.*f",
 		precision,
 		current,
 		unit,
 		precision,
 		average,
 		precision,
-		peak
+		p95
 	);
 
 	ImGui::TextUnformatted(label);
@@ -467,9 +521,10 @@ inline void BudgetPlot(
 		4.0f
 	);
 
+	const float robustReference = (std::max)(p95, current);
 	const float plotMaximum = (std::max)(
-		targetValue * 1.10f,
-		peak * 1.10f
+		targetValue > 0.0f ? targetValue * 1.10f : 1.0f,
+		robustReference > 0.0f ? robustReference * 1.25f : peak * 1.10f
 	);
 	if(plotMaximum > 0.0f && targetValue > 0.0f){
 		const float targetRatio = (std::min)(1.0f, targetValue / plotMaximum);
@@ -485,20 +540,45 @@ inline void BudgetPlot(
 	if(sampleCount > 1 && plotMaximum > 0.0f){
 		const float width = maximum.x - minimum.x;
 		const float height = maximum.y - minimum.y;
-		const ImU32 lineColor = ImGui::GetColorU32(
+		const ImU32 normalLineColor = ImGui::GetColorU32(
 			WithAlpha(style.Colors[ImGuiCol_PlotLines], 0.88f)
 		);
+		const ImU32 overBudgetLineColor = ImGui::GetColorU32(
+			ImVec4(1.0f, 0.68f, 0.25f, 0.90f)
+		);
+		const ImU32 clippedMarkerColor = ImGui::GetColorU32(
+			ImVec4(1.0f, 0.34f, 0.32f, 0.95f)
+		);
 		ImVec2 previous = minimum;
+		float previousValue = samples[0];
 		for(int index = 0; index < sampleCount; ++index){
+			const float sample = samples[index];
 			const float x = minimum.x + width *
 				(static_cast<float>(index) / static_cast<float>(sampleCount - 1));
 			const float normalized = (std::max)(
 				0.0f,
-				(std::min)(1.0f, samples[index] / plotMaximum)
+				(std::min)(1.0f, sample / plotMaximum)
 			);
 			const ImVec2 point(x, maximum.y - normalized * height);
-			if(index > 0) drawList->AddLine(previous, point, lineColor, 1.25f);
+			if(index > 0){
+				const bool overBudget = targetValue > 0.0f &&
+					(sample > targetValue || previousValue > targetValue);
+				drawList->AddLine(
+					previous,
+					point,
+					overBudget ? overBudgetLineColor : normalLineColor,
+					1.25f
+				);
+			}
+			if(sample > plotMaximum){
+				drawList->AddCircleFilled(
+					ImVec2(x, minimum.y + 2.0f),
+					2.0f,
+					clippedMarkerColor
+				);
+			}
 			previous = point;
+			previousValue = sample;
 		}
 	}
 
@@ -512,13 +592,44 @@ inline void BudgetPlot(
 				static_cast<int>(std::round(localX / width * (sampleCount - 1)))
 			)
 		);
-		ImGui::SetTooltip(
-			"Sample %d\n%.*f %s",
-			index,
-			precision,
-			samples[index],
-			unit
-		);
+		if(targetValue > 0.0f){
+			ImGui::SetTooltip(
+				"Sample %d\n%.*f %s%s\nAverage %.*f %s\nP95 %.*f %s\nPeak %.*f %s\nOver budget %d / %d",
+				index,
+				precision,
+				samples[index],
+				unit,
+				samples[index] > targetValue ? " · over budget" : "",
+				precision,
+				average,
+				unit,
+				precision,
+				p95,
+				unit,
+				precision,
+				peak,
+				unit,
+				overTargetCount,
+				sampleCount
+			);
+		}else{
+			ImGui::SetTooltip(
+				"Sample %d\n%.*f %s\nAverage %.*f %s\nP95 %.*f %s\nPeak %.*f %s",
+				index,
+				precision,
+				samples[index],
+				unit,
+				precision,
+				average,
+				unit,
+				precision,
+				p95,
+				unit,
+				precision,
+				peak,
+				unit
+			);
+		}
 	}
 	ImGui::PopID();
 }
