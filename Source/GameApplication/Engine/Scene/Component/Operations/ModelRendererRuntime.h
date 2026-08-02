@@ -37,9 +37,10 @@ inline void ReleaseBuffers(ModelRendererComponent& component){
 }
 
 inline bool CreateModel(ModelRendererComponent& component, SceneContext* context){
+	// Resource Serviceがまだ利用できない一時状態では、YAMLから復元した
+	// SubMesh Overrideを保持する。成功したLoad時だけStable IDで再同期する。
 	if(component.modelFilePath.empty() || !context || !context->manager ||
 		!context->manager->resource){
-		component.subMeshes.clear();
 		return false;
 	}
 
@@ -51,7 +52,6 @@ inline bool CreateModel(ModelRendererComponent& component, SceneContext* context
 		component.isBlender
 	);
 	if(!component.model || !component.model->AiScene){
-		component.subMeshes.clear();
 		return false;
 	}
 
