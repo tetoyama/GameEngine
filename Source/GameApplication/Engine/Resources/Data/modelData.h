@@ -4,6 +4,7 @@
 // 
 // =======================================================================
 #pragma once
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -16,6 +17,8 @@
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
 #include "assimp/matrix4x4.h"
+
+#include "modelMaterialTypes.h"
 
 class GraphicsContext;
 struct aiScene;
@@ -98,6 +101,43 @@ public:
 	// Backend非依存CPU Geometry。Native Bufferと寿命を分離し、RHI移行時の
 	// 再生成元として保持する。
 	std::vector<ModelMeshGeometryCpuData> MeshGeometry;
+
+	// Import時に正規化されたAsset-local定義。配列IndexはRuntime走査用、
+	// IDはScene保存とReimport追従用として分離する。
+	std::vector<ModelSubMeshDefinition> SubMeshes;
+	std::vector<ImportedMaterialDefinition> ImportedMaterials;
+
+	std::size_t ResolvedSubMeshCount() const noexcept {
+		return SubMeshes.empty() ? MeshGeometry.size() : SubMeshes.size();
+	}
+
+	const ModelSubMeshDefinition* FindSubMesh(
+		ModelSubMeshID id
+	) const noexcept {
+		if(id == InvalidModelSubMeshID){
+			return nullptr;
+		}
+		for(const ModelSubMeshDefinition& subMesh : SubMeshes){
+			if(subMesh.id == id){
+				return &subMesh;
+			}
+		}
+		return nullptr;
+	}
+
+	const ImportedMaterialDefinition* FindImportedMaterial(
+		ImportedMaterialID id
+	) const noexcept {
+		if(id == InvalidImportedMaterialID){
+			return nullptr;
+		}
+		for(const ImportedMaterialDefinition& material : ImportedMaterials){
+			if(material.id == id){
+				return &material;
+			}
+		}
+		return nullptr;
+	}
 
 	// Legacy通常描画互換。生成・所有は段階的にRenderSystem/RHIへ移す。
 	std::vector<ID3D11Buffer*> VertexBuffer;
