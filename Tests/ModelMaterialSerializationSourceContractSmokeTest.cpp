@@ -20,6 +20,15 @@ void Require(const std::string& text, const char* token){
 } // namespace
 
 int main(){
+	const std::string materialComponent = ReadText(
+		"Source/GameApplication/Engine/Scene/Component/materialComponent.h"
+	);
+	Require(materialComponent, "AllocateMaterialID");
+	Require(materialComponent, "AddMaterial");
+	Require(materialComponent, "RemoveMaterial");
+	Require(materialComponent, "SanitizeMaterials");
+	Require(materialComponent, "CustomMaterialCollection::Add");
+
 	const std::string materialOperations = ReadText(
 		"Source/GameApplication/Engine/Scene/Component/Operations/MaterialComponentOperations.h"
 	);
