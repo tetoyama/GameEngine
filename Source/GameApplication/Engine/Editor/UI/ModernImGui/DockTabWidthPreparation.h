@@ -51,13 +51,24 @@ inline void PrepareDockTabWidths(){
 				9.0f,
 				(std::min)(12.0f, fontSize * 0.80f)
 			);
+			const bool hasCloseButton =
+				(tab.Flags & ImGuiTabItemFlags_NoCloseButton) == 0;
 
-			// ContentWidth already contains the original label. Reserve the vector
-			// glyph and its gap before DockNode performs this frame's tab layout.
-			// Setting the same deterministic value before Begin() prevents the
-			// post-layout, next-frame feedback loop that caused width flicker.
-			const float requestedWidth = tab.ContentWidth + iconSize + 7.0f;
-			tab.RequestedWidth = (std::max)(tab.RequestedWidth, requestedWidth);
+			// TabItemCalcSize follows Dear ImGui's own width contract and already
+			// includes the label, frame padding and optional close-button space.
+			// ContentWidth is what TabBarLayout consumes before this frame's Begin()
+			// calls. Add only the semantic glyph, its gap and a small clip guard.
+			const float stockWidth = ImGui::TabItemCalcSize(
+				window->Name,
+				hasCloseButton
+			).x;
+			constexpr float iconGap = 5.0f;
+			constexpr float clipGuard = 3.0f;
+			tab.ContentWidth = stockWidth + iconSize + iconGap + clipGuard;
+
+			// A post-draw compatibility write may still exist in the overlay path.
+			// Clear it before layout so it never competes with ContentWidth.
+			tab.RequestedWidth = -1.0f;
 			break;
 		}
 	}
