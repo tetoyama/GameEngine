@@ -85,8 +85,10 @@ int main(){
 	std::array<std::uint32_t, 3> indices{0, 1, 2};
 
 	StaticBatchD3D11GeometrySource revision1;
-	revision1.vertexData = vertices;
-	revision1.indexData = std::as_bytes(std::span<const std::uint32_t>(indices));
+	revision1.vertexData = std::span<const std::byte>(vertices);
+	revision1.indexData = std::as_bytes(
+		std::span<const std::uint32_t>(indices)
+	);
 	revision1.vertexStride = 12;
 	revision1.vertexCount = 3;
 	revision1.indexCount = 3;
