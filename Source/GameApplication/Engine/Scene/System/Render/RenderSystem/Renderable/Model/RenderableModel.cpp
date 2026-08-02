@@ -19,6 +19,7 @@
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/textureComponent.h"
 #include "System/Render/Model/ModelMaterialLegacyD3D11Bridge.h"
+#include "System/Render/Model/ModelMaterialPassRouting.h"
 #include "System/Render/RenderSystem/renderSystem.h"
 #include "Service/Graphics/RHI/RHIService.h"
 #include "Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
@@ -57,6 +58,14 @@ void BindTexture(
 void RenderableModel::Execute(
 	const RenderPassContext& ctx,
 	const RenderPacket& packet){
+	// GBufferPass may still enumerate an Opaque entity packet whose resolved
+	// submesh material is Blend. The shared routing contract makes the model
+	// draw a no-op here while ForwardPass submits it with distance sorting.
+	if(ctx.passPhase == RenderPhase::PHASE_GBUFFER &&
+		!ModelMaterialPassRouting::ShouldSubmitGBuffer(packet)){
+		return;
+	}
+
 	SceneContext* sceneContext = packet.bindings.sceneContext;
 	if(!sceneContext) return;
 
