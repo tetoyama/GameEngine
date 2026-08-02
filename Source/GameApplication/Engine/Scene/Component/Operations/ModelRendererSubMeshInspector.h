@@ -5,6 +5,8 @@
 #include <string>
 #include <vector>
 
+#include <backends/ImGui/imgui.h>
+
 #include "Backends/ImGuiFunc.h"
 #include "Resources/Data/modelData.h"
 
