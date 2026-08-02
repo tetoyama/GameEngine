@@ -23,6 +23,36 @@
 
 namespace MaterialComponentOperations {
 
+inline YAML::Node OptionalChild(
+	const YAML::Node& node,
+	const char* key
+) noexcept {
+	try{
+		if(!node.IsMap()) return YAML::Node{};
+		const YAML::Node child = node[key];
+		if(child.IsDefined()) return child;
+	}catch(const YAML::Exception&){
+	}
+	return YAML::Node{};
+}
+
+template<class T>
+inline bool TryDecodeValue(
+	const YAML::Node& node,
+	const char* key,
+	T& output
+) noexcept {
+	try{
+		if(!node.IsMap()) return false;
+		const YAML::Node child = node[key];
+		if(!child.IsDefined() || child.IsNull()) return false;
+		output = child.as<T>();
+		return true;
+	}catch(const YAML::Exception&){
+		return false;
+	}
+}
+
 inline YAML::Node Encode(const MaterialComponent& component){
 	YAML::Node node;
 	// Legacy single-material fields remain for backward compatibility.
@@ -42,17 +72,22 @@ inline YAML::Node Encode(const MaterialComponent& component){
 }
 
 inline bool Decode(MaterialComponent& component, const YAML::Node& node){
-	if(!node.IsMap()){
+	try{
+		if(!node.IsMap()){
+			return false;
+		}
+	}catch(const YAML::Exception&){
 		return false;
 	}
-	if(node["ShaderID"]){
-		component.ShaderID = node["ShaderID"].as<int>();
-	}
-	if(node["Material"]){
-		component.Material = node["Material"].as<MATERIAL>();
-	}
+
+	TryDecodeValue(node, "ShaderID", component.ShaderID);
+	TryDecodeValue(node, "Material", component.Material);
+
+	// 旧Scene / Play開始前のTemp SceneにはMaterials Nodeが存在しない。
+	// yaml-cppのconst operator[]は欠落KeyにInvalidNodeを返すため、
+	// 安全なNull Nodeへ変換して空Collectionとして復元する。
 	ModelMaterialYamlSerialization::DecodeCustomMaterials(
-		node["Materials"],
+		OptionalChild(node, "Materials"),
 		component.materials
 	);
 	component.SanitizeMaterials();
