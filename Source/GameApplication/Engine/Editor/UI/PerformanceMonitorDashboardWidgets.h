@@ -13,10 +13,11 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cfloat>
 #include <cmath>
+#include <cstddef>
 #include <cstdio>
-#include <vector>
 
 #include <ImGui/imgui.h>
 
@@ -51,19 +52,24 @@ inline float Percentile(
 		return 0.0f;
 	}
 
-	std::vector<float> values;
-	values.reserve(static_cast<std::size_t>(count));
-	for(int index = 0; index < count; ++index){
+	constexpr std::size_t MaxPercentileSamples = 512;
+	std::array<float, MaxPercentileSamples> values{};
+	const int firstSample = (std::max)(
+		0,
+		count - static_cast<int>(MaxPercentileSamples)
+	);
+	std::size_t validCount = 0;
+	for(int index = firstSample; index < count; ++index){
 		if(ignoreZero && samples[index] <= 0.0f) continue;
-		values.push_back(samples[index]);
+		values[validCount++] = samples[index];
 	}
-	if(values.empty()){
+	if(validCount == 0){
 		return 0.0f;
 	}
 
-	std::sort(values.begin(), values.end());
+	std::sort(values.begin(), values.begin() + validCount);
 	percentile = (std::max)(0.0f, (std::min)(1.0f, percentile));
-	const float position = percentile * static_cast<float>(values.size() - 1);
+	const float position = percentile * static_cast<float>(validCount - 1);
 	const std::size_t lower = static_cast<std::size_t>(std::floor(position));
 	const std::size_t upper = static_cast<std::size_t>(std::ceil(position));
 	if(lower == upper){
@@ -197,6 +203,28 @@ inline void MetricCard(
 		detail,
 		clip
 	);
+
+	const float meterMinimumX = minimum.x + paddingX;
+	const float meterMaximumX = maximum.x - paddingX;
+	const float meterY = maximum.y - 5.0f;
+	drawList->AddLine(
+		ImVec2(meterMinimumX, meterY),
+		ImVec2(meterMaximumX, meterY),
+		ImGui::GetColorU32(WithAlpha(style.Colors[ImGuiCol_Border], 0.32f)),
+		2.0f
+	);
+	const float visibleLoad = (std::max)(0.0f, (std::min)(1.0f, loadRatio));
+	if(visibleLoad > 0.0f){
+		drawList->AddLine(
+			ImVec2(meterMinimumX, meterY),
+			ImVec2(
+				meterMinimumX + (meterMaximumX - meterMinimumX) * visibleLoad,
+				meterY
+			),
+			ImGui::GetColorU32(WithAlpha(LoadColor(loadRatio), 0.86f)),
+			2.0f
+		);
+	}
 
 	if(hovered){
 		ImGui::SetTooltip("%s\n%s\n%s", label, value, detail);
@@ -512,6 +540,7 @@ inline void BudgetPlot(
 		46.0f
 	);
 	ImGui::InvisibleButton("##Plot", size);
+	const bool plotHovered = ImGui::IsItemHovered();
 	const ImVec2 maximum(minimum.x + size.x, minimum.y + size.y);
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
 	drawList->AddRectFilled(
@@ -582,8 +611,9 @@ inline void BudgetPlot(
 		}
 	}
 
-	if(ImGui::IsItemHovered() && sampleCount > 0){
+	if(plotHovered && sampleCount > 0){
 		const float width = (std::max)(1.0f, maximum.x - minimum.x);
+		const float height = maximum.y - minimum.y;
 		const float localX = ImGui::GetIO().MousePos.x - minimum.x;
 		const int index = (std::max)(
 			0,
@@ -592,6 +622,24 @@ inline void BudgetPlot(
 				static_cast<int>(std::round(localX / width * (sampleCount - 1)))
 			)
 		);
+		const float sampleRatio = plotMaximum > 0.0f
+			? (std::max)(0.0f, (std::min)(1.0f, samples[index] / plotMaximum))
+			: 0.0f;
+		const float sampleX = minimum.x + width *
+			(static_cast<float>(index) / static_cast<float>((std::max)(1, sampleCount - 1)));
+		const float sampleY = maximum.y - sampleRatio * height;
+		drawList->AddLine(
+			ImVec2(sampleX, minimum.y),
+			ImVec2(sampleX, maximum.y),
+			ImGui::GetColorU32(WithAlpha(style.Colors[ImGuiCol_Border], 0.58f)),
+			1.0f
+		);
+		drawList->AddCircleFilled(
+			ImVec2(sampleX, sampleY),
+			2.5f,
+			ImGui::GetColorU32(style.Colors[ImGuiCol_PlotLinesHovered])
+		);
+
 		if(targetValue > 0.0f){
 			ImGui::SetTooltip(
 				"Sample %d\n%.*f %s%s\nAverage %.*f %s\nP95 %.*f %s\nPeak %.*f %s\nOver budget %d / %d",
