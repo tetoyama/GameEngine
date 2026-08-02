@@ -6,6 +6,7 @@
 #include "Engine/Resources/Data/modelData.h"
 #include "Engine/Resources/Data/modelAssimpMaterialPropertyNormalization.h"
 #include "Engine/Scene/Component/materialComponent.h"
+#include "Engine/Scene/System/Render/Model/ModelMaterialLegacyD3D11Bridge.h"
 #include "Engine/Scene/System/Render/Model/ModelMaterialResolver.h"
 
 int main(){
@@ -116,6 +117,55 @@ int main(){
 	assert(model->FindImportedMaterial(10) == &model->ImportedMaterials[0]);
 	assert(model->FindImportedMaterial(20) == &model->ImportedMaterials[1]);
 	assert(model->FindImportedMaterial(999) == nullptr);
+
+	// 旧単一MaterialComponentは新Custom Materialと混同せず、Imported Defaultへ
+	// 明示的に重ねる移行Overrideとして保持する。
+	MaterialComponent legacyComponent;
+	legacyComponent.ShaderID = 11;
+	legacyComponent.Material.BaseColor = float4(0.5f, 0.25f, 1.0f, 0.8f);
+	legacyComponent.Material.Metallic = 0.4f;
+	legacyComponent.Material.Roughness = 0.6f;
+	legacyComponent.Material.AO = 0.7f;
+	legacyComponent.Material.EmissiveColor = float3(0.1f, 0.2f, 0.3f);
+	legacyComponent.Material.EmissiveIntensity = 2.0f;
+	legacyComponent.Material.MaterialFlags = MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
+
+	const ModelMaterialResolveResult legacyResolved =
+		ModelMaterialResolver::Resolve(
+			*model,
+			model->FindSubMesh(body.id),
+			nullptr,
+			&legacyComponent
+		);
+	assert(legacyResolved.IsResolved());
+	assert(legacyResolved.source ==
+		ModelMaterialResolutionSource::LegacyMaterialOverride);
+	assert(legacyResolved.GetDescriptor()->shaderID == 11);
+	assert(legacyResolved.GetDescriptor()->parameters.baseColor[0] == 0.125f);
+	assert(legacyResolved.GetDescriptor()->parameters.baseColor[1] == 0.125f);
+	assert(legacyResolved.GetDescriptor()->parameters.baseColor[2] == 0.75f);
+	assert(legacyResolved.GetDescriptor()->parameters.metallic == 0.4f);
+	assert(legacyResolved.GetDescriptor()->parameters.roughness == 0.6f);
+	assert(legacyResolved.GetDescriptor()->legacyMaterialFlags ==
+		MATERIAL_FLAG_USE_ENVIRONMENT_MAP);
+
+	ID3D11ShaderResourceView* fakeDiffuse =
+		reinterpret_cast<ID3D11ShaderResourceView*>(static_cast<std::uintptr_t>(1));
+	model->m_Texture["Textures/Body_BaseColor.png"] = fakeDiffuse;
+	const ModelMaterialLegacyD3D11Binding legacyBinding =
+		ModelMaterialLegacyD3D11Bridge::Resolve(
+			*model,
+			*legacyResolved.GetDescriptor()
+		);
+	assert(legacyBinding.shaderID == 11);
+	assert(legacyBinding.baseColor.runtimeEntryFound);
+	assert(legacyBinding.baseColor.texture == fakeDiffuse);
+	assert((legacyBinding.material.MaterialFlags &
+		MATERIAL_FLAG_USE_DIFFUSE_TEXTURE) != 0);
+	assert((legacyBinding.material.MaterialFlags &
+		MATERIAL_FLAG_USE_ENVIRONMENT_MAP) != 0);
+	assert(legacyBinding.material.Metallic == 0.4f);
+	assert(legacyBinding.material.Roughness == 0.6f);
 
 	ModelSubMeshRenderState state;
 	state.subMeshID = glass.id;
