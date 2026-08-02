@@ -53,7 +53,7 @@ void DrawTimingTableRow(
 	const char* label,
 	float current,
 	float average,
-	float budgetMilliseconds
+	float normalizationTotal
 ){
 	ImGui::TableNextRow();
 	ImGui::TableSetColumnIndex(0);
@@ -63,15 +63,11 @@ void DrawTimingTableRow(
 	ImGui::TableSetColumnIndex(2);
 	ImGui::TextDisabled("%.3f ms", average);
 	ImGui::TableSetColumnIndex(3);
-	const float ratio = budgetMilliseconds > 0.0f
-		? current / budgetMilliseconds
-		: 0.0f;
-	ImGui::PushStyleColor(
-		ImGuiCol_PlotHistogram,
-		PerformanceMonitorDashboardWidgets::LoadColor(ratio)
+	ImGui::PushID(label);
+	PerformanceMonitorDashboardWidgets::ShareBar(
+		normalizationTotal > 0.0f ? current / normalizationTotal : 0.0f
 	);
-	ImGui::ProgressBar((std::min)(ratio, 1.0f), ImVec2(-1.0f, 0.0f), "");
-	ImGui::PopStyleColor();
+	ImGui::PopID();
 }
 
 } // namespace
@@ -319,7 +315,7 @@ void PerformanceMonitor::RebuildFrameSpikes(){
 				active.resize = resize;
 				active.resizeMilliseconds = resizeMs;
 			}
-		} else{
+		}else{
 			FrameSpikes.push_back(std::move(record));
 			if(FrameSpikes.size() > 32){
 				FrameSpikes.pop_front();
@@ -408,9 +404,13 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 
 	char value[64]{};
 	char detail[96]{};
+	const float summaryWidth = ImGui::GetContentRegionAvail().x;
+	const int summaryColumns = summaryWidth >= 920.0f
+		? 4
+		: (summaryWidth >= 430.0f ? 2 : 1);
 	if(ImGui::BeginTable(
 		"PerformanceSummary",
-		4,
+		summaryColumns,
 		ImGuiTableFlags_SizingStretchSame |
 		ImGuiTableFlags_NoSavedSettings |
 		ImGuiTableFlags_NoPadOuterX
@@ -418,11 +418,23 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 		ImGui::TableNextColumn();
 		std::snprintf(value, sizeof(value), "%.1f FPS", fps);
 		std::snprintf(detail, sizeof(detail), "Fixed %.1f Hz", fixedFps);
-		MetricCard("FPS", "Frame Rate", value, detail, fps > 0.0 ? 60.0f / static_cast<float>(fps) : 2.0f);
+		MetricCard(
+			"FPS",
+			"Frame Rate",
+			value,
+			detail,
+			fps > 0.0 ? 60.0f / static_cast<float>(fps) : 2.0f
+		);
 
 		ImGui::TableNextColumn();
 		std::snprintf(value, sizeof(value), "%.2f ms", cpuCurrent);
-		std::snprintf(detail, sizeof(detail), "Update %.2f + Draw %.2f", updateCurrent, drawCurrent);
+		std::snprintf(
+			detail,
+			sizeof(detail),
+			"Update %.2f · Draw %.2f",
+			updateCurrent,
+			drawCurrent
+		);
 		MetricCard("CPU", "CPU Frame", value, detail, cpuCurrent / frameBudget);
 
 		ImGui::TableNextColumn();
@@ -453,54 +465,85 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 		ImGui::EndTable();
 	}
 
-	ImGui::TextDisabled(
+	ImGui::Spacing();
+	ImGui::PushStyleColor(ImGuiCol_Text, ImGui::GetStyle().Colors[ImGuiCol_TextDisabled]);
+	ImGui::TextWrapped(
 		"VSync %s  ·  Tearing %s  ·  Pacing %s  ·  Timeouts %llu",
 		ctx.VSyncEnabled ? "ON" : "OFF",
 		ctx.TearingSupported ? "Supported" : "Unavailable",
 		ctx.FrameLatencyWaitableObjectEnabled ? "Waitable Object" : "DXGI Fallback",
 		static_cast<unsigned long long>(ctx.FrameLatencyWaitTimeoutCount)
 	);
+	ImGui::PopStyleColor();
 	ImGui::Spacing();
 
-	if(ImGui::CollapsingHeader("Frame Budget", ImGuiTreeNodeFlags_DefaultOpen)){
-		BudgetPlot("Update CPU", "##UpdateBudget", UpdateSamples, SAMPLE_LENGTH, updateCurrent, updateAverage, frameBudget);
-		BudgetPlot("Draw CPU", "##DrawBudget", DrawSamples, SAMPLE_LENGTH, drawCurrent, drawAverage, frameBudget);
-		BudgetPlot("GPU Frame", "##GpuBudget", GPUFrameTimeSamples, SAMPLE_LENGTH, gpuCurrent, gpuAverage, frameBudget);
+	if(SectionHeader("FrameBudget", "Frame Budget", true, "60 FPS target")){
+		ImGui::Indent(4.0f);
+		BudgetPlot(
+			"Update CPU",
+			"UpdateBudget",
+			UpdateSamples,
+			SAMPLE_LENGTH,
+			updateCurrent,
+			updateAverage,
+			frameBudget
+		);
+		BudgetPlot(
+			"Draw CPU",
+			"DrawBudget",
+			DrawSamples,
+			SAMPLE_LENGTH,
+			drawCurrent,
+			drawAverage,
+			frameBudget
+		);
+		BudgetPlot(
+			"GPU Frame",
+			"GpuBudget",
+			GPUFrameTimeSamples,
+			SAMPLE_LENGTH,
+			gpuCurrent,
+			gpuAverage,
+			frameBudget
+		);
+		ImGui::Unindent(4.0f);
+		ImGui::Spacing();
 	}
 
-	if(ImGui::CollapsingHeader("CPU / GPU Breakdown", ImGuiTreeNodeFlags_DefaultOpen)){
+	if(SectionHeader("Breakdown", "CPU / GPU Breakdown", true)){
+		ImGui::Indent(4.0f);
 		if(ImGui::BeginTable(
 			"DrawTimingBreakdown",
 			4,
 			ImGuiTableFlags_RowBg |
-			ImGuiTableFlags_BordersInnerH |
-			ImGuiTableFlags_SizingStretchProp
+			ImGuiTableFlags_SizingStretchProp |
+			ImGuiTableFlags_NoSavedSettings
 		)){
 			ImGui::TableSetupColumn("Stage", ImGuiTableColumnFlags_WidthStretch, 1.5f);
 			ImGui::TableSetupColumn("Current", ImGuiTableColumnFlags_WidthFixed, 86.0f);
 			ImGui::TableSetupColumn("Average", ImGuiTableColumnFlags_WidthFixed, 86.0f);
-			ImGui::TableSetupColumn("Budget", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+			ImGui::TableSetupColumn("Share", ImGuiTableColumnFlags_WidthStretch, 1.0f);
 			ImGui::TableHeadersRow();
-			DrawTimingTableRow("Frame Pacing Wait", FramePacingWaitSamples[SAMPLE_LENGTH - 1], Average(FramePacingWaitSamples, SAMPLE_LENGTH), frameBudget);
-			DrawTimingTableRow("Frame Setup", FrameSetupSamples[SAMPLE_LENGTH - 1], Average(FrameSetupSamples, SAMPLE_LENGTH), frameBudget);
-			DrawTimingTableRow("ImGui Begin", ImGuiBeginSamples[SAMPLE_LENGTH - 1], Average(ImGuiBeginSamples, SAMPLE_LENGTH), frameBudget);
-			DrawTimingTableRow("Render Schedule", RenderScheduleSamples[SAMPLE_LENGTH - 1], Average(RenderScheduleSamples, SAMPLE_LENGTH), frameBudget);
-			DrawTimingTableRow("Debug Draw", DebugDrawSamples[SAMPLE_LENGTH - 1], Average(DebugDrawSamples, SAMPLE_LENGTH), frameBudget);
-			DrawTimingTableRow("Editor UI Build", EditorUIBuildSamples[SAMPLE_LENGTH - 1], Average(EditorUIBuildSamples, SAMPLE_LENGTH), frameBudget);
-			DrawTimingTableRow("ImGui Render", ImGuiRenderSamples[SAMPLE_LENGTH - 1], Average(ImGuiRenderSamples, SAMPLE_LENGTH), frameBudget);
-			DrawTimingTableRow("Present / Queue Wait", PresentSamples[SAMPLE_LENGTH - 1], Average(PresentSamples, SAMPLE_LENGTH), frameBudget);
-			DrawTimingTableRow("Unaccounted Draw CPU", UnaccountedSamples[SAMPLE_LENGTH - 1], Average(UnaccountedSamples, SAMPLE_LENGTH), frameBudget);
+			DrawTimingTableRow("Frame Pacing Wait", FramePacingWaitSamples[SAMPLE_LENGTH - 1], Average(FramePacingWaitSamples, SAMPLE_LENGTH), drawCurrent);
+			DrawTimingTableRow("Frame Setup", FrameSetupSamples[SAMPLE_LENGTH - 1], Average(FrameSetupSamples, SAMPLE_LENGTH), drawCurrent);
+			DrawTimingTableRow("ImGui Begin", ImGuiBeginSamples[SAMPLE_LENGTH - 1], Average(ImGuiBeginSamples, SAMPLE_LENGTH), drawCurrent);
+			DrawTimingTableRow("Render Schedule", RenderScheduleSamples[SAMPLE_LENGTH - 1], Average(RenderScheduleSamples, SAMPLE_LENGTH), drawCurrent);
+			DrawTimingTableRow("Debug Draw", DebugDrawSamples[SAMPLE_LENGTH - 1], Average(DebugDrawSamples, SAMPLE_LENGTH), drawCurrent);
+			DrawTimingTableRow("Editor UI Build", EditorUIBuildSamples[SAMPLE_LENGTH - 1], Average(EditorUIBuildSamples, SAMPLE_LENGTH), drawCurrent);
+			DrawTimingTableRow("ImGui Render", ImGuiRenderSamples[SAMPLE_LENGTH - 1], Average(ImGuiRenderSamples, SAMPLE_LENGTH), drawCurrent);
+			DrawTimingTableRow("Present / Queue Wait", PresentSamples[SAMPLE_LENGTH - 1], Average(PresentSamples, SAMPLE_LENGTH), drawCurrent);
+			DrawTimingTableRow("Unaccounted Draw CPU", UnaccountedSamples[SAMPLE_LENGTH - 1], Average(UnaccountedSamples, SAMPLE_LENGTH), drawCurrent);
 			ImGui::EndTable();
 		}
 
 		if(latest){
 			ImGui::TextDisabled(
-				"Latest GPU query: Frame %llu · %s",
+				"Latest GPU query · Frame %llu · %s",
 				static_cast<unsigned long long>(latest->frame),
 				GpuTimingStatusName(latest->gpuStatus)
 			);
 		}
-		if(latestResolved && ImGui::TreeNodeEx("GPU Passes", ImGuiTreeNodeFlags_DefaultOpen)){
+		if(latestResolved && SectionHeader("GpuPasses", "GPU Passes", false)){
 			std::vector<std::pair<std::size_t, float>> passes;
 			float accounted = 0.0f;
 			for(std::size_t index = 0; index < GpuPassTimingScopeCount; ++index){
@@ -513,29 +556,34 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 			std::sort(
 				passes.begin(),
 				passes.end(),
-				[](const auto& left, const auto& right){ return left.second > right.second; }
+				[](const auto& left, const auto& right){
+					return left.second > right.second;
+				}
 			);
 
 			if(ImGui::BeginTable(
 				"GpuPassTable",
 				3,
 				ImGuiTableFlags_RowBg |
-				ImGuiTableFlags_BordersInnerH |
-				ImGuiTableFlags_SizingStretchProp
+				ImGuiTableFlags_SizingStretchProp |
+				ImGuiTableFlags_NoSavedSettings
 			)){
 				ImGui::TableSetupColumn("Pass", ImGuiTableColumnFlags_WidthStretch);
 				ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, 90.0f);
 				ImGui::TableSetupColumn("Frame Share", ImGuiTableColumnFlags_WidthStretch);
 				ImGui::TableHeadersRow();
 				for(const auto& [index, milliseconds] : passes){
+					ImGui::PushID(static_cast<int>(index));
 					ImGui::TableNextRow();
 					ImGui::TableSetColumnIndex(0);
-					ImGui::TextUnformatted(GpuPassTimingScopeName(static_cast<GpuPassTimingScope>(index)));
+					ImGui::TextUnformatted(
+						GpuPassTimingScopeName(static_cast<GpuPassTimingScope>(index))
+					);
 					ImGui::TableSetColumnIndex(1);
 					ImGui::Text("%.3f ms", milliseconds);
 					ImGui::TableSetColumnIndex(2);
-					const float share = gpuCurrent > 0.0f ? milliseconds / gpuCurrent : 0.0f;
-					ImGui::ProgressBar((std::min)(share, 1.0f), ImVec2(-1.0f, 0.0f), "");
+					ShareBar(gpuCurrent > 0.0f ? milliseconds / gpuCurrent : 0.0f);
+					ImGui::PopID();
 				}
 				ImGui::EndTable();
 			}
@@ -544,11 +592,13 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 				accounted,
 				(std::max)(0.0f, gpuCurrent - accounted)
 			);
-			ImGui::TreePop();
 		}
+		ImGui::Unindent(4.0f);
+		ImGui::Spacing();
 	}
 
-	if(ImGui::CollapsingHeader("Editor Panel CPU")){
+	if(SectionHeader("EditorPanels", "Editor Panel CPU", false)){
+		ImGui::Indent(4.0f);
 		std::vector<const PanelTimingSampleSeries*> sortedPanels;
 		sortedPanels.reserve(PanelTimingSamples.size());
 		for(const PanelTimingSampleSeries& series : PanelTimingSamples){
@@ -558,7 +608,8 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 			sortedPanels.begin(),
 			sortedPanels.end(),
 			[](const PanelTimingSampleSeries* left, const PanelTimingSampleSeries* right){
-				return left->samples[SAMPLE_LENGTH - 1] > right->samples[SAMPLE_LENGTH - 1];
+				return left->samples[SAMPLE_LENGTH - 1] >
+					right->samples[SAMPLE_LENGTH - 1];
 			}
 		);
 
@@ -566,8 +617,8 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 			"EditorPanelTimingTable",
 			3,
 			ImGuiTableFlags_RowBg |
-			ImGuiTableFlags_BordersInnerH |
-			ImGuiTableFlags_SizingStretchProp
+			ImGuiTableFlags_SizingStretchProp |
+			ImGuiTableFlags_NoSavedSettings
 		)){
 			ImGui::TableSetupColumn("Panel", ImGuiTableColumnFlags_WidthStretch);
 			ImGui::TableSetupColumn("Current", ImGuiTableColumnFlags_WidthFixed, 90.0f);
@@ -580,25 +631,47 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 				ImGui::TableSetColumnIndex(1);
 				ImGui::Text("%.3f ms", series->samples[SAMPLE_LENGTH - 1]);
 				ImGui::TableSetColumnIndex(2);
-				ImGui::TextDisabled("%.3f ms", Average(series->samples.data(), SAMPLE_LENGTH));
+				ImGui::TextDisabled(
+					"%.3f ms",
+					Average(series->samples.data(), SAMPLE_LENGTH)
+				);
 			}
 			ImGui::EndTable();
 		}
+		ImGui::Unindent(4.0f);
+		ImGui::Spacing();
 	}
 
-	const ImGuiTreeNodeFlags spikeFlags = FrameSpikes.empty()
-		? ImGuiTreeNodeFlags_None
-		: ImGuiTreeNodeFlags_DefaultOpen;
-	if(ImGui::CollapsingHeader("Frame Spike Diagnostics", spikeFlags)){
-		ImGui::SetNextItemWidth(150.0f);
-		ImGui::SliderFloat("Threshold", &SpikeThresholdMilliseconds, 5.0f, 100.0f, "%.1f ms");
+	if(SectionHeader(
+		"FrameSpikes",
+		"Frame Spike Diagnostics",
+		!FrameSpikes.empty(),
+		FrameSpikes.empty() ? "No spikes" : nullptr
+	)){
+		ImGui::Indent(4.0f);
+		const float actionWidth = 100.0f;
+		const float sliderWidth = (std::max)(
+			120.0f,
+			ImGui::GetContentRegionAvail().x -
+				actionWidth - ImGui::GetStyle().ItemSpacing.x
+		);
+		ImGui::SetNextItemWidth(sliderWidth);
+		ImGui::SliderFloat(
+			"##SpikeThreshold",
+			&SpikeThresholdMilliseconds,
+			5.0f,
+			100.0f,
+			"Threshold %.1f ms"
+		);
 		ImGui::SameLine();
-		if(ImGui::Button("Clear History")){
+		if(ImGui::Button("Clear History", ImVec2(actionWidth, 0.0f))){
 			FrameHistory.clear();
 			FrameSpikes.clear();
 			DeferredGpuResults.clear();
 		}
-		ImGui::TextDisabled("CPU and GPU samples are joined only by matching Frame Serial.");
+		ImGui::TextDisabled(
+			"CPU and GPU samples are joined only by matching Frame Serial."
+		);
 
 		if(FrameSpikes.empty()){
 			ImGui::TextDisabled("No frame spikes above the current threshold.");
@@ -620,7 +693,11 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 				if(ImGui::TreeNodeEx(header, ImGuiTreeNodeFlags_SpanAvailWidth)){
 					ImGui::Text("Update %.3f ms", spike.updateMilliseconds);
 					ImGui::Text("Draw %.3f ms", spike.drawMilliseconds);
-					ImGui::Text("GPU %.3f ms (%s)", spike.gpuMilliseconds, GpuTimingStatusName(spike.gpuStatus));
+					ImGui::Text(
+						"GPU %.3f ms (%s)",
+						spike.gpuMilliseconds,
+						GpuTimingStatusName(spike.gpuStatus)
+					);
 					ImGui::Text("Frame pacing %.3f ms", spike.framePacingMilliseconds);
 					ImGui::Text("Render schedule %.3f ms", spike.renderMilliseconds);
 					ImGui::Text("Editor UI %.3f ms", spike.editorMilliseconds);
@@ -628,33 +705,64 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 					ImGui::Text("Unaccounted %.3f ms", spike.unaccountedMilliseconds);
 					if(!spike.dominantPanel.empty()){
 						ImGui::TextDisabled(
-							"Editor peak: %s %.3f ms",
+							"Editor peak · %s %.3f ms",
 							spike.dominantPanel.c_str(),
 							spike.dominantPanelMilliseconds
 						);
 					}
 					if(spike.resize){
-						ImGui::TextDisabled("Resize CPU %.3f ms", spike.resizeMilliseconds);
+						ImGui::TextDisabled(
+							"Resize CPU %.3f ms",
+							spike.resizeMilliseconds
+						);
 					}
 					ImGui::TreePop();
 				}
 				ImGui::PopID();
 			}
 		}
+		ImGui::Unindent(4.0f);
+		ImGui::Spacing();
 	}
 
-	if(ImGui::CollapsingHeader("Memory")){
-		const float usageAverage = Average(UsageSamples, SAMPLE_LENGTH, true);
-		char overlay[96]{};
-		std::snprintf(overlay, sizeof(overlay), "Average %.1f%%", usageAverage);
-		ImGui::PlotLines("Usage", UsageSamples, SAMPLE_LENGTH, 0, overlay, 0.0f, 100.0f, ImVec2(-1.0f, 58.0f));
-		std::snprintf(overlay, sizeof(overlay), "Working Set %.0f MB", workingSetMb);
-		ImGui::PlotLines("Working Set", WorkingSetSizeSamples, SAMPLE_LENGTH, 0, overlay, 0.0f, FLT_MAX, ImVec2(-1.0f, 58.0f));
-		std::snprintf(overlay, sizeof(overlay), "Commit %.0f MB", memoryAvailable ? memory.PagefileUsage / 1000000.0 : 0.0);
-		ImGui::PlotLines("Commit", CommitSizeSamples, SAMPLE_LENGTH, 0, overlay, 0.0f, FLT_MAX, ImVec2(-1.0f, 58.0f));
+	if(SectionHeader("MemoryHistory", "Memory", false)){
+		ImGui::Indent(4.0f);
+		const float usageCurrent = UsageSamples[SAMPLE_LENGTH - 1];
+		BudgetPlot(
+			"Process Usage",
+			"UsageHistory",
+			UsageSamples,
+			SAMPLE_LENGTH,
+			usageCurrent,
+			Average(UsageSamples, SAMPLE_LENGTH, true),
+			100.0f
+		);
+		BudgetPlot(
+			"Working Set",
+			"WorkingSetHistory",
+			WorkingSetSizeSamples,
+			SAMPLE_LENGTH,
+			workingSetMb,
+			Average(WorkingSetSizeSamples, SAMPLE_LENGTH, true),
+			0.0f
+		);
+		BudgetPlot(
+			"Commit",
+			"CommitHistory",
+			CommitSizeSamples,
+			SAMPLE_LENGTH,
+			memoryAvailable
+				? static_cast<float>(memory.PagefileUsage / 1000000.0)
+				: 0.0f,
+			Average(CommitSizeSamples, SAMPLE_LENGTH, true),
+			0.0f
+		);
+		ImGui::Unindent(4.0f);
+		ImGui::Spacing();
 	}
 
-	if(ImGui::CollapsingHeader("Debug")){
+	if(SectionHeader("Debug", "Debug", false)){
+		ImGui::Indent(4.0f);
 		GraphicsContext* graphics = m_editor->sceneManager
 			? m_editor->sceneManager->GetContext()->graphics
 			: nullptr;
@@ -664,10 +772,13 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 		}
 		ImGui::EndDisabled();
 		ImGui::SameLine();
-		ImGui::TextDisabled("Closes the app through the graceful device-lost path.");
+		ImGui::TextDisabled(
+			"Closes the app through the graceful device-lost path."
+		);
 		if(graphics && graphics->IsDeviceLost()){
 			ImGui::TextUnformatted("Device Lost: transitioning to shutdown.");
 		}
+		ImGui::Unindent(4.0f);
 	}
 
 	ImGui::End();
