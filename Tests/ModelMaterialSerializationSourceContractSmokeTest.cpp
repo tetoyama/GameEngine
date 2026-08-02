@@ -37,6 +37,9 @@ int main(){
 	Require(materialOperations, "DecodeCustomMaterials");
 	Require(materialOperations, "component.materials");
 	Require(materialOperations, "MaterialDescriptorInspector::DrawCustomMaterials");
+	Require(materialOperations, "OptionalChild");
+	Require(materialOperations, "OptionalChild(node, \"Materials\")");
+	Require(materialOperations, "catch(const YAML::Exception&)");
 
 	const std::string descriptorInspector = ReadText(
 		"Source/GameApplication/Engine/Scene/Component/Operations/MaterialDescriptorInspector.h"
@@ -55,6 +58,9 @@ int main(){
 	Require(rendererSerialization, "EncodeSubMeshStates");
 	Require(rendererSerialization, "DecodeSubMeshStates");
 	Require(rendererSerialization, "component.subMeshes");
+	Require(rendererSerialization, "OptionalChild");
+	Require(rendererSerialization, "OptionalChild(node, \"SubMeshes\")");
+	Require(rendererSerialization, "TryDecodeValue");
 
 	const std::string runtime = ReadText(
 		"Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererRuntime.h"
