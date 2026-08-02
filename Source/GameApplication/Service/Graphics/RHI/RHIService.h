@@ -7,6 +7,48 @@
 
 namespace RHI {
 
+struct DeviceOwnershipSnapshot {
+	IRHIDevice* device = nullptr;
+	DeviceGeneration generation = InvalidDeviceGeneration;
+	IRHIDevice::LifetimeToken lifetime;
+
+	bool IsValid() const noexcept {
+		return device != nullptr &&
+			generation != InvalidDeviceGeneration &&
+			!lifetime.expired();
+	}
+
+	bool Matches(
+		const IRHIDevice& candidateDevice,
+		DeviceGeneration candidateGeneration
+	) const noexcept {
+		return IsValid() &&
+			device == &candidateDevice &&
+			generation == candidateGeneration;
+	}
+};
+
+struct ConstDeviceOwnershipSnapshot {
+	const IRHIDevice* device = nullptr;
+	DeviceGeneration generation = InvalidDeviceGeneration;
+	IRHIDevice::LifetimeToken lifetime;
+
+	bool IsValid() const noexcept {
+		return device != nullptr &&
+			generation != InvalidDeviceGeneration &&
+			!lifetime.expired();
+	}
+
+	bool Matches(
+		const IRHIDevice& candidateDevice,
+		DeviceGeneration candidateGeneration
+	) const noexcept {
+		return IsValid() &&
+			device == &candidateDevice &&
+			generation == candidateGeneration;
+	}
+};
+
 class RenderHardwareInterfaceService final : public IService {
 public:
 	RenderHardwareInterfaceService() = default;
@@ -33,8 +75,9 @@ public:
 			return false;
 		}
 
-		// Adoptは新しいOwnership Epochを開始する。Pointer値が偶然同一でも、
-		// Runtime Storageは旧EpochのHandleを再利用してはならない。
+		// 既存Deviceを直接上書きしない。旧Ownership Epochを終了してから
+		// 新Epochを開始し、破棄と採用を別のGeneration変化として観測可能にする。
+		ResetOwnedDevice();
 		m_selectedBackend = device->GetBackendType();
 		m_device = std::move(device);
 		AdvanceDeviceGeneration();
@@ -59,6 +102,24 @@ public:
 	const IRHIDevice* GetDevice() const noexcept { return m_device.get(); }
 	DeviceGeneration GetDeviceGeneration() const noexcept {
 		return m_deviceGeneration;
+	}
+
+	DeviceOwnershipSnapshot GetDeviceOwnershipSnapshot() noexcept {
+		return {
+			m_device.get(),
+			m_deviceGeneration,
+			m_device ? m_device->GetLifetimeToken()
+				: IRHIDevice::LifetimeToken{}
+		};
+	}
+
+	ConstDeviceOwnershipSnapshot GetDeviceOwnershipSnapshot() const noexcept {
+		return {
+			m_device.get(),
+			m_deviceGeneration,
+			m_device ? m_device->GetLifetimeToken()
+				: IRHIDevice::LifetimeToken{}
+		};
 	}
 
 	void Shutdown() override {
