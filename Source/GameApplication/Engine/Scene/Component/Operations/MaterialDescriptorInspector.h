@@ -1,10 +1,13 @@
 #pragma once
 
 #include <algorithm>
+#include <cstddef>
 #include <cstdint>
 #include <span>
 #include <string>
 #include <vector>
+
+#include <backends/ImGui/imgui.h>
 
 #include "Backends/ImGuiFunc.h"
 #include "CustomMaterialCollection.h"
