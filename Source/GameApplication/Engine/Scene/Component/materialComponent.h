@@ -5,9 +5,12 @@
 // =======================================================================
 #pragma once
 
+#include <string>
+#include <utility>
 #include <vector>
 
 #include "Interface/IComponent.h"
+#include "Operations/CustomMaterialCollection.h"
 #include "Resources/Data/modelMaterialTypes.h"
 #include "Shader/Common.hlsl"
 #include "Shader/CommonDefine.h"
@@ -25,6 +28,29 @@ public:
 
 	MaterialComponent(){
 		Material.BaseColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
+	}
+
+	CustomMaterialID AllocateMaterialID() const {
+		return CustomMaterialCollection::AllocateID(materials);
+	}
+
+	CustomMaterialEntry* AddMaterial(
+		std::string name = {},
+		MaterialDescriptor descriptor = {}
+	){
+		return CustomMaterialCollection::Add(
+			materials,
+			std::move(name),
+			std::move(descriptor)
+		);
+	}
+
+	bool RemoveMaterial(CustomMaterialID id) noexcept {
+		return CustomMaterialCollection::Remove(materials, id);
+	}
+
+	void SanitizeMaterials(){
+		CustomMaterialCollection::Sanitize(materials);
 	}
 
 	const CustomMaterialEntry* FindMaterial(
