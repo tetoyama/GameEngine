@@ -233,13 +233,11 @@ void PerformanceMonitor::RebuildFrameSpikes(){
 	uint64_t previousSpikeFrame = 0;
 
 	for(const FrameTimingRecord& frame : FrameHistory){
+		const float cpuMs = frame.updateMilliseconds + frame.drawMilliseconds;
 		const float gpuMs = frame.gpuStatus == GpuFrameTimingStatus::Resolved
 			? frame.gpuMilliseconds
 			: 0.0f;
-		const float peakMs = (std::max)(
-			frame.updateMilliseconds,
-			(std::max)(frame.drawMilliseconds, gpuMs)
-		);
+		const float peakMs = (std::max)(cpuMs, gpuMs);
 		if(peakMs < SpikeThresholdMilliseconds){
 			previousWasSpike = false;
 			continue;
@@ -267,20 +265,8 @@ void PerformanceMonitor::RebuildFrameSpikes(){
 		record.dominantPanelMilliseconds = frame.dominantPanelMilliseconds;
 		record.startup = frame.startup;
 		record.resize = frame.resize;
-
-		auto considerDominant = [&](const char* name, float milliseconds){
-			if(milliseconds > record.dominantMilliseconds){
-				record.dominantMilliseconds = milliseconds;
-				record.dominantSection = name;
-			}
-		};
-		considerDominant("Update CPU", record.updateMilliseconds);
-		considerDominant("Frame Pacing Wait", record.framePacingMilliseconds);
-		considerDominant("Render Schedule CPU", record.renderMilliseconds);
-		considerDominant("Editor UI CPU", record.editorMilliseconds);
-		considerDominant("Present / Queue Wait", record.presentMilliseconds);
-		considerDominant("Unaccounted Draw CPU", record.unaccountedMilliseconds);
-		considerDominant("GPU Frame", record.gpuMilliseconds);
+		record.dominantMilliseconds = peakMs;
+		record.dominantSection = gpuMs > cpuMs ? "GPU Frame" : "CPU Frame";
 
 		const bool contiguous = previousWasSpike &&
 			frame.frame == previousSpikeFrame + 1 &&
@@ -367,8 +353,8 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 	const float updateCurrent = UpdateSamples[SAMPLE_LENGTH - 1];
 	const float drawCurrent = DrawSamples[SAMPLE_LENGTH - 1];
 	const float cpuCurrent = updateCurrent + drawCurrent;
-	const float updateAverage = Average(UpdateSamples, SAMPLE_LENGTH);
-	const float drawAverage = Average(DrawSamples, SAMPLE_LENGTH);
+	const float updateAverage = Average(UpdateSamples, SAMPLE_LENGTH, true);
+	const float drawAverage = Average(DrawSamples, SAMPLE_LENGTH, true);
 
 	const FrameTimingRecord* latest =
 		FrameHistory.empty() ? nullptr : &FrameHistory.back();
@@ -382,7 +368,55 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 	const float gpuCurrent = latestResolved
 		? latestResolved->gpuMilliseconds
 		: 0.0f;
+
+	std::array<float, SAMPLE_LENGTH> cpuFrameSamples{};
+	std::array<float, SAMPLE_LENGTH> dominantFrameSamples{};
+	int gpuTrackedCount = 0;
+	int gpuResolvedCount = 0;
+	int gpuPendingCount = 0;
+	int gpuInvalidCount = 0;
+	int gpuDroppedCount = 0;
+	for(std::size_t index = 0; index < SAMPLE_LENGTH; ++index){
+		const float cpuMilliseconds = UpdateSamples[index] + DrawSamples[index];
+		cpuFrameSamples[index] = cpuMilliseconds;
+
+		float gpuMilliseconds = 0.0f;
+		if(FrameSerialSamples[index] != 0){
+			++gpuTrackedCount;
+			switch(GPUFrameStatusSamples[index]){
+				case GpuFrameTimingStatus::Pending:
+					++gpuPendingCount;
+					break;
+				case GpuFrameTimingStatus::Resolved:
+					++gpuResolvedCount;
+					gpuMilliseconds = GPUFrameTimeSamples[index];
+					break;
+				case GpuFrameTimingStatus::Invalid:
+					++gpuInvalidCount;
+					break;
+				case GpuFrameTimingStatus::Dropped:
+					++gpuDroppedCount;
+					break;
+			}
+		}
+		dominantFrameSamples[index] = (std::max)(cpuMilliseconds, gpuMilliseconds);
+	}
+
+	const float cpuAverage = Average(cpuFrameSamples.data(), SAMPLE_LENGTH, true);
+	const float cpuP95 = Percentile(cpuFrameSamples.data(), SAMPLE_LENGTH, 0.95f, true);
 	const float gpuAverage = Average(GPUFrameTimeSamples, SAMPLE_LENGTH, true);
+	const float gpuP95 = Percentile(GPUFrameTimeSamples, SAMPLE_LENGTH, 0.95f, true);
+	const float dominantFrameP95 = Percentile(
+		dominantFrameSamples.data(),
+		SAMPLE_LENGTH,
+		0.95f,
+		true
+	);
+	const int frameBudgetMisses = CountAbove(
+		dominantFrameSamples.data(),
+		SAMPLE_LENGTH,
+		frameBudget
+	);
 	const float workingSetMb = memoryAvailable
 		? static_cast<float>(memory.WorkingSetSize / 1000000.0)
 		: 0.0f;
@@ -435,9 +469,10 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 		std::snprintf(
 			detail,
 			sizeof(detail),
-			"Update %.2f · Draw %.2f",
+			"Update %.2f · Draw %.2f · P95 %.2f",
 			updateCurrent,
-			drawCurrent
+			drawCurrent,
+			cpuP95
 		);
 		MetricCard("CPU", "CPU Frame", value, detail, cpuCurrent / frameBudget);
 
@@ -447,9 +482,10 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 			std::snprintf(
 				detail,
 				sizeof(detail),
-				"Frame %llu · Avg %.2f",
-				static_cast<unsigned long long>(latestResolved->frame),
-				gpuAverage
+				"P95 %.2f · Resolved %d/%d",
+				gpuP95,
+				gpuResolvedCount,
+				gpuTrackedCount
 			);
 		}else{
 			std::snprintf(value, sizeof(value), "Pending");
@@ -464,8 +500,10 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 		std::snprintf(
 			detail,
 			sizeof(detail),
-			"%s dominant · 60 FPS",
-			gpuCurrent > cpuCurrent ? "GPU" : "CPU"
+			"P95 %.2f · %d/%d over budget",
+			dominantFrameP95,
+			frameBudgetMisses,
+			SAMPLE_LENGTH
 		);
 		MetricCard(
 			"Headroom",
@@ -491,6 +529,15 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 
 	if(SectionHeader("FrameBudget", "Frame Budget", true, "60 FPS target")){
 		ImGui::Indent(4.0f);
+		BudgetPlot(
+			"CPU Frame",
+			"CpuFrameBudget",
+			cpuFrameSamples.data(),
+			SAMPLE_LENGTH,
+			cpuCurrent,
+			cpuAverage,
+			frameBudget
+		);
 		BudgetPlot(
 			"Update CPU",
 			"UpdateBudget",
@@ -557,6 +604,15 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 				"Latest GPU query · Frame %llu · %s",
 				static_cast<unsigned long long>(latest->frame),
 				GpuTimingStatusName(latest->gpuStatus)
+			);
+		}
+		if(gpuTrackedCount > 0){
+			ImGui::TextDisabled(
+				"GPU query window · Resolved %d · Pending %d · Invalid %d · Dropped %d",
+				gpuResolvedCount,
+				gpuPendingCount,
+				gpuInvalidCount,
+				gpuDroppedCount
 			);
 		}
 		if(latestResolved && SectionHeader("GpuPasses", "GPU Passes", false)){
@@ -698,6 +754,10 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 					spike.resize ? " · Resize" : ""
 				);
 				if(ImGui::TreeNodeEx(header, ImGuiTreeNodeFlags_SpanAvailWidth)){
+					ImGui::Text(
+						"CPU Frame %.3f ms",
+						spike.updateMilliseconds + spike.drawMilliseconds
+					);
 					ImGui::Text("Update %.3f ms", spike.updateMilliseconds);
 					ImGui::Text("Draw %.3f ms", spike.drawMilliseconds);
 					ImGui::Text(
