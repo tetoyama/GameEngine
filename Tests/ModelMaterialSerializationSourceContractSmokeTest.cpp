@@ -97,6 +97,15 @@ int main(){
 	Require(rendererInspector, "GetAllBaseComponents<ModelRendererComponent>");
 	Require(rendererInspector, "GetComponent<MaterialComponent>");
 
+	const std::string scene = ReadText(
+		"Source/GameApplication/Engine/Scene/scene.h"
+	);
+	Require(scene, "struct LifecycleGuard");
+	Require(scene, "owner->Shutdown();");
+	Require(scene, "~LifecycleGuard() noexcept");
+	Require(scene, "LifecycleGuard m_lifecycleGuard{this}");
+	Require(scene, "!owner->m_entityRegistry || !owner->m_componentRegistry");
+
 	const std::string yaml = ReadText(
 		"Source/GameApplication/Engine/Resources/Data/modelMaterialYamlSerialization.h"
 	);
