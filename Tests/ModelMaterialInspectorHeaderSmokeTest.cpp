@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "Engine/Scene/Component/Operations/MaterialDescriptorInspector.h"
-#include "Engine/Scene/Component/Operations/ModelRendererSubMeshInspector.h"
+#include "Engine/Scene/Component/modelRendererComponent.h"
 
 int main(){
 	std::vector<CustomMaterialEntry> materials;
