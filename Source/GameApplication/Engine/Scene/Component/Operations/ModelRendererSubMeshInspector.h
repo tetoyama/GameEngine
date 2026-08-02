@@ -109,6 +109,9 @@ inline void DrawCustomMaterialAssignment(
 		ImGui::EndCombo();
 	}
 
+	const CustomMaterialEntry* resolvedSelection = materialComponent
+		? materialComponent->FindMaterial(assignment.customMaterialID)
+		: nullptr;
 	if(!materialComponent){
 		ImGui::TextDisabled(
 			"No MaterialComponent on this Entity; Model Default is used."
@@ -118,7 +121,7 @@ inline void DrawCustomMaterialAssignment(
 			"MaterialComponent has no Custom Material definitions."
 		);
 	}else if(assignment.customMaterialID != InvalidCustomMaterialID &&
-		!selected){
+		!resolvedSelection){
 		ImGui::TextDisabled(
 			"Selected ID is missing; resolver will use Model Default."
 		);
