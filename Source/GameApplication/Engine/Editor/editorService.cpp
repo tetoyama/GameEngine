@@ -18,6 +18,7 @@
 #include "UI/CB41.h"
 #include "UI/ModernImGui/EditorIconWidgets.h"
 #include "UI/ModernImGui/EditorEmptyState.h"
+#include "UI/ModernImGui/DockTabLayout.h"
 
 #include "Analysis/AnalyzerManager.h"
 
@@ -105,6 +106,7 @@ void EditorService::Draw(EditorDrawContext ctx) {
 	// editor window has submitted its tab so docking state and hit targets stay
 	// entirely under the upstream implementation.
 	MImGui::DrawDockTabIcons(icons);
+	MImGui::ReserveDockTabOverlayWidths();
 
 	m_CompletedPanelTimings = m_CurrentPanelTimings;
 }
