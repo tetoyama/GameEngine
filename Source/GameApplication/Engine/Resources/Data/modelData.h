@@ -19,7 +19,7 @@
 #include "assimp/matrix4x4.h"
 
 #include "modelMaterialTypes.h"
-#include "modelAssimpMaterialNormalization.h"
+#include "modelAssimpMaterialPropertyNormalization.h"
 
 class GraphicsContext;
 struct aiScene;
@@ -126,7 +126,7 @@ public:
 
 	// Loader分割中の移行Bridge。既に明示定義が与えられている場合は保持し、
 	// 未正規化のAssimp Sceneだけを最初のRender Extraction前に変換する。
-	// 通常Draw中にaiMaterialを解釈するためのAPIではない。
+	// AdapterはaiMaterialPropertyを直接読み、Assimp実装Libraryへ依存しない。
 	bool EnsureMaterialDefinitionsNormalized(){
 		if(m_materialDefinitionsNormalized){
 			return true;
