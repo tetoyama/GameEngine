@@ -5,21 +5,33 @@ on:
     branches: [master]
     paths:
       - "Source/GameApplication/Engine/Resources/Data/modelMaterialTypes.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelAssimpMaterialNormalization.h"
       - "Source/GameApplication/Engine/Resources/Data/modelData.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialResolver.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Tests/ModelMaterialFoundationSmokeTest.cpp"
+      - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
       - "Docs/Step18I_Model_Material_Import_Foundation_Plan.md"
+      - "Docs/Step18I_Model_Material_Import_Foundation_Progress.md"
       - ".github/workflows/model-material-foundation.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
       - "Source/GameApplication/Engine/Resources/Data/modelMaterialTypes.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelAssimpMaterialNormalization.h"
       - "Source/GameApplication/Engine/Resources/Data/modelData.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialResolver.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Tests/ModelMaterialFoundationSmokeTest.cpp"
+      - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
       - "Docs/Step18I_Model_Material_Import_Foundation_Plan.md"
+      - "Docs/Step18I_Model_Material_Import_Foundation_Progress.md"
       - ".github/workflows/model-material-foundation.yml"
   workflow_dispatch:
 
