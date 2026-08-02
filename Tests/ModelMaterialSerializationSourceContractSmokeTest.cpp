@@ -41,6 +41,14 @@ int main(){
 	);
 	Require(runtime, "ModelSubMeshStateSynchronization::Synchronize");
 	Require(runtime, "component.model->SubMeshes");
+	Require(runtime, "SubMesh Overrideを保持する");
+
+	const std::string inspector = ReadText(
+		"Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererInspectorCommon.h"
+	);
+	Require(inspector, "ChangeModelPath");
+	Require(inspector, "component.subMeshes.clear();");
+	Require(inspector, "ReloadCoordinateMode");
 
 	const std::string yaml = ReadText(
 		"Source/GameApplication/Engine/Resources/Data/modelMaterialYamlSerialization.h"
