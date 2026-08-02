@@ -106,8 +106,10 @@ void TestDeterministicSceneSnapshotPlan() {
 			assert(tool.get<std::string>() != "StartWriteTrace");
 		}
 	}
-	assert(plan.at("tasks")[0].value("type", std::string()) == "RuntimeObservation");
-	assert(plan.at("tasks")[3].value("type", std::string()) == "Analysis");
+	// Task種別(type)は廃止した。Taskの実体は「どのToolを使うか」。
+	assert(plan.at("tasks")[0].at("allowedTools")[0].get<std::string>() == "ListEntities");
+	// 旧Analysis相当（Workerを起動しないTask）は allowedTools が空であることで表す。
+	assert(plan.at("tasks")[3].at("allowedTools").empty());
 	std::puts("  - deterministic scene snapshot plan: OK");
 }
 

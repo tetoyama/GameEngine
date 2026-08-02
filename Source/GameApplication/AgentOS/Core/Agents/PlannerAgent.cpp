@@ -4,6 +4,7 @@
 //
 // =======================================================================
 #include "PlannerAgent.h"
+#include "CodeInvestigationPlanner.h"
 
 #include <cstdint>
 #include <functional>
@@ -128,7 +129,6 @@ bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json
 	Json tasks = Json::array();
 	tasks.push_back(Json::object({
 		{"taskId", "T1"},
-		{"type", "RuntimeObservation"},
 		{"description", "アクティブSceneのEntity一覧を取得する"},
 		{"dependencies", Json::array()},
 		{"allowedTools", Json::array({"ListEntities"})},
@@ -136,7 +136,6 @@ bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json
 	}));
 	tasks.push_back(Json::object({
 		{"taskId", "T2"},
-		{"type", "RuntimeObservation"},
 		{"description", "登録済みSystemTaskと依存関係を取得する"},
 		{"dependencies", Json::array()},
 		{"allowedTools", Json::array({"ListSystems"})},
@@ -147,8 +146,7 @@ bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json
 	if (CatalogHasTool(toolCatalog, "DescribeEntity")) {
 		tasks.push_back(Json::object({
 			{"taskId", "T3"},
-			{"type", "RuntimeObservation"},
-			{"description", "T1で取得した名前付きEntityから代表的な最大5件のComponent詳細を取得する"},
+				{"description", "T1で取得した名前付きEntityから代表的な最大5件のComponent詳細を取得する"},
 			{"dependencies", Json::array({"T1"})},
 			{"allowedTools", Json::array({"DescribeEntity"})},
 			{"searchHints", Json::array()},
@@ -158,7 +156,6 @@ bool TryBuildSceneSnapshotPlan(const Json& intake, const Json& toolCatalog, Json
 
 	tasks.push_back(Json::object({
 		{"taskId", "T4"},
-		{"type", "Analysis"},
 		{"description", "取得済みのScene観測結果をユーザー要求に沿って統合する"},
 		{"dependencies", analysisDependencies},
 		{"allowedTools", Json::array()},
@@ -196,8 +193,18 @@ bool ValidatePlan(const Json& plan, const Json& toolCatalog, std::string* error)
 		}
 	}
 
-	static const std::unordered_set<std::string> kValidTypes = {
-		"RuntimeObservation", "CodeSearch", "Trace", "Analysis"};
+	// Task種別(type)は廃止した。
+	//
+	// 種別は RuntimeObservation / CodeSearch / Trace / Analysis の4つで、
+	// すべて「調べる」の種類だった。そのため「応答する」を置く場所が無く、
+	// Respondがツール一覧にあってもPlannerが計画へ入れられなかった
+	// （transcript_20260727_033215: 「こんにちは」に ListEntities を並べた）。
+	//
+	// 実質的な役割は「Analysisならworkerを起動しない」の1点だけで、
+	// これは allowedTools が空かどうかで導ける。実際 Planner側にも
+	// 「Toolを持つAnalysisはRuntimeObservationへ書き換える」という
+	// 種別を推論し直す処理があり、冗長な軸だった。
+	// Taskの実体は「どのToolを使うか」であり、それがTool一覧＝正本に対応する。
 
 	std::unordered_set<std::string> seenIds;
 	std::unordered_map<std::string, std::vector<std::string>> depsMap;
@@ -218,11 +225,6 @@ bool ValidatePlan(const Json& plan, const Json& toolCatalog, std::string* error)
 		}
 		seenIds.insert(id);
 
-		if (!task.contains("type") || !task.at("type").is_string() ||
-		    kValidTypes.count(task.at("type").get<std::string>()) == 0) {
-			*error = "task '" + id + "' has invalid or missing type";
-			return false;
-		}
 
 		std::vector<std::string> deps;
 		if (task.contains("dependencies") && task.at("dependencies").is_array()) {
@@ -276,11 +278,6 @@ void NormalizePlan(Json* plan) {
 				if (dep.is_number_integer()) dep = std::to_string(dep.get<std::int64_t>());
 			}
 		}
-		const bool hasTools = task.contains("allowedTools") &&
-			task["allowedTools"].is_array() && !task["allowedTools"].empty();
-		if (task.value("type", std::string()) == "Analysis" && hasTools) {
-			task["type"] = "RuntimeObservation";
-		}
 	}
 }
 
@@ -289,6 +286,7 @@ void NormalizePlan(Json* plan) {
 Result PlannerAgent::Run(AgentContext& ctx, const Json& intake, const Json& toolCatalog, Json* planOut) {
 	if (planOut == nullptr) return Result::Fail("PlannerAgent: planOut is null");
 
+	if (planner_internal::TryBuildCodeInvestigationPlan(intake, toolCatalog, planOut)) return Result::Ok();
 	if (TryBuildSceneSnapshotPlan(intake, toolCatalog, planOut)) return Result::Ok();
 
 	const PromptPair prompt = prompts::Plan(intake, toolCatalog, kMaxTasks);

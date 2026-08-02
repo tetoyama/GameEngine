@@ -55,21 +55,6 @@ bool ExtractTargetValue(
 	return true;
 }
 
-bool IsFailureEvidence(const Evidence& evidence) {
-	const std::string& sourceType = evidence.provenance.sourceType;
-	if (sourceType == "ToolError" || sourceType == "ToolResultError" ||
-	    sourceType == "ToolUnsatisfied" || sourceType == "CommandValidationError" ||
-	    sourceType == "DependencyUnsatisfied") {
-		return true;
-	}
-	if (!evidence.payload.is_object()) return false;
-	if (evidence.payload.value("failure", false) || evidence.payload.value("unsatisfied", false)) {
-		return true;
-	}
-	return evidence.payload.contains("error") && evidence.payload.at("error").is_string() &&
-		!evidence.payload.at("error").get<std::string>().empty();
-}
-
 } // namespace
 
 EvidenceBuilder::BuiltEvidence EvidenceBuilder::Build() const {

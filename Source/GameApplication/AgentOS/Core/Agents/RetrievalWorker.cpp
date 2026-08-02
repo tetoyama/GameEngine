@@ -278,6 +278,11 @@ Result ValidateGroundedValue(
 bool IsDiscoveryTool(const std::string& toolName) {
 	static const std::unordered_set<std::string> kDiscoveryTools = {
 		"ResolveEntity", "FindEntityByName", "CodeSearch", "SearchComponent", "SearchField",
+		// 履歴検索の検索語は調査の起点であり、過去Evidenceに含まれているはずがない。
+		// Discovery Toolでないと毎回GroundingRejectedで弾かれる。
+		"GetConversationHistory",
+		// 応答文の指示も調査の起点であり、過去Evidenceには存在しない。
+		"Respond",
 	};
 	return kDiscoveryTools.count(toolName) != 0;
 }

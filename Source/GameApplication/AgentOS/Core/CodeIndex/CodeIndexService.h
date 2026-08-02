@@ -153,6 +153,14 @@ public:
 		return m_state.load(std::memory_order_acquire) == CodeIndexState::Ready;
 	}
 
+	// CodeSearchと同じ対象範囲を、索引を介さない完全走査Toolから再利用する。
+	// m_contextはInitialize後に変更しないため、値コピーで安全に公開できる。
+	CodeIndexOptions GetSourceOptions() const {
+		CodeIndexOptions options = m_context.options;
+		options.root = m_context.sourceRoot;
+		return options;
+	}
+
 	// 検索。索引が未完成なら空を返す。
 	// 埋め込みが未接続なら字句検索のみ、接続済みならハイブリッドになる。
 	// filePathFilter が空でなければ、パスにそれを含むチャンクだけへ絞る。

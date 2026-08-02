@@ -34,7 +34,8 @@ public:
 
 	// 打ち切り判定。ルール（優先順）:
 	//   1. budget.RemainingRatio() < 0.2 なら停止。
-	//   2. 同一失敗が3回以上連続したら停止。
+	//   2. 新Evidenceが無い状態で同一失敗が3回以上連続したら停止。
+	//      Evidenceが増えている限り、同じ高レベル失敗が残っていても継続する。
 	//   3. 直近2ラウンドの新規Evidenceが共に0、かつ最有力仮説が変化していなければ停止。
 	//   4. それ以外は継続。
 	StopDecision Evaluate(const BudgetTracker& budget) const;

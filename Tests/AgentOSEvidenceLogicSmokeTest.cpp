@@ -8,6 +8,7 @@
 // =======================================================================
 #include "AgentOS/Core/Evidence/Evidence.h"
 #include "AgentOS/Core/Evidence/EvidenceBuilder.h"
+#include "AgentOS/Core/Evidence/EvidencePromptCompressor.h"
 #include "AgentOS/Core/Logic/LogicGraph.h"
 #include "AgentOS/Core/Llm/JsonExtractor.h"
 #include "AgentOS/Core/Llm/MockLlmBackend.h"
@@ -254,6 +255,52 @@ void TestJsonExtractorFenced() {
 	std::puts("  - JsonExtractor fenced json: OK");
 }
 
+// 閉じ括弧が足りない出力を修復できること。
+//
+// 実機（transcript_20260727_042057）: Plannerが
+//   {"tasks":[{"taskId":"1", ... ,"allowedTools":["Respond"],"searchHints":[]}]
+// と最後の '}' だけを落とした出力を返し、パースに失敗して
+// 「tasks array must not be empty」で計画失敗になった。
+// stopReason=completed だったのでトークン切れではなく、モデルの取りこぼし。
+void TestJsonExtractorRepairsUnterminated() {
+	// 実機とほぼ同じ形。末尾の '}' が1つ足りない。
+	{
+		const std::string text =
+			"```json\n"
+			"{\"tasks\":[{\"taskId\":\"1\",\"description\":\"挨拶へ応答する\","
+			"\"dependencies\":[],\"allowedTools\":[\"Respond\"],\"searchHints\":[]}]\n"
+			"```";
+		Json out;
+		assert(JsonExtractor::Extract(text, &out).ok);
+		assert(out.at("tasks").size() == 1);
+		assert(out.at("tasks")[0].at("allowedTools")[0].get<std::string>() == "Respond");
+	}
+
+	// 末尾カンマと閉じ括弧欠落が重なっても直せること。
+	{
+		const std::string text = "{\"a\": [1, 2,]";
+		Json out;
+		assert(JsonExtractor::Extract(text, &out).ok);
+		assert(out.at("a").size() == 2);
+	}
+
+	// 文字列の途中で切れている場合は修復しない（中身が壊れているため）。
+	{
+		const std::string text = "{\"a\": \"unterminated";
+		Json out;
+		assert(!JsonExtractor::Extract(text, &out).ok);
+	}
+
+	// 括弧の対応が食い違う場合も触らない。
+	{
+		const std::string text = "{\"a\": [1, 2}";
+		Json out;
+		assert(!JsonExtractor::Extract(text, &out).ok);
+	}
+
+	std::puts("  - JsonExtractor repairs unterminated braces: OK");
+}
+
 void TestJsonExtractorBare() {
 	const std::string text = "  {\"c\": 3}  ";
 	Json out;
@@ -378,7 +425,11 @@ void TestPromptTemplates() {
 	const PromptPair reasonPair = prompts::Reason(builtEvidenceJson);
 	assert(!reasonPair.system.empty());
 	assert(!reasonPair.user.empty());
-	assert(reasonPair.user.find(builtEvidenceJson.dump(2)) != std::string::npos);
+	// Reasonは生Evidenceではなく圧縮版を埋め込む（EvidencePromptCompressor）。
+	// 以前は dump(2) の整形済みJSONを期待していたが、圧縮の導入で
+	// prompt側に整形済みJSONが現れなくなったため、期待値を実態へ合わせる。
+	assert(reasonPair.user.find(
+		evidence_prompt::CompressToString(builtEvidenceJson, 9800)) != std::string::npos);
 
 	const Json hypotheses = Json::object({{"hypotheses", Json::array()}});
 	const PromptPair critiquePair = prompts::Critique(hypotheses, builtEvidenceJson);
@@ -392,15 +443,16 @@ void TestPromptTemplates() {
 	assert(!synthesizePair.user.empty());
 	assert(synthesizePair.user.find(stopInfo.dump(2)) != std::string::npos);
 
-	// DirectReply: 会話高速パス用プロンプト。役割記述に一意なフレーズ"DirectReply担当"を
-	// 含むこと（MockLlmBackendのルールがこのフレーズをキーにするため）。
-	const PromptPair directReplyPair = prompts::DirectReply("あなたは何ができますか？", compactCatalog);
-	assert(!directReplyPair.system.empty());
-	assert(!directReplyPair.user.empty());
-	assert(directReplyPair.system.find("DirectReply担当") != std::string::npos);
-	assert(directReplyPair.system.find("\"reply\"") != std::string::npos);
-	assert(directReplyPair.user.find("あなたは何ができますか？") != std::string::npos);
-	assert(directReplyPair.user.find(compactCatalog) != std::string::npos);
+	// Respond: 会話応答ツールのプロンプト。
+	// 旧DirectReply（会話高速パス）は廃止した。会話も調査も同じパイプラインを通り、
+	// 応答生成はツールとして計画される。
+	const PromptPair respondPair = prompts::Respond("あなたは何ができますか？", builtEvidenceJson);
+	assert(!respondPair.system.empty());
+	assert(!respondPair.user.empty());
+	assert(respondPair.system.find("応答担当") != std::string::npos);
+	assert(respondPair.system.find("\"reply\"") != std::string::npos);
+	assert(respondPair.user.find("あなたは何ができますか？") != std::string::npos);
+	(void)compactCatalog;
 
 	std::puts("  - PromptTemplates: OK");
 }
@@ -461,6 +513,7 @@ int main() {
 	TestLogicGraphConfidence();
 	TestLogicGraphRankStable();
 	TestJsonExtractorFenced();
+	TestJsonExtractorRepairsUnterminated();
 	TestJsonExtractorBare();
 	TestJsonExtractorEmbeddedInProse();
 	TestJsonExtractorTrailingCommaRepair();

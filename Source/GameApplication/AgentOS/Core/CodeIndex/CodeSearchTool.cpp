@@ -7,8 +7,10 @@
 
 #include <algorithm>
 #include <memory>
+#include <sstream>
 #include <string>
 #include <utility>
+#include <vector>
 
 namespace agentos {
 
@@ -27,6 +29,7 @@ namespace {
 // 検索クエリは検索の起点なので、過去のEvidenceに含まれているはずがない。
 constexpr const char* kCodeSearchToolName = "CodeSearch";
 constexpr const char* kSymbolInfoToolName = "GetSymbolInfo";
+constexpr const char* kCodeReferencesToolName = "FindCodeReferences";
 
 // CodeSearchが1件あたりに載せる本文の最大文字数。
 // 索引には17,000トークン超のチャンクも実在するため、
@@ -36,9 +39,12 @@ constexpr std::size_t kSearchSnippetChars = 1200;
 
 // GetSymbolInfoの上限。狙って1件を引く用途なので大きめに取る。
 constexpr std::size_t kSymbolBodyChars = 8000;
+constexpr std::size_t kReferenceLineChars = 1600;
 
 constexpr int kMaxTopK = 10;
 constexpr int kDefaultTopK = 5;
+constexpr int kMaxReferenceTopK = 100;
+constexpr int kDefaultReferenceTopK = 30;
 
 std::string Truncate(const std::string& text, std::size_t limit) {
 	if(text.size() <= limit) return text;
@@ -88,7 +94,8 @@ public:
 			"自作エンジンのソースコードから、関数や型の定義を検索する。"
 			"シンボル名が分かっているときも、日本語の説明で探すときも使える。"
 			"戻り値は定義位置(file / start_line / end_line)とコード抜粋。"
-			"名前が正確に分かっていて全文が欲しい場合は GetSymbolInfo を使うこと。",
+			"名前が正確に分かっていて全文が欲しい場合は GetSymbolInfo、"
+			"呼び出し元や使用箇所を探す場合は FindCodeReferences を使うこと。",
 			PermissionLevel::Read,
 			Json::object({
 				{"query", Json::object({
@@ -264,11 +271,145 @@ private:
 	ToolDescriptor m_descriptor;
 };
 
+// ---------------------------------
+// FindCodeReferences
+// ---------------------------------
+// CodeSearchの索引は「定義チャンク」を検索するため、呼び出し元・参照元の網羅には
+// 原理的に向かない。ここでは同じSource走査設定を使って全対象ファイルを完全走査し、
+// 指定文字列を含む行を返す。0件でも全ファイルを読めた場合は有効な負のEvidenceになる。
+class FindCodeReferencesTool final : public ICommandExecutor {
+public:
+	explicit FindCodeReferencesTool(CodeIndexService& service)
+		: m_service(service)
+		, m_descriptor{
+			kCodeReferencesToolName,
+			"ソース対象ファイルを完全走査し、指定した文字列の出現行を列挙する。"
+			"関数の呼び出し元、型やフィールドの参照元、特定APIが存在しないことの確認に使う。"
+			"文字列の完全一致走査であり、意味検索やシンボル解決ではない。",
+			PermissionLevel::Read,
+			Json::object({
+				{"query", Json::object({
+					{"type", "string"},
+					{"required", true},
+					{"description", "ソース内で探すリテラル文字列（例: \"Prepare(\"）"},
+				})},
+				{"file", Json::object({
+					{"type", "string"},
+					{"required", false},
+					{"description", "走査対象を絞るファイルパスの一部"},
+				})},
+				{"topK", Json::object({
+					{"type", "integer"},
+					{"required", false},
+					{"description", "返す行数（既定30、最大100）。総一致数は別途countへ返す"},
+				})},
+			})
+		} {}
+
+	const ToolDescriptor& Descriptor() const override { return m_descriptor; }
+
+	Result CheckPrecondition(const Json& arguments) override {
+		if(!arguments.contains("query")) return Result::Fail("query は必須");
+		if(!arguments.at("query").is_string() ||
+		   arguments.at("query").get<std::string>().empty()) {
+			return Result::Fail("query は空でない文字列であること");
+		}
+		return Result::Ok();
+	}
+
+	CommandResult Execute(const Json& arguments) override {
+		const std::string query = arguments.value("query", std::string());
+		if(query.empty()) {
+			return CommandResult::Fail(CommandStatus::SchemaRejected, "query が空");
+		}
+		const std::string fileFilter = arguments.value("file", std::string());
+		int topK = arguments.value("topK", kDefaultReferenceTopK);
+		topK = std::clamp(topK, 1, kMaxReferenceTopK);
+
+		CodeIndexOptions options = m_service.GetSourceOptions();
+		std::vector<std::string> paths;
+		int skipped = 0;
+		const Result enumerate = EnumerateSourceFiles(options, &paths, &skipped);
+		if(!enumerate) {
+			return CommandResult::Fail(CommandStatus::ExecutionFailed, enumerate.error);
+		}
+
+		Json results = Json::array();
+		std::size_t matchedLines = 0;
+		std::size_t scannedFiles = 0;
+		std::size_t unreadableFiles = 0;
+
+		for(const std::string& path : paths) {
+			if(!fileFilter.empty() && path.find(fileFilter) == std::string::npos) continue;
+
+			std::string source;
+			if(!ReadSourceFile(path, &source)) {
+				++unreadableFiles;
+				continue;
+			}
+			++scannedFiles;
+
+			std::istringstream stream(source);
+			std::string line;
+			int lineNumber = 0;
+			while(std::getline(stream, line)) {
+				++lineNumber;
+				const std::size_t column = line.find(query);
+				if(column == std::string::npos) continue;
+				++matchedLines;
+				if(results.size() < static_cast<std::size_t>(topK)) {
+					results.push_back(Json::object({
+						{"file", path},
+						{"line", lineNumber},
+						{"column", column + 1},
+						{"code", Truncate(line, kReferenceLineChars)},
+					}));
+				}
+			}
+		}
+
+		const bool completeScan = unreadableFiles == 0;
+		Json payload = Json::object({
+			{"query", query},
+			{"count", matchedLines},
+			{"returned", results.size()},
+			{"results", std::move(results)},
+			{"files_scanned", scannedFiles},
+			{"files_skipped", skipped},
+			{"files_unreadable", unreadableFiles},
+			{"complete_scan", completeScan},
+			{"truncated", matchedLines > static_cast<std::size_t>(topK)},
+		});
+		if(!fileFilter.empty()) payload["file_filter"] = fileFilter;
+
+		if(matchedLines == 0 && completeScan) {
+			payload["claim"] =
+				"ソース対象" + std::to_string(scannedFiles) + "ファイルを完全走査したが、"
+				"文字列「" + query + "」は見つからなかった。";
+		} else if(matchedLines == 0) {
+			payload["claim"] =
+				"文字列「" + query + "」は見つからなかったが、" +
+				std::to_string(unreadableFiles) + "ファイルを読めず完全走査ではない。";
+		} else {
+			payload["claim"] =
+				"文字列「" + query + "」を含む行を" +
+				std::to_string(matchedLines) + "件見つけた（" +
+				std::to_string(scannedFiles) + "ファイル走査）。";
+		}
+		return CommandResult::Ok(std::move(payload));
+	}
+
+private:
+	CodeIndexService& m_service;
+	ToolDescriptor m_descriptor;
+};
+
 } // namespace
 
 void RegisterCodeSearchTool(CommandPipeline& pipeline, CodeIndexService& service) {
 	pipeline.RegisterTool(std::make_shared<CodeSearchTool>(service));
 	pipeline.RegisterTool(std::make_shared<GetSymbolInfoTool>(service));
+	pipeline.RegisterTool(std::make_shared<FindCodeReferencesTool>(service));
 }
 
 } // namespace agentos

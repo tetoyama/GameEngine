@@ -34,6 +34,8 @@ TESTS = AgentOSCommandPipelineSmokeTest \
         AgentOSSceneSnapshotFastPathSmokeTest \
         AgentOSComponentQueryRoutingSmokeTest \
         AgentOSGoalGateSmokeTest \
+        AgentOSConversationHistoryToolSmokeTest \
+        AgentOSRespondToolSmokeTest \
         AgentOSMemoryAndRetrySmokeTest \
         AgentOSFuzzyMatchSmokeTest \
         AgentOSAmbiguityAndSynthesisSafetySmokeTest \
@@ -41,8 +43,14 @@ TESTS = AgentOSCommandPipelineSmokeTest \
         AgentOSCodeIndexSmokeTest \
         AgentOSCodeSearchSmokeTest \
         AgentOSCodeIndexServiceSmokeTest \
+        AgentOSCodeInvestigationRoutingSmokeTest \
+        AgentOSToolCatalogPromptSmokeTest \
+        AgentOSEvidencePromptCompressionSmokeTest \
         AgentOSTaskRetirementSmokeTest \
         AgentOSRepairHygieneSmokeTest \
+        AgentOSUtf8SafetySmokeTest \
+        AgentOSRecursiveFlowControlSmokeTest \
+        AgentOSRecursiveFlowEndToEndSmokeTest \
         AgentOSVerticalSliceSmokeTest
 
 # ---------------------------------

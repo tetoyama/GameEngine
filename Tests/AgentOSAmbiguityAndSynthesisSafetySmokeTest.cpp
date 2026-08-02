@@ -77,12 +77,14 @@ int main() {
         "```json\n"
         "{\"goal\":\"現在SceneのEntity状況を取得する\","
         "\"resolvedRequest\":\"今のシーンのEntity状況を取得する\","
-        "\"turnRelation\":\"refer\",\"referencedSessionIds\":[1],"
+        "\"turnRelation\":\"refresh\",\"referencedSessionIds\":[],"
         "\"symptoms\":[],\"constraints\":[],\"requiredCapabilities\":[\"ListEntities\"],"
         "\"unresolvedReferences\":[],\"targetKind\":\"concept\","
         "\"targetConcept\":\"current scene\",\"resolvedEntityName\":null,"
-        "\"requestType\":\"conversation\"}\n```"
+        "\"requestType\":\"investigation\"}\n```"
     );
+    // 以前は「今のシーン」等のキーワードでturnRelation/requestTypeをプログラム側から
+    // 上書きしていたが、キーワード判定は全廃した。Intakeの判定をそのまま使う。
     AgentContext intakeContext;
     intakeContext.llm = &intakeLlm;
     Json freshIntake;
@@ -97,7 +99,7 @@ int main() {
         "```json\n"
         "{\"goal\":\"Entity数の訂正を反映する\","
         "\"resolvedRequest\":\"Entityは41個あるという訂正を検証する\","
-        "\"turnRelation\":\"refer\",\"referencedSessionIds\":[],"
+        "\"turnRelation\":\"correct\",\"referencedSessionIds\":[],"
         "\"symptoms\":[],\"constraints\":[],\"requiredCapabilities\":[],"
         "\"unresolvedReferences\":[],\"requestType\":\"conversation\"}\n```"
     );

@@ -43,4 +43,30 @@ struct Evidence {
 	static Evidence FromJson(const Json& j);
 };
 
+// ---------------------------------
+// 失敗Evidenceの判定
+// ---------------------------------
+// 「Toolが失敗した」「対象が見つからなかった」等、世界について何も
+// 確定していない記録を指す。EvidenceBuilderのcoverage計算と、
+// 会話履歴の引き継ぎ（TaskStore::SearchConversationHistory）の
+// 両方が同じ基準で判定する必要があるため、ここに置く。
+//
+// 以前はEvidenceBuilder.cppの匿名namespaceにあり、履歴検索側は
+// 判定を持たなかった。その結果、前セッションで失敗した記録が
+// 次のセッションへ「観測」として戻り、同じ探索を繰り返させていた。
+inline bool IsFailureEvidence(const Evidence& evidence) {
+	const std::string& sourceType = evidence.provenance.sourceType;
+	if (sourceType == "ToolError" || sourceType == "ToolResultError" ||
+	    sourceType == "ToolUnsatisfied" || sourceType == "CommandValidationError" ||
+	    sourceType == "DependencyUnsatisfied") {
+		return true;
+	}
+	if (!evidence.payload.is_object()) return false;
+	if (evidence.payload.value("failure", false) || evidence.payload.value("unsatisfied", false)) {
+		return true;
+	}
+	return evidence.payload.contains("error") && evidence.payload.at("error").is_string() &&
+		!evidence.payload.at("error").get<std::string>().empty();
+}
+
 } // namespace agentos

@@ -25,13 +25,21 @@ namespace agentos {
 // ---------------------------------
 namespace critic_internal {
 
-// resolvedRequestから「特定の対象を指す語」を抽出する（ゲート#8で使用）。
+// 要求文から「特定の対象を指す語」を抽出する（ゲート#8で使用）。
 // - 単一/二重引用符トークン（例: Entity 'Player' → "Player"）
 // - ASCII識別子（3文字以上。Entity/Component/Scene/System/Tool/the/and等の
 //   一般語はstoplistで除外する。大小無視で重複排除する）
 // - カタカナ連続（3文字以上。UTF-8バイト範囲 E382A0-BF/E383 80-BFで判定。
 //   シーン/コンポーネント/エンティティ/システム/ツール等の一般語はstoplistで除外する）
-std::vector<std::string> ExtractGoalIdentifiers(const std::string& text);
+//
+// includeKatakana=false は、ユーザが書いた原文に対して使う。
+// 原文のカタカナは対象名ではなく日本語の地の文であることが多く
+// （「メソッド」「コード」「プレイヤー」等）、Engine Evidenceは英語の
+// シンボル名で書かれているため、そのまま識別子にすると必ず未カバーになる。
+// カタカナの対象名は resolvedEntityName / targetConcept という
+// 構造化フィールド側で拾う（Intakeが対象として確定させたものだけを信じる）。
+std::vector<std::string> ExtractGoalIdentifiers(
+	const std::string& text, bool includeKatakana = true);
 
 } // namespace critic_internal
 

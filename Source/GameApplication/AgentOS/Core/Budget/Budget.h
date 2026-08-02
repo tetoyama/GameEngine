@@ -20,12 +20,14 @@ namespace agentos {
 // Budget（上限定義。値そのものは不変データ）
 // ---------------------------------
 struct Budget {
-	int maxToolCalls = 50;
-	int maxLlmCalls = 20;
+	// Repair回数を固定値で狭く制限せず、大規模調査を進展がある限り継続できる
+	// セッション予算にする。停滞時はEarlyStoppingが先に止める。
+	int maxToolCalls = 250;
+	int maxLlmCalls = 120;
 	int maxRetries = 2;
 	int maxDepth = 3;
-	std::int64_t maxLlmChars = 400000;
-	std::int64_t maxMillis = 600000;
+	std::int64_t maxLlmChars = 4000000;
+	std::int64_t maxMillis = 21600000; // 6時間。CPU推論の長時間調査を許容する。
 	int maxModifiedFiles = 5;
 };
 

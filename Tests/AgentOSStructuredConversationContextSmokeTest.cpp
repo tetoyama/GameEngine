@@ -38,7 +38,7 @@ SessionId AddTurn(
 	return session;
 }
 
-void GreetingSkipsHistoryAndIntakeLlm() {
+void GreetingIsolatesHistory() {
 	const std::string dbPath = "/tmp/agentos_structured_greeting.db";
 	RemoveDb(dbPath);
 	TaskStore store;
@@ -56,16 +56,25 @@ void GreetingSkipsHistoryAndIntakeLlm() {
 		}));
 	const SessionId current = store.CreateSession(Json::object({{"userRequest", "こんにちは"}}));
 
+	// 挨拶をキーワードで判定してIntake LLMを飛ばす経路は廃止した。
+	// 挨拶も他の要求と同じくIntakeを通る。隔離は turnRelation=new が担う。
 	MockLlmBackend llm;
+	llm.AddRule("Intake担当",
+		"```json\n"
+		"{\"goal\":\"挨拶へ応答する\",\"resolvedRequest\":\"ユーザーの挨拶へ応答する\","
+		"\"turnRelation\":\"new\",\"referencedSessionIds\":[],\"symptoms\":[],"
+		"\"constraints\":[],\"requiredCapabilities\":[],\"unresolvedReferences\":[],"
+		"\"targetKind\":\"unknown\",\"targetConcept\":null,"
+		"\"resolvedEntityName\":null,\"requestType\":\"conversation\"}\n"
+		"```");
 	AgentContext ctx;
 	ctx.llm = &llm;
 	ctx.store = &store;
 	ctx.sessionId = current;
 	Json intake;
 	assert(IntakeAgent::Run(ctx, "こんにちは", &intake));
-	assert(llm.GetCalls().empty());
 	assert(intake.value("turnRelation", std::string()) == "new");
-	assert(intake.value("simpleConversation", false));
+	// new turnでは過去Topicが生成Contextへ選択されない。
 	assert(intake.at("conversationContext").at("threadStates").empty());
 	assert(intake.at("conversationContext").at("recentTurns").empty());
 	RemoveDb(dbPath);
@@ -142,7 +151,7 @@ void RefreshDoesNotReceivePreviousState() {
 	llm.EnqueueResponse(
 		"```json\n"
 		"{\"goal\":\"現在のシーンを確認する\",\"resolvedRequest\":\"現在のシーンを再観測する\","
-		"\"turnRelation\":\"refer\",\"referencedSessionIds\":[1],\"symptoms\":[],"
+		"\"turnRelation\":\"refresh\",\"referencedSessionIds\":[],\"symptoms\":[],"
 		"\"constraints\":[],\"requiredCapabilities\":[\"ListEntities\"],"
 		"\"unresolvedReferences\":[],\"targetKind\":\"concept\","
 		"\"targetConcept\":\"current scene\",\"resolvedEntityName\":null,"
@@ -156,8 +165,12 @@ void RefreshDoesNotReceivePreviousState() {
 	assert(IntakeAgent::Run(ctx, "今のシーンの状況を教えて", &intake));
 	const auto calls = llm.GetCalls();
 	assert(calls.size() == 1);
-	assert(calls.front().second.find("STALE_PLATFORMER_STATE") == std::string::npos);
-	assert(calls.front().second.find("RAW_ASSISTANT_SECRET") == std::string::npos);
+	// Intakeへは履歴を常に渡す（この段階だけは全履歴を参照してよい、という
+	// Intake自身の契約どおり）。以前はキーワード一致で渡すか決めていたため
+	// 「5件全部知りたい」のような継続を取りこぼしていた。
+	// 隔離が効くべきなのは、Intakeが選んだ後のConversation Contextの方。
+	assert(intake.at("conversationContext").dump().find("STALE_PLATFORMER_STATE") == std::string::npos);
+	assert(intake.at("conversationContext").dump().find("RAW_ASSISTANT_SECRET") == std::string::npos);
 	assert(intake.value("turnRelation", std::string()) == "refresh");
 	assert(intake.at("conversationContext").at("threadStates").empty());
 	RemoveDb(dbPath);
@@ -167,7 +180,7 @@ void RefreshDoesNotReceivePreviousState() {
 
 int main() {
 	std::cout << "=== AgentOS Structured Conversation Context Smoke Test ===\n";
-	GreetingSkipsHistoryAndIntakeLlm();
+	GreetingIsolatesHistory();
 	ContinuationUsesOnlyStructuredState();
 	RefreshDoesNotReceivePreviousState();
 	prompts::ClearCurrentConversationRequestContext();

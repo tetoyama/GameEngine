@@ -35,6 +35,20 @@ struct AgentContext {
 };
 
 // ---------------------------------
+// 現在セッションID（Worker thread単位）
+// ---------------------------------
+// Toolは AgentContext を受け取らない（ICommandExecutor::Execute の引数は
+// 引数Jsonのみ）。しかしGetConversationHistoryは「今より前の履歴」を引く必要が
+// あり、境界となる現在セッションIDを知らなければならない。
+// CommandPipelineはセッションを跨いで生き続けるためTool側に持たせられない。
+//
+// thread_localはSessionId（整数）のみで定数初期化される。
+// 動的初期化を伴うthread_localはMSVCのローダロック下で落ちるため置かない
+// （実機で 0xC0000005 in __dyn_tls_init を踏んだ）。
+void SetCurrentSessionId(SessionId sessionId) noexcept;
+SessionId CurrentSessionId() noexcept;
+
+// ---------------------------------
 // CallLlmJson
 // PromptPairでLLMを呼び出し、Budgetを消費した上でJsonExtractorでJSONを
 // 抽出するヘルパ。抽出に失敗した場合、フェンス厳守のリマインダーを追記して
