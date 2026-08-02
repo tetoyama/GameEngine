@@ -9,6 +9,7 @@
 
 #include "Backends/ImGuiFunc.h"
 #include "Resources/Data/modelData.h"
+#include "Scene/Component/materialComponent.h"
 
 namespace ModelRendererSubMeshInspector {
 
@@ -40,9 +41,94 @@ inline const char* ImportedMaterialName(
 		: "Engine Default";
 }
 
+inline CustomMaterialID FirstCustomMaterialID(
+	const MaterialComponent* materialComponent
+) noexcept {
+	if(!materialComponent) return InvalidCustomMaterialID;
+	for(const CustomMaterialEntry& material : materialComponent->materials){
+		if(material.id != InvalidCustomMaterialID){
+			return material.id;
+		}
+	}
+	return InvalidCustomMaterialID;
+}
+
+inline std::string CustomMaterialDisplayName(
+	const CustomMaterialEntry& material
+){
+	const std::string name = material.name.empty()
+		? "Material"
+		: material.name;
+	return name + " (ID " + std::to_string(material.id) + ")";
+}
+
+inline void DrawCustomMaterialAssignment(
+	SubMeshMaterialAssignment& assignment,
+	const MaterialComponent* materialComponent
+){
+	const CustomMaterialEntry* selected = materialComponent
+		? materialComponent->FindMaterial(assignment.customMaterialID)
+		: nullptr;
+
+	std::string preview;
+	if(selected){
+		preview = CustomMaterialDisplayName(*selected);
+	}else if(assignment.customMaterialID == InvalidCustomMaterialID){
+		preview = "Unassigned";
+	}else{
+		preview = "Missing ID " +
+			std::to_string(assignment.customMaterialID);
+	}
+
+	if(ImGui::BeginCombo("Custom Material", preview.c_str())){
+		const bool unassigned =
+			assignment.customMaterialID == InvalidCustomMaterialID;
+		if(ImGui::Selectable(
+			"Unassigned (Model Default fallback)",
+			unassigned
+		)){
+			assignment.customMaterialID = InvalidCustomMaterialID;
+		}
+		if(unassigned) ImGui::SetItemDefaultFocus();
+
+		if(materialComponent){
+			for(const CustomMaterialEntry& material :
+				materialComponent->materials){
+				if(material.id == InvalidCustomMaterialID) continue;
+				const bool isSelected =
+					assignment.customMaterialID == material.id;
+				const std::string label =
+					CustomMaterialDisplayName(material) +
+					"##CustomMaterial" + std::to_string(material.id);
+				if(ImGui::Selectable(label.c_str(), isSelected)){
+					assignment.customMaterialID = material.id;
+				}
+				if(isSelected) ImGui::SetItemDefaultFocus();
+			}
+		}
+		ImGui::EndCombo();
+	}
+
+	if(!materialComponent){
+		ImGui::TextDisabled(
+			"No MaterialComponent on this Entity; Model Default is used."
+		);
+	}else if(materialComponent->materials.empty()){
+		ImGui::TextDisabled(
+			"MaterialComponent has no Custom Material definitions."
+		);
+	}else if(assignment.customMaterialID != InvalidCustomMaterialID &&
+		!selected){
+		ImGui::TextDisabled(
+			"Selected ID is missing; resolver will use Model Default."
+		);
+	}
+}
+
 inline void Draw(
 	std::vector<ModelSubMeshRenderState>& states,
-	const ModelData& model
+	const ModelData& model,
+	const MaterialComponent* materialComponent = nullptr
 ){
 	const std::string label =
 		"SubMeshes (" + std::to_string(model.SubMeshes.size()) + ")";
@@ -90,26 +176,19 @@ inline void Draw(
 					SubMeshMaterialSource::ModelDefault){
 					state.material.customMaterialID =
 						InvalidCustomMaterialID;
+				}else if(state.material.customMaterialID ==
+					InvalidCustomMaterialID){
+					state.material.customMaterialID =
+						FirstCustomMaterialID(materialComponent);
 				}
 			}
 
 			if(state.material.source ==
 				SubMeshMaterialSource::CustomMaterial){
-				std::uint32_t customMaterialID =
-					state.material.customMaterialID;
-				if(ImGui::InputScalar(
-					"Custom Material ID",
-					ImGuiDataType_U32,
-					&customMaterialID
-				)){
-					state.material.customMaterialID = customMaterialID;
-				}
-				if(state.material.customMaterialID ==
-					InvalidCustomMaterialID){
-					ImGui::TextDisabled(
-						"ID 0 is invalid; resolver will use Model Default."
-					);
-				}
+				DrawCustomMaterialAssignment(
+					state.material,
+					materialComponent
+				);
 			}
 
 			if(ImGui::Button("Reset SubMesh State")){
