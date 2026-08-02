@@ -40,6 +40,9 @@ private:
 
 	void EditorView(const EditorDrawContext ctx);
 
+	// Playback belongs to the global transport. Viewport-local controls remain
+	// contextual to the editor camera and render presentation. The legacy
+	// method and textures remain temporarily until the CPP cleanup is isolated.
 	void ControlButton();
 	void DrawRenderLayerToggleUI();
 

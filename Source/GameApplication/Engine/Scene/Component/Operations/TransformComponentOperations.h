@@ -18,6 +18,7 @@
 #include "Backends/YAMLConverters.h"
 #include "Editor/Command/CommandManager.h"
 #include "Editor/Command/PropertyChangeCommand.h"
+#include "Editor/UI/ModernImGui/ModernImGui.h"
 #include "Scene/Registry/entityRegistry.h"
 #include "Scene/scene.h"
 
@@ -282,14 +283,14 @@ inline void Inspect(
 	SceneContext* context
 ){
 	ImGui::PushID(&transform);
-	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(6.0f, 4.0f));
+	ImGui::PushStyleVar(ImGuiStyleVar_CellPadding, ImVec2(6.0f, 5.0f));
 
 	if(ImGui::BeginTable(
 		"TransformProperties",
 		2,
 		ImGuiTableFlags_SizingStretchProp |
-		ImGuiTableFlags_NoSavedSettings |
-		ImGuiTableFlags_BordersInnerV
+		ImGuiTableFlags_NoPadOuterX |
+		ImGuiTableFlags_NoSavedSettings
 	)){
 		ImGui::TableSetupColumn("Property", ImGuiTableColumnFlags_WidthFixed, 92.0f);
 		ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch);
@@ -300,23 +301,23 @@ inline void Inspect(
 		BeginPropertyRow("Rotation");
 		InspectRotation(transform);
 
-		BeginPropertyRow("Scale");
 		ImGuiStorage* storage = ImGui::GetStateStorage();
 		const ImGuiID uniformLockID = ImGui::GetID("UniformScaleLock");
 		bool uniformLocked = storage->GetBool(uniformLockID, false);
-		if(ImGui::Checkbox("##UniformScaleLock", &uniformLocked)){
+		BeginPropertyRow("Uniform Scale");
+		if(MImGui::Toggle("##UniformScaleLock", &uniformLocked)){
 			storage->SetBool(uniformLockID, uniformLocked);
 		}
 		if(ImGui::IsItemHovered()){
-			ImGui::SetTooltip("Lock uniform scale");
+			ImGui::SetTooltip("Apply scale changes uniformly across all axes.");
 		}
-		ImGui::SameLine();
-		ImGui::SetNextItemWidth(-FLT_MIN);
+
+		BeginPropertyRow("Scale");
 		InspectScale(transform.scale, uniformLocked);
 
 		BeginPropertyRow("Parent");
 		int parentIndex = static_cast<int>(transform.parent.GetIndex());
-		if(ImGui::InputInt("##ParentEntity", &parentIndex)){
+		if(ImGui::InputInt("##ParentEntity", &parentIndex, 0, 0)){
 			parentIndex = (std::max)(parentIndex, 0);
 			if(parentIndex == 0){
 				transform.parent = {};

@@ -6,6 +6,7 @@
 #pragma once
 
 #include <algorithm>
+#include <cfloat>
 #include <cmath>
 #include <memory>
 
@@ -30,9 +31,9 @@ public:
 	float UV_Slice_X = 1.0f;
 	float UV_Slice_Y = 1.0f;
 
-	int AnimationNum = 0;  // 表示するセルのインデックス
+	int AnimationNum = 0;
 
-	std::shared_ptr<TextureData> m_TextureData;  // ロード済みテクスチャデータ
+	std::shared_ptr<TextureData> m_TextureData;
 
 	static bool IsSliceValue(float value){
 		return value >= 1.0f;
@@ -74,7 +75,7 @@ public:
 		const int columnCount = ResolveSliceCount(UV_Slice_X);
 		const int rowCount = ResolveSliceCount(UV_Slice_Y);
 		const int maxFrame = (std::max)(0, columnCount * rowCount - 1);
-		const int safeFrame = std::clamp(AnimationNum, 0, maxFrame);
+		const int safeFrame = (std::clamp)(AnimationNum, 0, maxFrame);
 
 		if(sliceX){
 			uv.UVStart.x = (safeFrame % columnCount) * spanX;
@@ -97,21 +98,22 @@ public:
 
 	YAML::Node encode() override{
 		YAML::Node node;
-		if (m_TextureData) {
+		if(m_TextureData){
 			node["FilePath"] = m_TextureData->FilePath;
 		}
 		node["UV_Slice_X"] = UV_Slice_X;
 		node["UV_Slice_Y"] = UV_Slice_Y;
 		node["AnimationNum"] = AnimationNum;
-
 		return node;
 	}
 
 	bool decode(SceneContext* context, const YAML::Node& node) override{
-		if (!node.IsMap()) { return false; }
+		if(!node.IsMap()) return false;
 
-		if (node["FilePath"]) {
-			m_TextureData = context->manager->resource->Load<TextureData>(node["FilePath"].as<std::string>().c_str());
+		if(node["FilePath"]){
+			m_TextureData = context->manager->resource->Load<TextureData>(
+				node["FilePath"].as<std::string>().c_str()
+			);
 		}
 		if(node["UV_Slice_X"]){
 			UV_Slice_X = node["UV_Slice_X"].as<float>();
@@ -125,156 +127,164 @@ public:
 		return true;
 	}
 
-    void inspector(SceneContext* context) override {
-        ImGui::PushID(this);
+	void inspector(SceneContext* context) override{
+		ImGui::PushID(this);
 
-        // 色定義
-        ImVec4 colorR = ImVec4(0.7f, 0.4f, 0.4f, 0.3f); // R
-        ImVec4 colorG = ImVec4(0.4f, 0.7f, 0.4f, 0.3f); // G
+		const ImVec4 colorR(0.7f, 0.4f, 0.4f, 0.48f);
+		const ImVec4 colorG(0.4f, 0.7f, 0.4f, 0.48f);
 
-        // --- UV Divisor / Slice ---
-        ImGui::Text("UV Slice / Repeat");
-        ImGui::SameLine(140);
+		ImGui::TextUnformatted("UV Slice / Repeat");
+		if(ImGui::BeginTable(
+			"UVSliceGrid",
+			2,
+			ImGuiTableFlags_SizingStretchSame |
+			ImGuiTableFlags_NoPadOuterX |
+			ImGuiTableFlags_NoSavedSettings
+		)){
+			ImGui::TableNextColumn();
+			ImGui::AlignTextToFramePadding();
+			ImGui::TextUnformatted("X");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::PushStyleColor(ImGuiCol_Border, colorR);
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
+			ImGui::UndoDragFloat("##UVSliceX", &UV_Slice_X, 0.01f, 0.0001f, 256.0f);
+			ImGui::PopStyleVar();
+			ImGui::PopStyleColor();
 
-        float availWidth = ImGui::GetContentRegionAvail().x;
-
-        float labelXWidth = ImGui::CalcTextSize("X").x + 5.0f;
-        float labelYWidth = ImGui::CalcTextSize("Y").x + 5.0f;
-
-        float inputWidthX = (availWidth / 2) - labelXWidth - 5.0f;
-        float inputWidthY = (availWidth / 2) - labelYWidth - 5.0f;
-
-        // X
-        ImGui::TextUnformatted("X");
-        ImGui::SameLine();
-        ImGui::PushItemWidth(inputWidthX);
-        ImGui::PushStyleColor(ImGuiCol_Border, colorR);
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
-        ImGui::UndoDragFloat("##UVSliceX", &UV_Slice_X, 0.01f, 0.0001f, 256.0f);
-        ImGui::PopStyleVar();
-        ImGui::PopStyleColor();
-        ImGui::PopItemWidth();
-
-        ImGui::SameLine();
-
-        // Y
-        ImGui::TextUnformatted("Y");
-        ImGui::SameLine();
-        ImGui::PushItemWidth(inputWidthY);
-        ImGui::PushStyleColor(ImGuiCol_Border, colorG);
-        ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
-        ImGui::UndoDragFloat("##UVSliceY", &UV_Slice_Y, 0.01f, 0.0001f, 256.0f);
-        ImGui::PopStyleVar();
-        ImGui::PopStyleColor();
-        ImGui::PopItemWidth();
+			ImGui::TableNextColumn();
+			ImGui::AlignTextToFramePadding();
+			ImGui::TextUnformatted("Y");
+			ImGui::SameLine();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGui::PushStyleColor(ImGuiCol_Border, colorG);
+			ImGui::PushStyleVar(ImGuiStyleVar_FrameBorderSize, 1.5f);
+			ImGui::UndoDragFloat("##UVSliceY", &UV_Slice_Y, 0.01f, 0.0001f, 256.0f);
+			ImGui::PopStyleVar();
+			ImGui::PopStyleColor();
+			ImGui::EndTable();
+		}
 
 		ImGui::TextDisabled("1 = Full / 2 = 2 slices / 0.5 = Repeat x2");
 
-		// --- Animation Frame ---
-		ImGui::AlignTextToFramePadding();
-		ImGui::TextUnformatted("Frame");
-		ImGui::SameLine(100.0f);
-
-		float totalAvail = ImGui::GetContentRegionAvail().x;
-		float sliderWidth = totalAvail * 0.6f;
-		float inputWidth = totalAvail - sliderWidth - ImGui::GetStyle().ItemSpacing.x * 2;
-
 		int maxFrame = ResolveMaxAnimationFrame();
-		if(AnimationNum > maxFrame) AnimationNum = maxFrame;
-		if(AnimationNum < 0) AnimationNum = 0;
+		AnimationNum = (std::clamp)(AnimationNum, 0, maxFrame);
 
-		// スライダー（左）
-		ImGui::PushItemWidth(sliderWidth);
-		ImGuiStyle& style = ImGui::GetStyle();
-		float oldGrabRounding = style.GrabRounding;
+		ImGui::TextUnformatted("Frame");
+		if(ImGui::BeginTable(
+			"FrameGrid",
+			2,
+			ImGuiTableFlags_SizingStretchProp |
+			ImGuiTableFlags_NoPadOuterX |
+			ImGuiTableFlags_NoSavedSettings
+		)){
+			ImGui::TableSetupColumn("Slider", ImGuiTableColumnFlags_WidthStretch, 0.68f);
+			ImGui::TableSetupColumn("Value", ImGuiTableColumnFlags_WidthStretch, 0.32f);
 
-		style.GrabRounding = 100.0f;
-		if(ImGui::SliderInt("##FrameSlider", &AnimationNum, 0, maxFrame)){
-			AnimationNum = std::clamp(AnimationNum, 0, maxFrame);
+			ImGui::TableNextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			ImGuiStyle& style = ImGui::GetStyle();
+			const float oldGrabRounding = style.GrabRounding;
+			style.GrabRounding = 100.0f;
+			if(ImGui::SliderInt("##FrameSlider", &AnimationNum, 0, maxFrame)){
+				AnimationNum = (std::clamp)(AnimationNum, 0, maxFrame);
+			}
+			style.GrabRounding = oldGrabRounding;
+
+			ImGui::TableNextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			if(ImGui::UndoDragInt("##FrameInput", &AnimationNum, 1, 0, maxFrame)){
+				AnimationNum = (std::clamp)(AnimationNum, 0, maxFrame);
+			}
+			ImGui::EndTable();
 		}
-		ImGui::PopItemWidth();
-		style.GrabRounding = oldGrabRounding;
-
-		ImGui::SameLine();
-
-		// 数値入力（右）
-		ImGui::PushItemWidth(inputWidth);
-		if(ImGui::UndoDragInt("##FrameInput", &AnimationNum, 1, 0, maxFrame)){
-			AnimationNum = std::clamp(AnimationNum, 0, maxFrame);
-		}
-		ImGui::PopItemWidth();
-
-		// --- Texture Input ---
-		ImGui::BeginGroup();
-		float textLabelWidth = 100.0f;
-		float inputFieldWidth = ImGui::GetContentRegionAvail().x - textLabelWidth - 24.0f;
 
 		char filepathBuffer[256] = "";
 		if(m_TextureData && !m_TextureData->FilePath.empty()){
-			strncpy_s(filepathBuffer, sizeof(filepathBuffer), m_TextureData->FilePath.c_str(), _TRUNCATE);
+			strncpy_s(
+				filepathBuffer,
+				sizeof(filepathBuffer),
+				m_TextureData->FilePath.c_str(),
+				_TRUNCATE
+			);
 		}
 
-		ImGui::Text("Texture");
-		ImGui::SameLine(textLabelWidth);
-		ImGui::PushItemWidth(inputFieldWidth);
-		if(ImGui::InputText("##TextureInput", filepathBuffer, sizeof(filepathBuffer))){
-			m_TextureData = context->manager->resource->Load<TextureData>(filepathBuffer);
+		if(ImGui::BeginTable(
+			"TexturePathRow",
+			3,
+			ImGuiTableFlags_SizingFixedFit |
+			ImGuiTableFlags_NoPadOuterX |
+			ImGuiTableFlags_NoSavedSettings
+		)){
+			ImGui::TableSetupColumn("Label", ImGuiTableColumnFlags_WidthFixed, 76.0f);
+			ImGui::TableSetupColumn("Path", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Clear", ImGuiTableColumnFlags_WidthFixed, 28.0f);
+
+			ImGui::TableNextColumn();
+			ImGui::AlignTextToFramePadding();
+			ImGui::TextUnformatted("Texture");
+
+			ImGui::TableNextColumn();
+			ImGui::SetNextItemWidth(-FLT_MIN);
+			if(ImGui::InputText("##TextureInput", filepathBuffer, sizeof(filepathBuffer))){
+				m_TextureData = context->manager->resource->Load<TextureData>(filepathBuffer);
+			}
+
+			ImGui::TableNextColumn();
+			if(ImGui::SmallButton("x")){
+				filepathBuffer[0] = '\0';
+				m_TextureData = nullptr;
+			}
+			ImGui::EndTable();
 		}
-		ImGui::PopItemWidth();
 
-		// Clear Button
-		ImGui::SameLine();
-		if(ImGui::SmallButton("x")){
-			filepathBuffer[0] = '\0';
-			m_TextureData = nullptr;
-		}
+		ImGui::BeginGroup();
+		if(m_TextureData && m_TextureData->pTexture){
+			const float availableWidth = ImGui::GetContentRegionAvail().x;
+			const float spacing = ImGui::GetStyle().ItemSpacing.x;
+			const bool sideBySide = availableWidth >= 220.0f;
+			const float previewSize = sideBySide
+				? (std::max)(48.0f, (availableWidth - spacing) * 0.5f)
+				: (std::max)(48.0f, (std::min)(availableWidth, 180.0f));
 
-        // --- Texture Preview ---
-        if (m_TextureData && m_TextureData->pTexture) {
-            ImVec2 avail = ImGui::GetContentRegionAvail();
-            float previewSize = avail.x * 0.5f - ImGui::GetStyle().ItemSpacing.x * 2;
-            float spacing = 8.0f;
+			ImGui::Image(
+				(ImTextureID)m_TextureData->pTexture.Get(),
+				ImVec2(previewSize, previewSize),
+				ImVec2(0, 0),
+				ImVec2(1, 1),
+				ImVec4(1, 1, 1, 1),
+				ImVec4(0, 0, 0, 0)
+			);
 
-            ImGui::BeginGroup();
-            ImGui::Image(
-                (ImTextureID)m_TextureData->pTexture.Get(),
-                ImVec2(previewSize, previewSize),
-                ImVec2(0, 0), ImVec2(1, 1),
-                ImVec4(1, 1, 1, 1),
-                ImVec4(0, 0, 0, 0)
-            );
-            ImGui::EndGroup();
+			if(sideBySide){
+				ImGui::SameLine(0.0f, spacing);
+			}
 
-            ImGui::SameLine(0.0f, spacing);
-
-            ImGui::BeginGroup();
 			const UVMatrixBuffer previewUv = ResolveUVMatrixBuffer();
-            ImGui::Image(
-                (ImTextureID)m_TextureData->pTexture.Get(),
-                ImVec2(previewSize, previewSize),
-                ImVec2(previewUv.UVStart.x, previewUv.UVStart.y),
-                ImVec2(previewUv.UVEnd.x, previewUv.UVEnd.y),
-                ImVec4(1, 1, 1, 1),
-                ImVec4(0, 0, 0, 0)
-            );
-            ImGui::EndGroup();
-        } else {
-            ImGui::TextDisabled("No texture loaded");
-        }
+			ImGui::Image(
+				(ImTextureID)m_TextureData->pTexture.Get(),
+				ImVec2(previewSize, previewSize),
+				ImVec2(previewUv.UVStart.x, previewUv.UVStart.y),
+				ImVec2(previewUv.UVEnd.x, previewUv.UVEnd.y),
+				ImVec4(1, 1, 1, 1),
+				ImVec4(0, 0, 0, 0)
+			);
+		} else{
+			ImGui::TextDisabled("No texture loaded");
+		}
 		ImGui::EndGroup();
 
-		// --- Drag and Drop for Texture ---
 		if(ImGui::BeginDragDropTarget()){
 			if(const ImGuiPayload* payload = ImGui::AcceptDragDropPayload("ASSET_PATH")){
-				const char* droppedPath = (const char*)payload->Data;
-				std::string _texturePath = std::string(droppedPath);
-
-				m_TextureData = context->manager->resource->Load<TextureData>(_texturePath);
+				const char* droppedPath = static_cast<const char*>(payload->Data);
+				m_TextureData = context->manager->resource->Load<TextureData>(
+					std::string(droppedPath)
+				);
 			}
 			ImGui::EndDragDropTarget();
 		}
-        ImGui::Spacing();
 
+		ImGui::Spacing();
 		ImGui::PopID();
-    }
+	}
 };

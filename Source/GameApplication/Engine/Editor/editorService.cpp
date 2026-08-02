@@ -16,6 +16,8 @@
 #include "UI/SceneStorageSettingsPanel.h"
 #include "UI/BRAIN/BRAIN.h"
 #include "UI/CB41.h"
+#include "UI/ModernImGui/EditorIconWidgets.h"
+#include "UI/ModernImGui/EditorEmptyState.h"
 
 #include "Analysis/AnalyzerManager.h"
 
@@ -33,6 +35,7 @@ void EditorService::Initialize(EditorServiceContext context) {
 	resourceService = context.resourceService;
 	sceneManager = context.sceneManager;
 	llamaService = context.llamaService;
+	icons.Initialize(resourceService);
 
 	// AnalyzerManager の生成・初期化（ソースコード解析機能の起動）
 	analyzer = new AnalyzerManager();
@@ -93,6 +96,11 @@ void EditorService::Draw(EditorDrawContext ctx) {
 		m_CurrentPanelTimings.push_back({panel.name, seconds});
 	}
 
+	Hierarchy* hierarchy = GetUI<Hierarchy>();
+	if(!hierarchy || !hierarchy->selectedEntity || !hierarchy->sceneContext){
+		MImGui::DrawInspectorEmptyState(icons);
+	}
+
 	m_CompletedPanelTimings = m_CurrentPanelTimings;
 }
 
@@ -117,6 +125,7 @@ void EditorService::Shutdown() {
 		}
 	}
 	UIs.clear();
+	icons.Shutdown();
 	m_CurrentPanelTimings.clear();
 	m_CompletedPanelTimings.clear();
 }
