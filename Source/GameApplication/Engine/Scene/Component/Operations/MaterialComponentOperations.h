@@ -53,6 +53,7 @@ inline bool Decode(MaterialComponent& component, const YAML::Node& node){
 		node["Materials"],
 		component.materials
 	);
+	component.SanitizeMaterials();
 	component.ShaderID = (std::max)(component.ShaderID, 0);
 	return true;
 }
