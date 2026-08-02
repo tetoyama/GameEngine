@@ -5,10 +5,15 @@ on:
     branches: [master]
     paths:
       - "Source/GameApplication/Engine/Resources/Data/modelMaterialTypes.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelMaterialYamlSerialization.h"
       - "Source/GameApplication/Engine/Resources/Data/modelAssimpMaterialPropertyNormalization.h"
       - "Source/GameApplication/Engine/Resources/Data/modelData.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/MaterialComponentOperations.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererRuntime.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererSerialization.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelSubMeshStateSynchronization.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialResolver.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialLegacyD3D11Bridge.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialPassRouting.h"
@@ -21,6 +26,8 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
       - "Tests/ModelMaterialFoundationSmokeTest.cpp"
       - "Tests/ModelMaterialPassRoutingSmokeTest.cpp"
+      - "Tests/ModelSubMeshStateSynchronizationSmokeTest.cpp"
+      - "Tests/ModelMaterialSerializationSourceContractSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
       - "Docs/Step18I_Model_Material_Import_Foundation_Plan.md"
@@ -30,10 +37,15 @@ on:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
       - "Source/GameApplication/Engine/Resources/Data/modelMaterialTypes.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelMaterialYamlSerialization.h"
       - "Source/GameApplication/Engine/Resources/Data/modelAssimpMaterialPropertyNormalization.h"
       - "Source/GameApplication/Engine/Resources/Data/modelData.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/MaterialComponentOperations.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererRuntime.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererSerialization.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelSubMeshStateSynchronization.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialResolver.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialLegacyD3D11Bridge.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialPassRouting.h"
@@ -46,6 +58,8 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
       - "Tests/ModelMaterialFoundationSmokeTest.cpp"
       - "Tests/ModelMaterialPassRoutingSmokeTest.cpp"
+      - "Tests/ModelSubMeshStateSynchronizationSmokeTest.cpp"
+      - "Tests/ModelMaterialSerializationSourceContractSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
       - "Docs/Step18I_Model_Material_Import_Foundation_Plan.md"
@@ -71,6 +85,10 @@ jobs:
             output: model-material-foundation-test.exe
           - source: Tests/ModelMaterialPassRoutingSmokeTest.cpp
             output: model-material-pass-routing-test.exe
+          - source: Tests/ModelSubMeshStateSynchronizationSmokeTest.cpp
+            output: model-submesh-state-synchronization-test.exe
+          - source: Tests/ModelMaterialSerializationSourceContractSmokeTest.cpp
+            output: model-material-serialization-source-contract-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
