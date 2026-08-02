@@ -87,6 +87,9 @@ struct MaterialDescriptor {
 	MaterialParameters parameters;
 	std::vector<MaterialTextureBinding> textures;
 	MaterialRenderState renderState;
+	// 旧MATERIALから新Descriptorへ移行できないEnvironment Map等のFlagを
+	// Bridge内だけで保持する。Texture有無FlagはRuntime Binding側で再生成する。
+	std::uint32_t legacyMaterialFlags = 0;
 };
 
 struct ModelLocalBounds {
@@ -161,6 +164,7 @@ struct CustomMaterialEntry {
 
 enum class ModelMaterialResolutionSource : std::uint8_t {
 	ImportedMaterial = 0,
+	LegacyMaterialOverride,
 	CustomMaterial,
 	ImportedMaterialFallback,
 	EngineDefault
