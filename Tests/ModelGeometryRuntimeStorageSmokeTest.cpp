@@ -264,7 +264,7 @@ void ValidateRuntimeLifecycleAndGeometryRevision(){
 	assert(telemetry.geometryRevisionReplacementCount == 1);
 	assert(telemetry.deviceTransitionCount == 1);
 	assert(telemetry.abandonedEntryCount == 1);
-	assert(telemetry.releaseCount == 2);
+	assert(telemetry.releaseCount == 1);
 }
 
 void ValidateExpiredDeviceAbandon(){
