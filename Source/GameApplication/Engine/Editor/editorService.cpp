@@ -18,7 +18,7 @@
 #include "UI/CB41.h"
 #include "UI/ModernImGui/EditorIconWidgets.h"
 #include "UI/ModernImGui/EditorEmptyState.h"
-#include "UI/ModernImGui/DockTabLayout.h"
+#include "UI/ModernImGui/DockTabWidthPreparation.h"
 
 #include "Analysis/AnalyzerManager.h"
 
@@ -84,6 +84,11 @@ void EditorService::Draw(EditorDrawContext ctx) {
 	ctx.EditorPanelTimings = &m_CompletedPanelTimings;
 	m_CurrentPanelTimings.clear();
 
+	// Reserve glyph space before any docked window calls Begin(). DockNode then
+	// resolves the requested widths in the same frame instead of receiving a
+	// post-layout correction that competes with the next frame.
+	MImGui::PrepareDockTabWidths();
+
 	using Clock = std::chrono::steady_clock;
 	for (auto& panel : UIs) {
 		if(!panel.ui) continue;
@@ -106,7 +111,6 @@ void EditorService::Draw(EditorDrawContext ctx) {
 	// editor window has submitted its tab so docking state and hit targets stay
 	// entirely under the upstream implementation.
 	MImGui::DrawDockTabIcons(icons);
-	MImGui::ReserveDockTabOverlayWidths();
 
 	m_CompletedPanelTimings = m_CurrentPanelTimings;
 }
