@@ -167,39 +167,12 @@ inline bool SectionHeader(
 	return open;
 }
 
-inline void ShareBar(float ratio, float height = 5.0f){
-	ratio = (std::max)(0.0f, (std::min)(1.0f, ratio));
-	const ImVec2 minimum = ImGui::GetCursorScreenPos();
-	const ImVec2 size(ImGui::GetContentRegionAvail().x, height);
-	ImGui::InvisibleButton("##Share", size);
-	const ImVec2 maximum(minimum.x + size.x, minimum.y + size.y);
-	const ImGuiStyle& style = ImGui::GetStyle();
-	ImDrawList* drawList = ImGui::GetWindowDrawList();
-	drawList->AddRectFilled(
-		minimum,
-		maximum,
-		ImGui::GetColorU32(WithAlpha(style.Colors[ImGuiCol_FrameBg], 0.66f)),
-		height * 0.5f
-	);
-	if(ratio > 0.0f){
-		drawList->AddRectFilled(
-			minimum,
-			ImVec2(minimum.x + size.x * ratio, maximum.y),
-			ImGui::GetColorU32(WithAlpha(style.Colors[ImGuiCol_CheckMark], 0.72f)),
-			height * 0.5f
-		);
-	}
-	if(ImGui::IsItemHovered()){
-		ImGui::SetTooltip("%.1f%%", ratio * 100.0f);
-	}
-}
-
 inline void DiagnosticListHeader(bool showAverage){
 	const ImGuiStyle& style = ImGui::GetStyle();
 	const ImVec2 minimum = ImGui::GetCursorScreenPos();
 	const float width = ImGui::GetContentRegionAvail().x;
 	const float height = 23.0f;
-	ImGui::InvisibleButton("##DiagnosticListHeader", ImVec2(width, height));
+	ImGui::Dummy(ImVec2(width, height));
 	const ImVec2 maximum(minimum.x + width, minimum.y + height);
 	ImDrawList* drawList = ImGui::GetWindowDrawList();
 	const ImU32 muted = ImGui::GetColorU32(style.Colors[ImGuiCol_TextDisabled]);
