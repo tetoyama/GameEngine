@@ -139,18 +139,22 @@ inline bool SectionHeader(
 	}
 
 	const ImVec2 labelSize = ImGui::CalcTextSize(label);
+	const float labelX = minimum.x + 23.0f;
 	drawList->AddText(
-		ImVec2(minimum.x + 23.0f, centerY - labelSize.y * 0.5f),
+		ImVec2(labelX, centerY - labelSize.y * 0.5f),
 		ImGui::GetColorU32(style.Colors[ImGuiCol_Text]),
 		label
 	);
 	if(trailing && trailing[0] != '\0'){
 		const ImVec2 trailingSize = ImGui::CalcTextSize(trailing);
-		drawList->AddText(
-			ImVec2(maximum.x - trailingSize.x - 5.0f, centerY - trailingSize.y * 0.5f),
-			ImGui::GetColorU32(style.Colors[ImGuiCol_TextDisabled]),
-			trailing
-		);
+		const float trailingX = maximum.x - trailingSize.x - 5.0f;
+		if(trailingX >= labelX + labelSize.x + 14.0f){
+			drawList->AddText(
+				ImVec2(trailingX, centerY - trailingSize.y * 0.5f),
+				ImGui::GetColorU32(style.Colors[ImGuiCol_TextDisabled]),
+				trailing
+			);
+		}
 	}
 
 	drawList->AddLine(
