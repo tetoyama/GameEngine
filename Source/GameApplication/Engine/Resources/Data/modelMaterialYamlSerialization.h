@@ -7,6 +7,7 @@
 #include <string>
 #include <string_view>
 #include <unordered_set>
+#include <utility>
 #include <vector>
 
 #include <backends/yaml-cpp/yaml.h>
@@ -259,6 +260,11 @@ inline bool DecodeTexture(
 	if(!node.IsMap()) return false;
 	MaterialTextureBinding decoded;
 	if(!Parse(node["Semantic"], decoded.semantic)) return false;
+	decoded.colorSpace =
+		decoded.semantic == MaterialTextureSemantic::BaseColor ||
+		decoded.semantic == MaterialTextureSemantic::Emissive
+			? MaterialColorSpace::SRGB
+			: MaterialColorSpace::Linear;
 	Parse(node["ColorSpace"], decoded.colorSpace);
 	TryRead(node, "SourcePath", decoded.sourcePath);
 	TryRead(node, "AssetPath", decoded.assetPath);
@@ -342,7 +348,7 @@ inline bool DecodeDescriptor(
 	const YAML::Node textures = node["Textures"];
 	if(textures.IsSequence()){
 		decoded.textures.reserve(textures.size());
-		for(const YAML::Node& textureNode : textures){
+		for(const auto& textureNode : textures){
 			MaterialTextureBinding texture;
 			if(DecodeTexture(textureNode, texture)){
 				decoded.textures.push_back(std::move(texture));
@@ -387,7 +393,7 @@ inline void DecodeCustomMaterials(
 	if(!node.IsSequence()) return;
 	std::unordered_set<CustomMaterialID> ids;
 	ids.reserve(node.size());
-	for(const YAML::Node& entryNode : node){
+	for(const auto& entryNode : node){
 		if(!entryNode.IsMap()) continue;
 		CustomMaterialEntry entry;
 		if(!TryRead(entryNode, "ID", entry.id) ||
@@ -440,7 +446,7 @@ inline void DecodeSubMeshStates(
 	if(!node.IsSequence()) return;
 	std::unordered_set<ModelSubMeshID> ids;
 	ids.reserve(node.size());
-	for(const YAML::Node& entryNode : node){
+	for(const auto& entryNode : node){
 		if(!entryNode.IsMap()) continue;
 		ModelSubMeshRenderState state;
 		if(!TryRead(entryNode, "SubMeshID", state.subMeshID) ||
