@@ -5,7 +5,7 @@
 #include <vector>
 
 #include "Engine/Scene/Component/materialComponent.h"
-#include "Engine/Scene/Component/modelRendererComponent.h"
+#include "Engine/Resources/Data/modelMaterialYamlSerialization.h"
 
 namespace {
 
@@ -44,14 +44,15 @@ int main(){
 	assert(legacyMaterial.materials.empty());
 
 	// 同様に旧ModelRenderer YAMLにはSubMeshesが存在しない。
-	// 空Overrideとして復元し、YAML::InvalidNodeを送出しない。
+	// Serializerと同じOptional Child契約を通して空Overrideへ復元し、
+	// YAML::InvalidNodeを送出しない。
 	YAML::Node legacyRendererNode(YAML::NodeType::Map);
 	std::vector<ModelSubMeshRenderState> legacyStates;
 	ModelSubMeshRenderState state;
 	state.subMeshID = 17;
 	legacyStates.push_back(state);
 	ModelMaterialYamlSerialization::DecodeSubMeshStates(
-		ModelRendererSerialization::OptionalChild(
+		MaterialComponentOperations::OptionalChild(
 			legacyRendererNode,
 			"SubMeshes"
 		),
