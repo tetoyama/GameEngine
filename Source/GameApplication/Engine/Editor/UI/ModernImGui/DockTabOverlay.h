@@ -34,6 +34,27 @@ inline ImVec4 ResolveDockTabSurface(
 	);
 }
 
+inline bool IsDockTabCloseButtonVisible(
+	const ImGuiTabItem& tab,
+	const ImRect& tabRect,
+	bool selected,
+	bool hovered,
+	float fontSize
+){
+	if((tab.Flags & ImGuiTabItemFlags_NoCloseButton) != 0) return false;
+
+	const ImGuiStyle& style = ImGui::GetStyle();
+	const float minimumWidth = selected
+		? style.TabCloseButtonMinWidthSelected
+		: style.TabCloseButtonMinWidthUnselected;
+
+	// Matches TabItemLabelAndCloseButton(): a negative threshold means the
+	// button is always visible; otherwise it only consumes label space while
+	// the tab is being interacted with and is wide enough for the button.
+	if(minimumWidth < 0.0f) return true;
+	return hovered && tabRect.GetWidth() >= (std::max)(fontSize, minimumWidth);
+}
+
 inline void DrawDockTabOverlay(const EditorIconLibrary& icons){
 	ImGuiContext* context = GImGui;
 	if(!context) return;
@@ -80,19 +101,23 @@ inline void DrawDockTabOverlay(const EditorIconLibrary& icons){
 				(std::min)(12.0f, fontSize * 0.80f)
 			);
 			const float gap = 5.0f;
-			const bool hasCloseButton =
-				(tab.Flags & ImGuiTabItemFlags_NoCloseButton) == 0;
+			const bool closeButtonVisible = IsDockTabCloseButtonVisible(
+				tab,
+				tabRect,
+				selected,
+				hovered,
+				fontSize
+			);
 
-			// Match Dear ImGui's text/close-button contract. The close button may
-			// only appear while interacting, but its area is still excluded here so
-			// our ellipsis never jumps or collides when hover begins.
-			const float closeReserve = hasCloseButton
-				? fontSize + tabBar->FramePadding.x
-				: 0.0f;
+			// Dear ImGui starts with bb.Max.x - FramePadding.x and only removes a
+			// button-sized region when the close button is actually visible. The
+			// previous overlay reserved that region permanently, causing labels to
+			// ellipsize even when the tab visibly had enough room.
 			const float contentMinX =
 				tabRect.Min.x + tabBar->FramePadding.x;
 			const float contentMaxX =
-				tabRect.Max.x - tabBar->FramePadding.x - closeReserve;
+				tabRect.Max.x - tabBar->FramePadding.x -
+				(closeButtonVisible ? fontSize : 0.0f);
 			if(contentMaxX <= contentMinX + 4.0f) break;
 
 			ImDrawList* drawList = tabBar->Window->DrawList;
@@ -114,10 +139,25 @@ inline void DrawDockTabOverlay(const EditorIconLibrary& icons){
 				ImGui::GetColorU32(surface)
 			);
 
+			const char* label = window->Name;
+			const char* labelEnd = ImGui::FindRenderedTextEnd(label);
+			const ImVec2 labelSize = ImGui::CalcTextSize(label, labelEnd);
+			const float availableWidth = contentMaxX - contentMinX;
+			const float textWidthWithIcon =
+				availableWidth - iconSize - gap - 1.0f;
+			const bool labelFitsWithIcon = labelSize.x <= textWidthWithIcon;
+			const bool labelFitsWithoutIcon = labelSize.x <= availableWidth;
+
+			// Icons are supplemental. Never truncate a label solely to keep its
+			// icon; if the label only fits without the icon, preserve the label.
+			// When the label itself is too long, keep the semantic icon and use the
+			// standard ellipsis behavior for the remaining text.
+			const bool showIcon =
+				availableWidth >= iconSize + gap + 16.0f &&
+				(labelFitsWithIcon || !labelFitsWithoutIcon);
+
 			const float centerY = (tabRect.Min.y + tabRect.Max.y) * 0.5f;
 			const float iconX = contentMinX + 1.0f;
-			const float availableWidth = contentMaxX - contentMinX;
-			const bool showIcon = availableWidth >= iconSize + gap + 16.0f;
 			float textX = contentMinX;
 			if(showIcon){
 				DrawEditorIcon(
@@ -130,9 +170,6 @@ inline void DrawDockTabOverlay(const EditorIconLibrary& icons){
 				textX = iconX + iconSize + gap;
 			}
 
-			const char* label = window->Name;
-			const char* labelEnd = ImGui::FindRenderedTextEnd(label);
-			const ImVec2 labelSize = ImGui::CalcTextSize(label, labelEnd);
 			const ImVec2 textMin(
 				textX,
 				centerY - labelSize.y * 0.5f
