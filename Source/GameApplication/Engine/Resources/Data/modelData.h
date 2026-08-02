@@ -102,6 +102,21 @@ public:
 	// 再生成元として保持する。
 	std::vector<ModelMeshGeometryCpuData> MeshGeometry;
 
+	// MeshGeometryの内容・並び・Vertex Layout解釈が変化した場合に必ず進める。
+	// 要素数が同一の頂点差し替えもRuntime再生成対象にするため、Pointerや
+	// vector sizeだけを変更判定へ使用しない。
+	std::uint64_t GetGeometryRevision() const noexcept {
+		return m_geometryRevision;
+	}
+
+	std::uint64_t MarkGeometryDirty() noexcept {
+		++m_geometryRevision;
+		if(m_geometryRevision == 0){
+			++m_geometryRevision;
+		}
+		return m_geometryRevision;
+	}
+
 	// Import時に正規化されたAsset-local定義。配列IndexはRuntime走査用、
 	// IDはScene保存とReimport追従用として分離する。
 	std::vector<ModelSubMeshDefinition> SubMeshes;
@@ -210,4 +225,7 @@ public:
 		const aiMesh* mesh,
 		VERTEX_3D* outVertex
 	) const;
+
+private:
+	std::uint64_t m_geometryRevision = 1;
 };
