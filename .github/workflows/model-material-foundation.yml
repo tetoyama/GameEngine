@@ -10,6 +10,7 @@ on:
       - "Source/GameApplication/Engine/Resources/Data/modelData.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/CustomMaterialCollection.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/MaterialComponentOperations.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererInspectorCommon.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererRuntime.h"
@@ -25,6 +26,7 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
+      - "Tests/CustomMaterialCollectionSmokeTest.cpp"
       - "Tests/ModelMaterialFoundationSmokeTest.cpp"
       - "Tests/ModelMaterialPassRoutingSmokeTest.cpp"
       - "Tests/ModelSubMeshStateSynchronizationSmokeTest.cpp"
@@ -43,6 +45,7 @@ on:
       - "Source/GameApplication/Engine/Resources/Data/modelData.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/CustomMaterialCollection.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/MaterialComponentOperations.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererInspectorCommon.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererRuntime.h"
@@ -58,6 +61,7 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
+      - "Tests/CustomMaterialCollectionSmokeTest.cpp"
       - "Tests/ModelMaterialFoundationSmokeTest.cpp"
       - "Tests/ModelMaterialPassRoutingSmokeTest.cpp"
       - "Tests/ModelSubMeshStateSynchronizationSmokeTest.cpp"
@@ -83,6 +87,8 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          - source: Tests/CustomMaterialCollectionSmokeTest.cpp
+            output: custom-material-collection-test.exe
           - source: Tests/ModelMaterialFoundationSmokeTest.cpp
             output: model-material-foundation-test.exe
           - source: Tests/ModelMaterialPassRoutingSmokeTest.cpp
