@@ -19,14 +19,16 @@ Status: **MMI-1 / MMI-2 / MMI-3 foundation in progress — 2026-08-02**
 
 ### 1.1 Assimp Material正規化Adapter
 
-`modelAssimpMaterialNormalization.h`を追加した。
+`modelAssimpMaterialPropertyNormalization.h`を追加した。
 
-Import Sourceとしての`aiScene / aiMesh / aiMaterial`から、次をEngine共通定義へ変換する。
+Import Sourceとしての`aiScene / aiMesh / aiMaterialProperty`から、次をEngine共通定義へ変換する。
 
 - `ImportedMaterialDefinition[]`
 - `ModelSubMeshDefinition[]`
 - `MaterialTextureBinding[]`
 - Import Diagnostic[]
+
+Adapterは`aiMaterial::Get*`を呼ばず、`aiMaterialProperty`を直接読み取るHeader-only実装とする。これにより、`ModelData`を参照するRender Extraction / Static Batchの単体SmokeへAssimp実装LibraryのLink依存を伝播させない。
 
 初期対応Semantic:
 
@@ -140,6 +142,11 @@ Custom MaterialはFrame-owned Snapshotへ複製し、Imported MaterialはPacket�
 - Material Shader Keyの更新
 - Legacy Component PointerなしでのMaterial解決
 
+回帰確認:
+
+- Header-only化前はMesh-only `StaticBatchFrameBufferIntegrationSmokeTest`へAssimp Link依存が伝播し失敗した
+- `aiMaterialProperty`直接読取へ変更後、同Smokeは成功へ復帰した
+
 ---
 
 ## 3. 意図的に未実装の範囲
@@ -163,12 +170,11 @@ Custom MaterialはFrame-owned Snapshotへ複製し、Imported MaterialはPacket�
 ## 4. 次工程
 
 ```text
-1. CIでNormalization / Resolver / Packet Contractを緑化
-2. Packet Material DescriptorをLegacy MATERIALへ変換するBridgeを追加
-3. RenderableModelの色・Material StateをPacket Snapshotから取得
-4. StaticBatchModelMaterialResolverをPacket Snapshotへ移行
-5. Texture Runtime Handle / RHI Binding境界を設計・実装
-6. Draw中のaiMaterial参照を完全撤去
+1. Packet Material DescriptorをLegacy MATERIALへ変換するBridgeを追加
+2. RenderableModelの色・Material StateをPacket Snapshotから取得
+3. StaticBatchModelMaterialResolverをPacket Snapshotへ移行
+4. Texture Runtime Handle / RHI Binding境界を設計・実装
+5. Draw中のaiMaterial参照を完全撤去
 ```
 
 Assimpは最終的にImport Adapter内部だけで参照し、Render Extraction以降へ`aiMaterial*`を渡さない。
