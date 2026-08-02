@@ -12,6 +12,7 @@
 #include "Engine/Scene/System/Render/Model/ModelGeometryRuntimeStorage.h"
 #include "Engine/Scene/System/Render/Model/ModelGeometryRuntimeTaskRegistrar.h"
 #include "Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
+#include "Service/Graphics/RHI/RHIService.h"
 
 #pragma comment(lib, "d3d11.lib")
 #pragma comment(lib, "dxgi.lib")
@@ -75,6 +76,41 @@ NativeDeviceContext CreateWarpDevice(){
 	return result;
 }
 
+RHI::SwapChainDesc MakeSwapChainDesc(){
+	RHI::SwapChainDesc desc;
+	desc.width = 64;
+	desc.height = 64;
+	desc.bufferCount = 2;
+	desc.format = RHI::Format::RGBA8_UNorm;
+	return desc;
+}
+
+std::unique_ptr<RHI::D3D11RHIDevice> CreateRhiDevice(
+	const NativeDeviceContext& native
+){
+	return std::make_unique<RHI::D3D11RHIDevice>(
+		native.device.Get(),
+		native.context.Get(),
+		nullptr,
+		MakeSwapChainDesc()
+	);
+}
+
+std::shared_ptr<ModelData> CreateTriangleModel(){
+	ModelData* rawModel = new ModelData();
+	std::shared_ptr<ModelData> model(
+		rawModel,
+		[](ModelData* unused){ (void)unused; }
+	);
+	model->MeshGeometry.resize(1);
+	model->MeshGeometry[0].vertices.resize(3);
+	model->MeshGeometry[0].vertices[0].Position = {0.0f, 0.0f, 0.0f};
+	model->MeshGeometry[0].vertices[1].Position = {1.0f, 0.0f, 0.0f};
+	model->MeshGeometry[0].vertices[2].Position = {0.0f, 1.0f, 0.0f};
+	model->MeshGeometry[0].indices = {0, 1, 2};
+	return model;
+}
+
 struct FakeRenderSystem {
 	int synchronizationCount = 0;
 
@@ -108,52 +144,71 @@ void ValidateTaskContract(){
 	assert(system.synchronizationCount == 1);
 }
 
-void ValidateRuntimeLifecycle(){
+void ValidateRhiDeviceOwnershipGeneration(){
 	NativeDeviceContext native = CreateWarpDevice();
-	RHI::SwapChainDesc swapChainDesc;
-	swapChainDesc.width = 64;
-	swapChainDesc.height = 64;
-	swapChainDesc.bufferCount = 2;
-	swapChainDesc.format = RHI::Format::RGBA8_UNorm;
-	RHI::D3D11RHIDevice device(
-		native.device.Get(),
-		native.context.Get(),
-		nullptr,
-		swapChainDesc
-	);
+	RHI::RenderHardwareInterfaceService service;
+	assert(service.GetDevice() == nullptr);
+	assert(service.GetDeviceGeneration() == RHI::InvalidDeviceGeneration);
 
-	ModelData* rawModel = new ModelData();
-	std::shared_ptr<ModelData> model(
-		rawModel,
-		[](ModelData* unused){ (void)unused; }
-	);
-	model->MeshGeometry.resize(1);
-	model->MeshGeometry[0].vertices.resize(3);
-	model->MeshGeometry[0].indices = {0, 1, 2};
+	assert(service.AdoptDevice(CreateRhiDevice(native)));
+	RHI::IRHIDevice* firstDevice = service.GetDevice();
+	const RHI::DeviceGeneration firstGeneration =
+		service.GetDeviceGeneration();
+	assert(firstDevice);
+	assert(firstGeneration != RHI::InvalidDeviceGeneration);
 
+	std::unique_ptr<RHI::IRHIDevice> released = service.ReleaseDevice();
+	assert(released.get() == firstDevice);
+	assert(service.GetDevice() == nullptr);
+	const RHI::DeviceGeneration releasedGeneration =
+		service.GetDeviceGeneration();
+	assert(releasedGeneration != firstGeneration);
+
+	assert(service.AdoptDevice(std::move(released)));
+	assert(service.GetDevice() == firstDevice);
+	const RHI::DeviceGeneration readoptedGeneration =
+		service.GetDeviceGeneration();
+	assert(readoptedGeneration != releasedGeneration);
+
+	service.ResetDevice();
+	assert(service.GetDevice() == nullptr);
+	assert(service.GetDeviceGeneration() != readoptedGeneration);
+}
+
+void ValidateRuntimeLifecycleAndGeometryRevision(){
+	NativeDeviceContext nativeA = CreateWarpDevice();
+	NativeDeviceContext nativeB = CreateWarpDevice();
+	std::unique_ptr<RHI::D3D11RHIDevice> deviceA = CreateRhiDevice(nativeA);
+	std::unique_ptr<RHI::D3D11RHIDevice> deviceB = CreateRhiDevice(nativeB);
+
+	std::shared_ptr<ModelData> model = CreateTriangleModel();
 	RenderPacket packet;
 	packet.kind = RenderPacketKind::Model;
 	packet.modelResource = model;
 	const std::array<RenderPacket, 1> packets{packet};
 
+	constexpr RHI::DeviceGeneration deviceGenerationA = 11;
+	constexpr RHI::DeviceGeneration deviceGenerationB = 12;
 	ModelGeometryRuntimeStorage storage;
-	storage.Synchronize(device, packets, 1);
+	storage.Synchronize(*deviceA, packets, 1, deviceGenerationA);
 	assert(storage.Size() == 1);
+	assert(storage.IsBoundTo(*deviceA, deviceGenerationA));
 	const ModelGeometryRuntime* runtime = storage.Find(model.get());
 	assert(runtime);
 	assert(runtime->MeshCount() == 1);
+	assert(runtime->GeometryRevision() == model->GetGeometryRevision());
 	const ModelGeometryRuntimeMesh* mesh = runtime->Mesh(0);
 	assert(mesh);
 	assert(mesh->IsReady());
 	assert(mesh->vertexCount == 3);
 	assert(mesh->indexCount == 3);
-	assert(device.NativeBuffer(mesh->vertexBuffer) != nullptr);
-	assert(device.NativeBuffer(mesh->indexBuffer) != nullptr);
+	assert(deviceA->NativeBuffer(mesh->vertexBuffer) != nullptr);
+	assert(deviceA->NativeBuffer(mesh->indexBuffer) != nullptr);
 
-	const RHI::BufferHandle vertexHandle = mesh->vertexBuffer;
-	const RHI::BufferHandle indexHandle = mesh->indexBuffer;
-	const RHI::BufferDesc* vertexDesc = device.GetBufferDesc(vertexHandle);
-	const RHI::BufferDesc* indexDesc = device.GetBufferDesc(indexHandle);
+	const RHI::BufferHandle initialVertexHandle = mesh->vertexBuffer;
+	const RHI::BufferHandle initialIndexHandle = mesh->indexBuffer;
+	const RHI::BufferDesc* vertexDesc = deviceA->GetBufferDesc(initialVertexHandle);
+	const RHI::BufferDesc* indexDesc = deviceA->GetBufferDesc(initialIndexHandle);
 	assert(vertexDesc);
 	assert(indexDesc);
 	assert(vertexDesc->usage == RHI::ResourceUsage::Immutable);
@@ -163,23 +218,78 @@ void ValidateRuntimeLifecycle(){
 	assert(indexDesc->initialState == RHI::ResourceState::IndexBuffer);
 	assert(RHI::HasAnyFlag(indexDesc->bindFlags, RHI::BufferBindFlags::Index));
 
-	storage.Synchronize(device, packets, 2);
-	assert(storage.Size() == 1);
-	assert(storage.Find(model.get())->Mesh(0)->vertexBuffer == vertexHandle);
-	assert(storage.Find(model.get())->Mesh(0)->indexBuffer == indexHandle);
+	// Vertex / Index数が同じでも明示Revisionが進めばRuntimeを置換する。
+	model->MeshGeometry[0].vertices[0].Position.x = 42.0f;
+	const std::uint64_t changedRevision = model->MarkGeometryDirty();
+	storage.Synchronize(*deviceA, packets, 2, deviceGenerationA);
+	runtime = storage.Find(model.get());
+	assert(runtime);
+	assert(runtime->GeometryRevision() == changedRevision);
+	mesh = runtime->Mesh(0);
+	assert(mesh);
+	assert(mesh->vertexBuffer != initialVertexHandle);
+	assert(mesh->indexBuffer != initialIndexHandle);
+	assert(deviceA->NativeBuffer(initialVertexHandle) == nullptr);
+	assert(deviceA->NativeBuffer(initialIndexHandle) == nullptr);
 
-	const std::array<RenderPacket, 0> noPackets{};
-	storage.Synchronize(device, noPackets, 3);
+	const RHI::BufferHandle deviceAVertexHandle = mesh->vertexBuffer;
+	const RHI::BufferHandle deviceAIndexHandle = mesh->indexBuffer;
+	storage.Synchronize(*deviceA, packets, 3, deviceGenerationA);
+	assert(storage.Find(model.get())->Mesh(0)->vertexBuffer == deviceAVertexHandle);
+	assert(storage.Find(model.get())->Mesh(0)->indexBuffer == deviceAIndexHandle);
+
+	// Device Epoch変更時は旧DeviceへDestroyを発行せずAbandonし、新Deviceで再生成する。
+	storage.Synchronize(*deviceB, packets, 4, deviceGenerationB);
+	assert(storage.IsBoundTo(*deviceB, deviceGenerationB));
+	assert(deviceA->NativeBuffer(deviceAVertexHandle) != nullptr);
+	assert(deviceA->NativeBuffer(deviceAIndexHandle) != nullptr);
+	const ModelGeometryRuntime* deviceBRuntime = storage.Find(model.get());
+	assert(deviceBRuntime);
+	assert(deviceB->NativeBuffer(deviceBRuntime->Mesh(0)->vertexBuffer) != nullptr);
+	assert(deviceB->NativeBuffer(deviceBRuntime->Mesh(0)->indexBuffer) != nullptr);
+
+	// Test内では旧Deviceを生存させているため、Abandonされた旧Handleを明示清掃する。
+	assert(deviceA->DestroyBuffer(deviceAIndexHandle));
+	assert(deviceA->DestroyBuffer(deviceAVertexHandle));
+
+	assert(storage.Reset(*deviceB, deviceGenerationB));
 	assert(storage.Size() == 0);
-	assert(storage.Find(model.get()) == nullptr);
-	assert(device.NativeBuffer(vertexHandle) == nullptr);
-	assert(device.NativeBuffer(indexHandle) == nullptr);
+	assert(storage.BoundDeviceGeneration() == RHI::InvalidDeviceGeneration);
 
 	const ModelGeometryRuntimeStorageTelemetry telemetry = storage.Telemetry();
-	assert(telemetry.synchronizationCount == 3);
-	assert(telemetry.creationCount == 1);
+	assert(telemetry.synchronizationCount == 4);
+	assert(telemetry.creationCount == 2);
 	assert(telemetry.reuseCount == 1);
-	assert(telemetry.releaseCount == 1);
+	assert(telemetry.replacementCount == 1);
+	assert(telemetry.geometryRevisionReplacementCount == 1);
+	assert(telemetry.deviceTransitionCount == 1);
+	assert(telemetry.abandonedEntryCount == 1);
+	assert(telemetry.releaseCount == 2);
+}
+
+void ValidateExpiredDeviceAbandon(){
+	std::shared_ptr<ModelData> model = CreateTriangleModel();
+	RenderPacket packet;
+	packet.kind = RenderPacketKind::Model;
+	packet.modelResource = model;
+	const std::array<RenderPacket, 1> packets{packet};
+
+	ModelGeometryRuntimeStorage storage;
+	NativeDeviceContext native = CreateWarpDevice();
+	{
+		std::unique_ptr<RHI::D3D11RHIDevice> device = CreateRhiDevice(native);
+		storage.Synchronize(*device, packets, 1, 21);
+		assert(storage.Size() == 1);
+		assert(!device->GetLifetimeToken().expired());
+	}
+
+	// DeviceのResource Poolは既に破棄済み。Resetは保存済みPointerを触らず
+	// EntryをAbandonし、失敗を診断へ残す。
+	assert(!storage.Reset());
+	assert(storage.Size() == 0);
+	const ModelGeometryRuntimeStorageTelemetry telemetry = storage.Telemetry();
+	assert(telemetry.abandonedEntryCount == 1);
+	assert(telemetry.resetFailureCount == 1);
 }
 
 void ValidateRenderableConnection(){
@@ -203,6 +313,7 @@ void ValidateRenderableConnection(){
 		std::string::npos);
 	assert(renderSystem.find("ModelGeometryRuntimeTaskRegistrar::Register") !=
 		std::string::npos);
+	assert(renderSystem.find("GetDeviceGeneration()") != std::string::npos);
 	assert(extraction.find("packet.modelResource = modelRenderer->model") !=
 		std::string::npos);
 }
@@ -211,7 +322,9 @@ void ValidateRenderableConnection(){
 
 int main(){
 	ValidateTaskContract();
-	ValidateRuntimeLifecycle();
+	ValidateRhiDeviceOwnershipGeneration();
+	ValidateRuntimeLifecycleAndGeometryRevision();
+	ValidateExpiredDeviceAbandon();
 	ValidateRenderableConnection();
 	return 0;
 }
