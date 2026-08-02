@@ -55,34 +55,6 @@ struct TimingStageView {
 	float average = 0.0f;
 };
 
-void DrawTimingTableRow(
-	const TimingStageView& stage,
-	float normalizationTotal,
-	bool showAverage
-){
-	ImGui::TableNextRow();
-	ImGui::TableSetColumnIndex(0);
-	ImGui::TextUnformatted(stage.label);
-	ImGui::TableSetColumnIndex(1);
-	ImGui::Text("%.3f ms", stage.current);
-
-	int shareColumn = 2;
-	if(showAverage){
-		ImGui::TableSetColumnIndex(2);
-		ImGui::TextDisabled("%.3f ms", stage.average);
-		shareColumn = 3;
-	}
-
-	ImGui::TableSetColumnIndex(shareColumn);
-	ImGui::PushID(stage.label);
-	PerformanceMonitorDashboardWidgets::ShareBar(
-		normalizationTotal > 0.0f
-			? stage.current / normalizationTotal
-			: 0.0f
-	);
-	ImGui::PopID();
-}
-
 } // namespace
 
 void PerformanceMonitor::RecordCompletedFrame(const EditorDrawContext& ctx){
@@ -274,68 +246,68 @@ void PerformanceMonitor::RebuildFrameSpikes(){
 		}
 
 		FrameSpikeRecord record{};
-	record.frame = frame.frame;
-	record.peakMilliseconds = peakMs;
-	record.updateMilliseconds = frame.updateMilliseconds;
-	record.drawMilliseconds = frame.drawMilliseconds;
-	record.gpuMilliseconds = gpuMs;
-	record.gpuStatus = frame.gpuStatus;
-	record.framePacingMilliseconds =
-		static_cast<float>(frame.drawTiming.framePacingWait * 1000.0);
-	record.renderMilliseconds =
-		static_cast<float>(frame.drawTiming.renderSchedule * 1000.0);
-	record.editorMilliseconds =
-		static_cast<float>(frame.drawTiming.editorUIBuild * 1000.0);
-	record.presentMilliseconds =
-		static_cast<float>(frame.drawTiming.present * 1000.0);
-	record.unaccountedMilliseconds =
-		static_cast<float>(frame.drawTiming.GetUnaccountedTime() * 1000.0);
-	record.resizeMilliseconds = frame.resizeMilliseconds;
-	record.dominantPanel = frame.dominantPanel;
-	record.dominantPanelMilliseconds = frame.dominantPanelMilliseconds;
-	record.startup = frame.startup;
-	record.resize = frame.resize;
+		record.frame = frame.frame;
+		record.peakMilliseconds = peakMs;
+		record.updateMilliseconds = frame.updateMilliseconds;
+		record.drawMilliseconds = frame.drawMilliseconds;
+		record.gpuMilliseconds = gpuMs;
+		record.gpuStatus = frame.gpuStatus;
+		record.framePacingMilliseconds =
+			static_cast<float>(frame.drawTiming.framePacingWait * 1000.0);
+		record.renderMilliseconds =
+			static_cast<float>(frame.drawTiming.renderSchedule * 1000.0);
+		record.editorMilliseconds =
+			static_cast<float>(frame.drawTiming.editorUIBuild * 1000.0);
+		record.presentMilliseconds =
+			static_cast<float>(frame.drawTiming.present * 1000.0);
+		record.unaccountedMilliseconds =
+			static_cast<float>(frame.drawTiming.GetUnaccountedTime() * 1000.0);
+		record.resizeMilliseconds = frame.resizeMilliseconds;
+		record.dominantPanel = frame.dominantPanel;
+		record.dominantPanelMilliseconds = frame.dominantPanelMilliseconds;
+		record.startup = frame.startup;
+		record.resize = frame.resize;
 
-	auto considerDominant = [&](const char* name, float milliseconds){
-		if(milliseconds > record.dominantMilliseconds){
-			record.dominantMilliseconds = milliseconds;
-			record.dominantSection = name;
-		}
-	};
-	considerDominant("Update CPU", record.updateMilliseconds);
-	considerDominant("Frame Pacing Wait", record.framePacingMilliseconds);
-	considerDominant("Render Schedule CPU", record.renderMilliseconds);
-	considerDominant("Editor UI CPU", record.editorMilliseconds);
-	considerDominant("Present / Queue Wait", record.presentMilliseconds);
-	considerDominant("Unaccounted Draw CPU", record.unaccountedMilliseconds);
-	considerDominant("GPU Frame", record.gpuMilliseconds);
+		auto considerDominant = [&](const char* name, float milliseconds){
+			if(milliseconds > record.dominantMilliseconds){
+				record.dominantMilliseconds = milliseconds;
+				record.dominantSection = name;
+			}
+		};
+		considerDominant("Update CPU", record.updateMilliseconds);
+		considerDominant("Frame Pacing Wait", record.framePacingMilliseconds);
+		considerDominant("Render Schedule CPU", record.renderMilliseconds);
+		considerDominant("Editor UI CPU", record.editorMilliseconds);
+		considerDominant("Present / Queue Wait", record.presentMilliseconds);
+		considerDominant("Unaccounted Draw CPU", record.unaccountedMilliseconds);
+		considerDominant("GPU Frame", record.gpuMilliseconds);
 
-	const bool contiguous = previousWasSpike &&
-		frame.frame == previousSpikeFrame + 1 &&
-		!FrameSpikes.empty();
-	if(contiguous){
-		FrameSpikeRecord& active = FrameSpikes.back();
-		active.startup = active.startup || record.startup;
-		active.resize = active.resize || record.resize;
-		active.resizeMilliseconds =
-			(std::max)(active.resizeMilliseconds, record.resizeMilliseconds);
-		if(record.peakMilliseconds > active.peakMilliseconds){
-			const bool startup = active.startup;
-			const bool resize = active.resize;
-			const float resizeMs = active.resizeMilliseconds;
-			active = std::move(record);
-			active.startup = startup;
-			active.resize = resize;
-			active.resizeMilliseconds = resizeMs;
+		const bool contiguous = previousWasSpike &&
+			frame.frame == previousSpikeFrame + 1 &&
+			!FrameSpikes.empty();
+		if(contiguous){
+			FrameSpikeRecord& active = FrameSpikes.back();
+			active.startup = active.startup || record.startup;
+			active.resize = active.resize || record.resize;
+			active.resizeMilliseconds =
+				(std::max)(active.resizeMilliseconds, record.resizeMilliseconds);
+			if(record.peakMilliseconds > active.peakMilliseconds){
+				const bool startup = active.startup;
+				const bool resize = active.resize;
+				const float resizeMs = active.resizeMilliseconds;
+				active = std::move(record);
+				active.startup = startup;
+				active.resize = resize;
+				active.resizeMilliseconds = resizeMs;
+			}
+		}else{
+			FrameSpikes.push_back(std::move(record));
+			if(FrameSpikes.size() > 32){
+				FrameSpikes.pop_front();
+			}
 		}
-	}else{
-		FrameSpikes.push_back(std::move(record));
-		if(FrameSpikes.size() > 32){
-			FrameSpikes.pop_front();
-		}
-	}
-	previousWasSpike = true;
-	previousSpikeFrame = frame.frame;
+		previousWasSpike = true;
+		previousSpikeFrame = frame.frame;
 	}
 }
 
@@ -567,26 +539,17 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 		breakdownDetail
 	)){
 		ImGui::Indent(4.0f);
-		const bool compactBreakdown = ImGui::GetContentRegionAvail().x < 620.0f;
-		const int breakdownColumns = compactBreakdown ? 3 : 4;
-		if(ImGui::BeginTable(
-			"DrawTimingBreakdown",
-			breakdownColumns,
-			ImGuiTableFlags_RowBg |
-			ImGuiTableFlags_SizingStretchProp |
-			ImGuiTableFlags_NoSavedSettings
-		)){
-			ImGui::TableSetupColumn("Stage", ImGuiTableColumnFlags_WidthStretch, 1.5f);
-			ImGui::TableSetupColumn("Current", ImGuiTableColumnFlags_WidthFixed, 86.0f);
-			if(!compactBreakdown){
-				ImGui::TableSetupColumn("Average", ImGuiTableColumnFlags_WidthFixed, 86.0f);
-			}
-			ImGui::TableSetupColumn("% Draw", ImGuiTableColumnFlags_WidthStretch, 1.0f);
-			ImGui::TableHeadersRow();
-			for(const TimingStageView& stage : drawStages){
-				DrawTimingTableRow(stage, drawCurrent, !compactBreakdown);
-			}
-			ImGui::EndTable();
+		const bool showAverage = ImGui::GetContentRegionAvail().x >= 500.0f;
+		DiagnosticListHeader(showAverage);
+		for(const TimingStageView& stage : drawStages){
+			DiagnosticListRow(
+				stage.label,
+				stage.label,
+				stage.current,
+				stage.average,
+				drawCurrent > 0.0f ? stage.current / drawCurrent : 0.0f,
+				showAverage
+			);
 		}
 
 		if(latest){
@@ -614,41 +577,18 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 				}
 			);
 
-			const bool compactGpuPasses = ImGui::GetContentRegionAvail().x < 500.0f;
-			const int gpuPassColumns = compactGpuPasses ? 2 : 3;
-			if(ImGui::BeginTable(
-				"GpuPassTable",
-				gpuPassColumns,
-				ImGuiTableFlags_RowBg |
-				ImGuiTableFlags_SizingStretchProp |
-				ImGuiTableFlags_NoSavedSettings
-			)){
-				ImGui::TableSetupColumn("Pass", ImGuiTableColumnFlags_WidthStretch);
-				ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-				if(!compactGpuPasses){
-					ImGui::TableSetupColumn("Frame Share", ImGuiTableColumnFlags_WidthStretch);
-				}
-				ImGui::TableHeadersRow();
-				for(const auto& [index, milliseconds] : passes){
-					ImGui::PushID(static_cast<int>(index));
-					ImGui::TableNextRow();
-					ImGui::TableSetColumnIndex(0);
-					ImGui::TextUnformatted(
-						GpuPassTimingScopeName(static_cast<GpuPassTimingScope>(index))
-					);
-					ImGui::TableSetColumnIndex(1);
-					ImGui::Text("%.3f ms", milliseconds);
-					if(!compactGpuPasses){
-						ImGui::TableSetColumnIndex(2);
-						ShareBar(
-							gpuCurrent > 0.0f
-								? milliseconds / gpuCurrent
-								: 0.0f
-						);
-					}
-					ImGui::PopID();
-				}
-				ImGui::EndTable();
+			DiagnosticListHeader(false);
+			for(const auto& [index, milliseconds] : passes){
+				ImGui::PushID(static_cast<int>(index));
+				DiagnosticListRow(
+					"GpuPass",
+					GpuPassTimingScopeName(static_cast<GpuPassTimingScope>(index)),
+					milliseconds,
+					0.0f,
+					gpuCurrent > 0.0f ? milliseconds / gpuCurrent : 0.0f,
+					false
+				);
+				ImGui::PopID();
 			}
 			ImGui::TextDisabled(
 				"Accounted %.3f ms · Unaccounted %.3f ms",
@@ -664,8 +604,10 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 		ImGui::Indent(4.0f);
 		std::vector<const PanelTimingSampleSeries*> sortedPanels;
 		sortedPanels.reserve(PanelTimingSamples.size());
+		float totalPanelMilliseconds = 0.0f;
 		for(const PanelTimingSampleSeries& series : PanelTimingSamples){
 			sortedPanels.push_back(&series);
+			totalPanelMilliseconds += series.samples[SAMPLE_LENGTH - 1];
 		}
 		std::sort(
 			sortedPanels.begin(),
@@ -676,36 +618,20 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 			}
 		);
 
-		const bool compactPanels = ImGui::GetContentRegionAvail().x < 460.0f;
-		const int panelColumns = compactPanels ? 2 : 3;
-		if(ImGui::BeginTable(
-			"EditorPanelTimingTable",
-			panelColumns,
-			ImGuiTableFlags_RowBg |
-			ImGuiTableFlags_SizingStretchProp |
-			ImGuiTableFlags_NoSavedSettings
-		)){
-			ImGui::TableSetupColumn("Panel", ImGuiTableColumnFlags_WidthStretch);
-			ImGui::TableSetupColumn("Current", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-			if(!compactPanels){
-				ImGui::TableSetupColumn("Average", ImGuiTableColumnFlags_WidthFixed, 90.0f);
-			}
-			ImGui::TableHeadersRow();
-			for(const PanelTimingSampleSeries* series : sortedPanels){
-				ImGui::TableNextRow();
-				ImGui::TableSetColumnIndex(0);
-				ImGui::TextUnformatted(series->name.c_str());
-				ImGui::TableSetColumnIndex(1);
-				ImGui::Text("%.3f ms", series->samples[SAMPLE_LENGTH - 1]);
-				if(!compactPanels){
-					ImGui::TableSetColumnIndex(2);
-					ImGui::TextDisabled(
-						"%.3f ms",
-						Average(series->samples.data(), SAMPLE_LENGTH)
-					);
-				}
-			}
-			ImGui::EndTable();
+		const bool showPanelAverage = ImGui::GetContentRegionAvail().x >= 460.0f;
+		DiagnosticListHeader(showPanelAverage);
+		for(const PanelTimingSampleSeries* series : sortedPanels){
+			const float current = series->samples[SAMPLE_LENGTH - 1];
+			DiagnosticListRow(
+				series->name.c_str(),
+				series->name.c_str(),
+				current,
+				Average(series->samples.data(), SAMPLE_LENGTH),
+				totalPanelMilliseconds > 0.0f
+					? current / totalPanelMilliseconds
+					: 0.0f,
+				showPanelAverage
+			);
 		}
 		ImGui::Unindent(4.0f);
 		ImGui::Spacing();
