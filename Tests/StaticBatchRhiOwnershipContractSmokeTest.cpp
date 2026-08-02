@@ -56,13 +56,16 @@ int main(){
 		"ResetOwnedDevice();\n\t\tm_selectedBackend = device->GetBackendType();"
 	) != std::string::npos);
 
+	assert(uploadSystem.find("struct StaticBatchRhiOwnershipTelemetry") !=
+		std::string::npos);
 	assert(uploadSystem.find("m_boundDeviceLifetime") != std::string::npos);
 	assert(uploadSystem.find("m_boundDeviceGeneration") != std::string::npos);
 	assert(uploadSystem.find("ResolveBoundDevice()") != std::string::npos);
 	assert(uploadSystem.find("ResolveReleaseDevice()") != std::string::npos);
+	assert(uploadSystem.find("GetDeviceOwnershipSnapshot()") !=
+		std::string::npos);
 	assert(uploadSystem.find("AbandonAllGpuResources()") != std::string::npos);
 	assert(uploadSystem.find("BootstrapPipelines(*device)") != std::string::npos);
-	assert(uploadSystem.find("GetDeviceGeneration()") != std::string::npos);
 	assert(uploadSystem.find("ResolveDevice() const") == std::string::npos);
 
 	assert(geometryCache.find("void Abandon() noexcept") != std::string::npos);
@@ -70,6 +73,19 @@ int main(){
 	assert(instanceBuffer.find("void Abandon() noexcept") != std::string::npos);
 	assert(pipelineResources.find("void Abandon() noexcept") != std::string::npos);
 	assert(shadowPipelineResources.find("void Abandon() noexcept") !=
+		std::string::npos);
+
+	// Resetは全ResourceのRelease結果を集約し、1つでも失敗した場合は
+	// Bindingと残存Handleを保持して再試行可能にする。
+	assert(uploadSystem.find("bool ResetGpuResources() noexcept") !=
+		std::string::npos);
+	assert(uploadSystem.find("bool ReleaseAllGpuResources") !=
+		std::string::npos);
+	assert(uploadSystem.find("if(ReleaseAllGpuResources(*device))") !=
+		std::string::npos);
+	assert(uploadSystem.find("++m_rhiResetFailureCount") !=
+		std::string::npos);
+	assert(uploadSystem.find("GetRhiOwnershipTelemetry()") !=
 		std::string::npos);
 
 	// Finalize / Stopは、現在のService DeviceとBinding Epochが一致する場合だけ
