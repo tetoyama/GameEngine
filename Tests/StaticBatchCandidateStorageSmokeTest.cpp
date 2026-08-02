@@ -31,10 +31,8 @@ RenderPacket MakePacket(
 	packet.transform.worldMatrix.values[15] = 1.0f;
 	packet.transform.worldMatrix.values[12] = translationX;
 	packet.bindings.sceneContext = context;
-	packet.bindings.modelRenderer =
-		context->component->GetComponent<ModelRendererComponent>(entity);
-	packet.bindings.meshRenderer =
-		context->component->GetComponent<MeshRendererComponent>(entity);
+	// Candidate Storageの単体契約ではResource Componentを生成しない。
+	// Resource KeyとCache-ready Groupは専用Smokeで検証する。
 	return packet;
 }
 
@@ -92,7 +90,6 @@ int main(){
 	context.entity = &entities;
 	context.component = &components;
 	context.contextID = 31;
-	// ComponentRef<T>解決用のテスト向け自己解決resolver。
 	context.resolverOwner = &context;
 	context.resolver = [](void* owner, uint32_t) -> SceneContext* {
 		return static_cast<SceneContext*>(owner);
@@ -108,14 +105,6 @@ int main(){
 	assert(components.AddComponent<StaticEntityComponent>(staticModelA));
 	assert(components.AddComponent<StaticEntityComponent>(staticModelB));
 	assert(components.AddComponent<StaticEntityComponent>(staticMesh));
-
-	auto modelA = components.AddComponent<ModelRendererComponent>(staticModelA);
-	auto modelB = components.AddComponent<ModelRendererComponent>(staticModelB);
-	auto mesh = components.AddComponent<MeshRendererComponent>(staticMesh);
-	assert(modelA && modelB && mesh);
-	modelA->modelFilePath = "Asset/Test/SharedModel.fbx";
-	modelB->modelFilePath = modelA->modelFilePath;
-	mesh->mesh.SetGeometryResourceKey(0x1234u);
 
 	const RenderPacketWorkerBuffer worker = BuildWorker(
 		&context,
@@ -133,7 +122,7 @@ int main(){
 	const StaticBatchCandidateStorage& candidates = packets.StaticBatchCandidates();
 	assert(candidates.Size() == 3);
 	assert(candidates.GroupCount() == 2);
-	assert(candidates.CacheReadyGroupCount() == 1);
+	assert(candidates.CacheReadyGroupCount() == 0);
 	assert(candidates.Capacity() >= context.storageConfig.staticBatchReserve);
 	assert(candidates.GroupCapacity() >= context.storageConfig.staticBatchReserve);
 	assert(candidates.GrowthEventCount() == 0);
@@ -148,8 +137,8 @@ int main(){
 	assert(result[1].key.geometryKey == result[0].key.geometryKey);
 	assert(result[2].key.kind == RenderPacketKind::Mesh);
 	assert(result[2].entity == staticMesh);
-	assert(result[2].key.IsCacheReady());
-	assert(result[2].key.geometryKey == mesh->mesh.geometryResourceKey);
+	assert(!result[2].key.IsCacheReady());
+	assert(result[2].key.geometryKey == 0);
 
 	const auto groups = candidates.Groups();
 	assert(groups[0].key.kind == RenderPacketKind::Model);
@@ -157,22 +146,20 @@ int main(){
 	assert(!groups[0].cacheReady);
 	assert(groups[1].key.kind == RenderPacketKind::Mesh);
 	assert(groups[1].candidateCount == 1);
-	assert(groups[1].cacheReady);
+	assert(!groups[1].cacheReady);
 
 	const StaticBatchPacketCache& cache = packets.StaticBatchCache();
 	assert(cache.IsValid());
 	assert(!cache.IsOverflowed());
-	assert(cache.Entries().size() == 1);
-	assert(cache.Entities().size() == 1);
-	assert(cache.Entities()[0] == staticMesh);
-	assert(cache.Transforms().size() == 1);
-	assert(cache.Transforms()[0].worldMatrix.values[12] == 0.0f);
+	assert(cache.Entries().empty());
+	assert(cache.Entities().empty());
+	assert(cache.Transforms().empty());
 	const StaticBatchPacketCacheTelemetry initialCache = cache.Telemetry();
-	assert(initialCache.currentEntryCount == 1);
-	assert(initialCache.currentInstanceCount == 1);
+	assert(initialCache.currentEntryCount == 0);
+	assert(initialCache.currentInstanceCount == 0);
 	assert(initialCache.rebuildCount == 1);
 	assert(initialCache.growthEventCount == 0);
-	assert(initialCache.skippedIncompleteGroupCount == 1);
+	assert(initialCache.skippedIncompleteGroupCount == 2);
 
 	packets.BeginFrame(2);
 	packets.Merge(workers);
@@ -190,20 +177,21 @@ int main(){
 	const std::array<RenderPacketWorkerBuffer, 1> movedWorkers{movedWorker};
 	packets.BeginFrame(3);
 	packets.Merge(movedWorkers);
-	assert(packets.StaticBatchCache().Telemetry().rebuildCount == 2);
-	assert(packets.StaticBatchCache().Transforms()[0].worldMatrix.values[12] == 5.0f);
+	// Incomplete GroupはCache Source Revisionへ入らない。
+	assert(packets.StaticBatchCache().Telemetry().rebuildCount == 1);
+	assert(packets.StaticBatchCache().Transforms().empty());
 
 	const StaticBatchCandidateStorageTelemetry telemetry =
 		packets.StaticBatchTelemetry();
 	assert(telemetry.currentSize == 3);
 	assert(telemetry.currentGroupCount == 2);
-	assert(telemetry.currentCacheReadyGroupCount == 1);
+	assert(telemetry.currentCacheReadyGroupCount == 0);
 	assert(!telemetry.overflowed);
 
 	packets.ResetPeakMetrics();
 	assert(packets.StaticBatchCandidates().PeakSize() == 3);
 	assert(packets.StaticBatchCandidates().PeakGroupCount() == 2);
-	assert(packets.StaticBatchCandidates().PeakCacheReadyGroupCount() == 1);
+	assert(packets.StaticBatchCandidates().PeakCacheReadyGroupCount() == 0);
 	assert(packets.StaticBatchCache().Telemetry().rebuildCount == 0);
 
 	context.storageConfig.staticBatchReserve = 1;

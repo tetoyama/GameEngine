@@ -4,7 +4,9 @@
 #include <array>
 #include <cstddef>
 #include <cstdint>
+#include <span>
 #include <string>
+#include <utility>
 #include <vector>
 
 #include <DirectXMath.h>
@@ -193,6 +195,9 @@ public:
 					);
 					packet.stableSequence = stableSequence++;
 					packet.transform = snapshot;
+					if(kind == RenderPacketKind::Model && modelRenderer){
+						packet.modelResource = modelRenderer->model;
+					}
 					packet.bindings.sceneContext = sceneEntry.context;
 					packet.bindings.transform = transform;
 					packet.bindings.material = materialComponent;

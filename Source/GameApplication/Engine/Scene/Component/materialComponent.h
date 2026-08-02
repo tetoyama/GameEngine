@@ -5,19 +5,74 @@
 // =======================================================================
 #pragma once
 
+#include <string>
+#include <utility>
+#include <vector>
+
 #include "Interface/IComponent.h"
+#include "Operations/CustomMaterialCollection.h"
+#include "Resources/Data/modelMaterialTypes.h"
 #include "Shader/Common.hlsl"
 #include "Shader/CommonDefine.h"
 
-// Shader選択とPBRパラメータだけを保持するComponent。
-// YAML・Inspector実装はMaterialComponentOperationsへ分離する。
+// ユーザー定義MaterialをEntity単位で保持するComponent。
+// 旧ShaderID / MATERIALは移行期間中の単一Material互換経路として維持する。
 class MaterialComponent {
 public:
 	int ShaderID = 0;
 	MATERIAL Material{};
 
+	// Custom Materialの定義だけを所有する。
+	// SubMeshへの適用範囲はModelRendererComponentが所有する。
+	std::vector<CustomMaterialEntry> materials;
+
 	MaterialComponent(){
 		Material.BaseColor = float4(1.0f, 1.0f, 1.0f, 1.0f);
+	}
+
+	CustomMaterialID AllocateMaterialID() const {
+		return CustomMaterialCollection::AllocateID(materials);
+	}
+
+	CustomMaterialEntry* AddMaterial(
+		std::string name = {},
+		MaterialDescriptor descriptor = {}
+	){
+		return CustomMaterialCollection::Add(
+			materials,
+			std::move(name),
+			std::move(descriptor)
+		);
+	}
+
+	bool RemoveMaterial(CustomMaterialID id) noexcept {
+		return CustomMaterialCollection::Remove(materials, id);
+	}
+
+	void SanitizeMaterials(){
+		CustomMaterialCollection::Sanitize(materials);
+	}
+
+	const CustomMaterialEntry* FindMaterial(
+		CustomMaterialID id
+	) const noexcept {
+		if(id == InvalidCustomMaterialID){
+			return nullptr;
+		}
+		for(const CustomMaterialEntry& material : materials){
+			if(material.id == id){
+				return &material;
+			}
+		}
+		return nullptr;
+	}
+
+	CustomMaterialEntry* FindMaterial(
+		CustomMaterialID id
+	) noexcept {
+		return const_cast<CustomMaterialEntry*>(
+			static_cast<const MaterialComponent*>(this)->FindMaterial(id)
+		);
 	}
 
 	YAML::Node encode();

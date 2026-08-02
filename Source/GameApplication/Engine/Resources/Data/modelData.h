@@ -4,6 +4,7 @@
 // 
 // =======================================================================
 #pragma once
+#include <cstddef>
 #include <cstdint>
 #include <string>
 #include <vector>
@@ -16,6 +17,9 @@
 #include "assimp/scene.h"
 #include "assimp/postprocess.h"
 #include "assimp/matrix4x4.h"
+
+#include "modelMaterialTypes.h"
+#include "modelAssimpMaterialPropertyNormalization.h"
 
 class GraphicsContext;
 struct aiScene;
@@ -99,6 +103,94 @@ public:
 	// 再生成元として保持する。
 	std::vector<ModelMeshGeometryCpuData> MeshGeometry;
 
+	// MeshGeometryの内容・並び・Vertex Layout解釈が変化した場合に必ず進める。
+	// 要素数が同一の頂点差し替えもRuntime再生成対象にするため、Pointerや
+	// vector sizeだけを変更判定へ使用しない。
+	std::uint64_t GetGeometryRevision() const noexcept {
+		return m_geometryRevision;
+	}
+
+	std::uint64_t MarkGeometryDirty() noexcept {
+		++m_geometryRevision;
+		if(m_geometryRevision == 0){
+			++m_geometryRevision;
+		}
+		return m_geometryRevision;
+	}
+
+	// Import時に正規化されたAsset-local定義。配列IndexはRuntime走査用、
+	// IDはScene保存とReimport追従用として分離する。
+	std::vector<ModelSubMeshDefinition> SubMeshes;
+	std::vector<ImportedMaterialDefinition> ImportedMaterials;
+	std::vector<ModelMaterialImportDiagnostic> MaterialImportDiagnostics;
+
+	// Loader分割中の移行Bridge。既に明示定義が与えられている場合は保持し、
+	// 未正規化のAssimp Sceneだけを最初のRender Extraction前に変換する。
+	// AdapterはaiMaterialPropertyを直接読み、Assimp実装Libraryへ依存しない。
+	bool EnsureMaterialDefinitionsNormalized(){
+		if(m_materialDefinitionsNormalized){
+			return true;
+		}
+		if(!SubMeshes.empty() || !ImportedMaterials.empty()){
+			m_materialDefinitionsNormalized = true;
+			return true;
+		}
+		if(!AiScene){
+			return false;
+		}
+		m_materialDefinitionsNormalized =
+			ModelAssimpMaterialNormalization::Normalize(
+				AiScene,
+				ImportedMaterials,
+				SubMeshes,
+				MaterialImportDiagnostics
+			);
+		return m_materialDefinitionsNormalized;
+	}
+
+	void InvalidateMaterialDefinitions() noexcept {
+		SubMeshes.clear();
+		ImportedMaterials.clear();
+		MaterialImportDiagnostics.clear();
+		m_materialDefinitionsNormalized = false;
+	}
+
+	bool AreMaterialDefinitionsNormalized() const noexcept {
+		return m_materialDefinitionsNormalized;
+	}
+
+	std::size_t ResolvedSubMeshCount() const noexcept {
+		return SubMeshes.empty() ? MeshGeometry.size() : SubMeshes.size();
+	}
+
+	const ModelSubMeshDefinition* FindSubMesh(
+		ModelSubMeshID id
+	) const noexcept {
+		if(id == InvalidModelSubMeshID){
+			return nullptr;
+		}
+		for(const ModelSubMeshDefinition& subMesh : SubMeshes){
+			if(subMesh.id == id){
+				return &subMesh;
+			}
+		}
+		return nullptr;
+	}
+
+	const ImportedMaterialDefinition* FindImportedMaterial(
+		ImportedMaterialID id
+	) const noexcept {
+		if(id == InvalidImportedMaterialID){
+			return nullptr;
+		}
+		for(const ImportedMaterialDefinition& material : ImportedMaterials){
+			if(material.id == id){
+				return &material;
+			}
+		}
+		return nullptr;
+	}
+
 	// Legacy通常描画互換。生成・所有は段階的にRenderSystem/RHIへ移す。
 	std::vector<ID3D11Buffer*> VertexBuffer;
 	std::vector<ID3D11Buffer*> IndexBuffer;
@@ -170,4 +262,8 @@ public:
 		const aiMesh* mesh,
 		VERTEX_3D* outVertex
 	) const;
+
+private:
+	std::uint64_t m_geometryRevision = 1;
+	bool m_materialDefinitionsNormalized = false;
 };
