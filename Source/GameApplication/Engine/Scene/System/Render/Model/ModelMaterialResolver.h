@@ -49,6 +49,14 @@ inline bool IsLegacySingleMaterialComponent(
 	return component && component->materials.empty();
 }
 
+inline void CanonicalizeDescriptorAlpha(
+	MaterialDescriptor& descriptor
+) noexcept {
+	descriptor.parameters.baseColor[3] *=
+		descriptor.parameters.opacity;
+	descriptor.parameters.opacity = 1.0f;
+}
+
 inline void ApplyLegacySingleMaterialOverride(
 	const MaterialComponent& component,
 	ModelMaterialResolveResult& result
@@ -63,7 +71,6 @@ inline void ApplyLegacySingleMaterialOverride(
 	descriptor.parameters.baseColor[1] *= component.Material.BaseColor.y;
 	descriptor.parameters.baseColor[2] *= component.Material.BaseColor.z;
 	descriptor.parameters.baseColor[3] *= component.Material.BaseColor.w;
-	descriptor.parameters.opacity *= component.Material.BaseColor.w;
 	descriptor.parameters.metallic = component.Material.Metallic;
 	descriptor.parameters.roughness = component.Material.Roughness;
 	descriptor.parameters.ambientOcclusion = component.Material.AO;
@@ -127,8 +134,10 @@ inline ModelMaterialResolveResult Resolve(
 				ModelMaterialResolutionIssue::MissingMaterialComponent;
 		}else if(const CustomMaterialEntry* custom =
 			materialComponent->FindMaterial(assignment.customMaterialID)){
+			MaterialDescriptor descriptor = custom->inlineMaterial;
+			CanonicalizeDescriptorAlpha(descriptor);
 			result.ownedDescriptor =
-				std::make_shared<MaterialDescriptor>(custom->inlineMaterial);
+				std::make_shared<MaterialDescriptor>(std::move(descriptor));
 			result.descriptor = result.ownedDescriptor.get();
 			result.source = ModelMaterialResolutionSource::CustomMaterial;
 			return result;
