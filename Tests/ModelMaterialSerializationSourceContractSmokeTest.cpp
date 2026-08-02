@@ -36,6 +36,17 @@ int main(){
 	Require(materialOperations, "EncodeCustomMaterials");
 	Require(materialOperations, "DecodeCustomMaterials");
 	Require(materialOperations, "component.materials");
+	Require(materialOperations, "MaterialDescriptorInspector::DrawCustomMaterials");
+
+	const std::string descriptorInspector = ReadText(
+		"Source/GameApplication/Engine/Scene/Component/Operations/MaterialDescriptorInspector.h"
+	);
+	Require(descriptorInspector, "Add Custom Material");
+	Require(descriptorInspector, "Remove Custom Material");
+	Require(descriptorInspector, "DrawRenderState");
+	Require(descriptorInspector, "DrawTextures");
+	Require(descriptorInspector, "Alpha Mode");
+	Require(descriptorInspector, "UV Channel");
 
 	const std::string rendererSerialization = ReadText(
 		"Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererSerialization.h"
