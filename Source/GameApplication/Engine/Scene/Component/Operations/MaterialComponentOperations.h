@@ -9,11 +9,13 @@
 
 #include <algorithm>
 #include <cfloat>
+#include <span>
 #include <string>
 #include <vector>
 
 #include "Backends/ImGuiFunc.h"
 #include "Backends/YAMLConverters.h"
+#include "MaterialDescriptorInspector.h"
 #include "Resources/Data/modelMaterialYamlSerialization.h"
 #include "Scene/Registry/systemRegistry.h"
 #include "Scene/System/Render/RenderSystem/ShaderMaterialProvider.h"
@@ -75,20 +77,20 @@ inline void Inspect(MaterialComponent& component, SceneContext* context){
 		context && context->system
 			? context->system->GetSystem<IShaderMaterialProvider>()
 			: nullptr;
+	std::span<const ShaderMaterial> shaderMaterials;
+	if(shaderProvider){
+		shaderMaterials = shaderProvider->GetShaderMaterials();
+	}
 
 	std::vector<std::string> shaderNames;
 	std::vector<const char*> shaderNamePointers;
-	if(shaderProvider){
-		const std::span<const ShaderMaterial> shaderMaterials =
-			shaderProvider->GetShaderMaterials();
-		shaderNames.reserve(shaderMaterials.size());
-		for(const ShaderMaterial& material : shaderMaterials){
-			shaderNames.push_back(material.entryPoint);
-		}
-		shaderNamePointers.reserve(shaderNames.size());
-		for(const std::string& name : shaderNames){
-			shaderNamePointers.push_back(name.c_str());
-		}
+	shaderNames.reserve(shaderMaterials.size());
+	for(const ShaderMaterial& material : shaderMaterials){
+		shaderNames.push_back(material.entryPoint);
+	}
+	shaderNamePointers.reserve(shaderNames.size());
+	for(const std::string& name : shaderNames){
+		shaderNamePointers.push_back(name.c_str());
 	}
 
 	if(ImGui::BeginTable(
@@ -175,14 +177,14 @@ inline void Inspect(MaterialComponent& component, SceneContext* context){
 			}
 		}
 
-		BeginPropertyRow("Custom Materials");
-		ImGui::Text(
-			"%u definition(s)",
-			static_cast<unsigned>(component.materials.size())
-		);
-
 		ImGui::EndTable();
 	}
+
+	ImGui::Separator();
+	MaterialDescriptorInspector::DrawCustomMaterials(
+		component.materials,
+		shaderMaterials
+	);
 
 	ImGui::PopStyleVar();
 	ImGui::PopID();
