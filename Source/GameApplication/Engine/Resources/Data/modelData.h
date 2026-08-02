@@ -19,6 +19,7 @@
 #include "assimp/matrix4x4.h"
 
 #include "modelMaterialTypes.h"
+#include "modelAssimpMaterialNormalization.h"
 
 class GraphicsContext;
 struct aiScene;
@@ -121,6 +122,42 @@ public:
 	// IDはScene保存とReimport追従用として分離する。
 	std::vector<ModelSubMeshDefinition> SubMeshes;
 	std::vector<ImportedMaterialDefinition> ImportedMaterials;
+	std::vector<ModelMaterialImportDiagnostic> MaterialImportDiagnostics;
+
+	// Loader分割中の移行Bridge。既に明示定義が与えられている場合は保持し、
+	// 未正規化のAssimp Sceneだけを最初のRender Extraction前に変換する。
+	// 通常Draw中にaiMaterialを解釈するためのAPIではない。
+	bool EnsureMaterialDefinitionsNormalized(){
+		if(m_materialDefinitionsNormalized){
+			return true;
+		}
+		if(!SubMeshes.empty() || !ImportedMaterials.empty()){
+			m_materialDefinitionsNormalized = true;
+			return true;
+		}
+		if(!AiScene){
+			return false;
+		}
+		m_materialDefinitionsNormalized =
+			ModelAssimpMaterialNormalization::Normalize(
+				AiScene,
+				ImportedMaterials,
+				SubMeshes,
+				MaterialImportDiagnostics
+			);
+		return m_materialDefinitionsNormalized;
+	}
+
+	void InvalidateMaterialDefinitions() noexcept {
+		SubMeshes.clear();
+		ImportedMaterials.clear();
+		MaterialImportDiagnostics.clear();
+		m_materialDefinitionsNormalized = false;
+	}
+
+	bool AreMaterialDefinitionsNormalized() const noexcept {
+		return m_materialDefinitionsNormalized;
+	}
 
 	std::size_t ResolvedSubMeshCount() const noexcept {
 		return SubMeshes.empty() ? MeshGeometry.size() : SubMeshes.size();
@@ -228,4 +265,5 @@ public:
 
 private:
 	std::uint64_t m_geometryRevision = 1;
+	bool m_materialDefinitionsNormalized = false;
 };
