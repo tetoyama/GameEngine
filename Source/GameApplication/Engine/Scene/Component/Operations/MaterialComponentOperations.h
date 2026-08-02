@@ -14,6 +14,7 @@
 
 #include "Backends/ImGuiFunc.h"
 #include "Backends/YAMLConverters.h"
+#include "Resources/Data/modelMaterialYamlSerialization.h"
 #include "Scene/Registry/systemRegistry.h"
 #include "Scene/System/Render/RenderSystem/ShaderMaterialProvider.h"
 #include "Scene/scene.h"
@@ -22,8 +23,19 @@ namespace MaterialComponentOperations {
 
 inline YAML::Node Encode(const MaterialComponent& component){
 	YAML::Node node;
+	// Legacy single-material fields remain for backward compatibility.
 	node["ShaderID"] = component.ShaderID;
 	node["Material"] = component.Material;
+	node["MaterialSchemaVersion"] =
+		ModelMaterialYamlSerialization::SchemaVersion;
+
+	const YAML::Node materials =
+		ModelMaterialYamlSerialization::EncodeCustomMaterials(
+			component.materials
+		);
+	if(materials.size() != 0){
+		node["Materials"] = materials;
+	}
 	return node;
 }
 
@@ -37,6 +49,10 @@ inline bool Decode(MaterialComponent& component, const YAML::Node& node){
 	if(node["Material"]){
 		component.Material = node["Material"].as<MATERIAL>();
 	}
+	ModelMaterialYamlSerialization::DecodeCustomMaterials(
+		node["Materials"],
+		component.materials
+	);
 	component.ShaderID = (std::max)(component.ShaderID, 0);
 	return true;
 }
@@ -157,6 +173,12 @@ inline void Inspect(MaterialComponent& component, SceneContext* context){
 				component.Material.MaterialFlags &= ~MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 			}
 		}
+
+		BeginPropertyRow("Custom Materials");
+		ImGui::Text(
+			"%u definition(s)",
+			static_cast<unsigned>(component.materials.size())
+		);
 
 		ImGui::EndTable();
 	}
