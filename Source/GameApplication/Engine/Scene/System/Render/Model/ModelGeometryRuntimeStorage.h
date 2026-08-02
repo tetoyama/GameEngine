@@ -45,6 +45,8 @@ public:
 	){
 		if(!model || model->MeshGeometry.empty()) return false;
 
+		const std::uint64_t sourceGeometryRevision =
+			model->GetGeometryRevision();
 		std::vector<ModelGeometryRuntimeMesh> replacement;
 		replacement.reserve(model->MeshGeometry.size());
 		for(std::size_t meshIndex = 0;
@@ -109,18 +111,28 @@ public:
 			replacement.push_back(mesh);
 		}
 
+		// Import / ReimportがBuild中にGeometryを書き換えた場合は、異なる
+		// RevisionのBufferを公開せず次回Synchronizeへ再試行させる。
+		if(model->GetGeometryRevision() != sourceGeometryRevision){
+			ReleaseMeshes(device, replacement);
+			return false;
+		}
+
 		if(!Release(device)){
 			ReleaseMeshes(device, replacement);
 			return false;
 		}
 		m_modelIdentity = model;
+		m_geometryRevision = sourceGeometryRevision;
 		m_meshes = std::move(replacement);
 		return IsReady();
 	}
 
 	bool Matches(const std::shared_ptr<ModelData>& model) const noexcept {
+		if(!model) return false;
 		const std::shared_ptr<ModelData> identity = m_modelIdentity.lock();
 		if(!identity || identity != model ||
+			m_geometryRevision != model->GetGeometryRevision() ||
 			m_meshes.size() != model->MeshGeometry.size()){
 			return false;
 		}
@@ -141,6 +153,7 @@ public:
 		if(released){
 			m_meshes.clear();
 			m_modelIdentity.reset();
+			m_geometryRevision = 0;
 		}
 		return released;
 	}
@@ -158,6 +171,9 @@ public:
 	}
 
 	std::size_t MeshCount() const noexcept { return m_meshes.size(); }
+	std::uint64_t GeometryRevision() const noexcept {
+		return m_geometryRevision;
+	}
 
 private:
 	static bool ReleaseMeshes(
@@ -185,6 +201,7 @@ private:
 	}
 
 	std::weak_ptr<ModelData> m_modelIdentity;
+	std::uint64_t m_geometryRevision = 0;
 	std::vector<ModelGeometryRuntimeMesh> m_meshes;
 };
 
@@ -195,7 +212,11 @@ struct ModelGeometryRuntimeStorageTelemetry {
 	std::size_t creationCount = 0;
 	std::size_t reuseCount = 0;
 	std::size_t replacementCount = 0;
+	std::size_t geometryRevisionReplacementCount = 0;
 	std::size_t releaseCount = 0;
+	std::size_t abandonedEntryCount = 0;
+	std::size_t deviceTransitionCount = 0;
+	std::size_t resetFailureCount = 0;
 	std::size_t rejectedModelCount = 0;
 };
 
@@ -205,16 +226,23 @@ struct ModelGeometryRuntimeStorageTelemetry {
 class ModelGeometryRuntimeStorage final {
 public:
 	ModelGeometryRuntimeStorage() = default;
-	~ModelGeometryRuntimeStorage() = default;
+	~ModelGeometryRuntimeStorage(){
+		(void)Reset();
+	}
 	ModelGeometryRuntimeStorage(const ModelGeometryRuntimeStorage&) = delete;
 	ModelGeometryRuntimeStorage& operator=(const ModelGeometryRuntimeStorage&) = delete;
 
 	void Synchronize(
 		RHI::IRHIDevice& device,
 		std::span<const RenderPacket> packets,
-		std::uint64_t generation
+		std::uint64_t generation,
+		RHI::DeviceGeneration deviceGeneration = 1
 	){
-		m_device = &device;
+		if(deviceGeneration == RHI::InvalidDeviceGeneration){
+			++m_rejectedModelCount;
+			return;
+		}
+		BindDevice(device, deviceGeneration);
 		++m_synchronizationCount;
 
 		for(const RenderPacket& packet : packets){
@@ -237,12 +265,17 @@ public:
 			}
 
 			const bool hadRuntime = entry.runtime.IsReady();
+			const std::uint64_t previousGeometryRevision =
+				entry.runtime.GeometryRevision();
 			if(!entry.runtime.Initialize(device, model)){
 				++m_rejectedModelCount;
 				continue;
 			}
 			if(hadRuntime){
 				++m_replacementCount;
+				if(previousGeometryRevision != entry.runtime.GeometryRevision()){
+					++m_geometryRevisionReplacementCount;
+				}
 			}else{
 				++m_creationCount;
 			}
@@ -277,21 +310,72 @@ public:
 		);
 	}
 
-	void Reset() noexcept {
-		if(m_device){
-			for(auto& [model, entry] : m_entries){
-				(void)model;
-				entry.runtime.Release(*m_device);
+	// ResetはStorageがBindingした同じDevice Lifetime / Ownership Epochでのみ
+	// Destroyを実行する。Deviceが既に破棄済みなら生Pointerを逆参照せずAbandonする。
+	bool Reset() noexcept {
+		if(!m_device){
+			if(!m_entries.empty()){
+				AbandonEntries();
 			}
+			ClearDeviceBinding();
+			return true;
 		}
-		m_releaseCount += m_entries.size();
-		m_entries.clear();
-		m_device = nullptr;
+		if(m_deviceLifetime.expired()){
+			++m_resetFailureCount;
+			AbandonEntries();
+			ClearDeviceBinding();
+			return false;
+		}
+		return Reset(*m_device, m_deviceGeneration);
 	}
 
+	bool Reset(
+		RHI::IRHIDevice& device,
+		RHI::DeviceGeneration deviceGeneration
+	) noexcept {
+		if(!IsBoundTo(device, deviceGeneration)){
+			++m_resetFailureCount;
+			Abandon();
+			return false;
+		}
+
+		bool allReleased = true;
+		for(auto entryIt = m_entries.begin(); entryIt != m_entries.end();){
+			if(entryIt->second.runtime.Release(device)){
+				entryIt = m_entries.erase(entryIt);
+				++m_releaseCount;
+			}else{
+				allReleased = false;
+				++entryIt;
+			}
+		}
+		if(allReleased){
+			ClearDeviceBinding();
+		}else{
+			++m_resetFailureCount;
+		}
+		return allReleased;
+	}
+
+	// AbandonはDevice側でResource Poolごと破棄済み、または旧Deviceへ安全に
+	// 到達できない場合だけ使用する。Native Destroyは呼ばない。
 	void Abandon() noexcept {
-		m_entries.clear();
-		m_device = nullptr;
+		AbandonEntries();
+		ClearDeviceBinding();
+	}
+
+	bool IsBoundTo(
+		const RHI::IRHIDevice& device,
+		RHI::DeviceGeneration deviceGeneration
+	) const noexcept {
+		return m_device == &device &&
+			m_deviceGeneration == deviceGeneration &&
+			deviceGeneration != RHI::InvalidDeviceGeneration &&
+			!m_deviceLifetime.expired();
+	}
+
+	RHI::DeviceGeneration BoundDeviceGeneration() const noexcept {
+		return m_deviceGeneration;
 	}
 
 	std::size_t Size() const noexcept { return m_entries.size(); }
@@ -304,7 +388,11 @@ public:
 			m_creationCount,
 			m_reuseCount,
 			m_replacementCount,
+			m_geometryRevisionReplacementCount,
 			m_releaseCount,
+			m_abandonedEntryCount,
+			m_deviceTransitionCount,
+			m_resetFailureCount,
 			m_rejectedModelCount
 		};
 	}
@@ -315,7 +403,11 @@ public:
 		m_creationCount = 0;
 		m_reuseCount = 0;
 		m_replacementCount = 0;
+		m_geometryRevisionReplacementCount = 0;
 		m_releaseCount = 0;
+		m_abandonedEntryCount = 0;
+		m_deviceTransitionCount = 0;
+		m_resetFailureCount = 0;
 		m_rejectedModelCount = 0;
 	}
 
@@ -327,13 +419,44 @@ private:
 			(std::numeric_limits<std::uint64_t>::max)();
 	};
 
+	void BindDevice(
+		RHI::IRHIDevice& device,
+		RHI::DeviceGeneration deviceGeneration
+	) noexcept {
+		if(IsBoundTo(device, deviceGeneration)) return;
+		if(m_device || !m_entries.empty()){
+			++m_deviceTransitionCount;
+			AbandonEntries();
+		}
+		m_device = &device;
+		m_deviceLifetime = device.GetLifetimeToken();
+		m_deviceGeneration = deviceGeneration;
+	}
+
+	void AbandonEntries() noexcept {
+		m_abandonedEntryCount += m_entries.size();
+		m_entries.clear();
+	}
+
+	void ClearDeviceBinding() noexcept {
+		m_device = nullptr;
+		m_deviceLifetime.reset();
+		m_deviceGeneration = RHI::InvalidDeviceGeneration;
+	}
+
 	RHI::IRHIDevice* m_device = nullptr;
+	RHI::IRHIDevice::LifetimeToken m_deviceLifetime;
+	RHI::DeviceGeneration m_deviceGeneration = RHI::InvalidDeviceGeneration;
 	std::unordered_map<const ModelData*, Entry> m_entries;
 	std::size_t m_peakEntryCount = 0;
 	std::size_t m_synchronizationCount = 0;
 	std::size_t m_creationCount = 0;
 	std::size_t m_reuseCount = 0;
 	std::size_t m_replacementCount = 0;
+	std::size_t m_geometryRevisionReplacementCount = 0;
 	std::size_t m_releaseCount = 0;
+	std::size_t m_abandonedEntryCount = 0;
+	std::size_t m_deviceTransitionCount = 0;
+	std::size_t m_resetFailureCount = 0;
 	std::size_t m_rejectedModelCount = 0;
 };
