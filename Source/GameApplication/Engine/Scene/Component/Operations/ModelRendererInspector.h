@@ -9,4 +9,5 @@
 
 #include "ModelRendererInspectorCommon.h"
 #include "ModelRendererInspectorAnimation.h"
+#include "ModelRendererSubMeshInspector.h"
 #include "ModelRendererInspectorMotion.h"
