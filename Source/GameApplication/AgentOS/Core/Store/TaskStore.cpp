@@ -91,6 +91,11 @@ Result TaskStore::CreateSchema() {
 		"  claim TEXT NOT NULL,"
 		"  payload_json TEXT NOT NULL DEFAULT '{}',"
 		"  confidence REAL NOT NULL DEFAULT 1.0,"
+		// このEvidenceが最終応答へ反映されたか（仮説のsupportsに挙がったか）。
+		// 失敗Evidenceを次のセッションへ引き継ぐかの判定に使う。
+		// 反映された失敗は「前回これは失敗した」という知識なので残し、
+		// 反映されなかった失敗は同じ探索を繰り返させるだけなので捨てる。
+		"  reflected INTEGER NOT NULL DEFAULT 0,"
 		"  created_at TEXT NOT NULL DEFAULT (datetime('now'))"
 		");"
 
@@ -156,7 +161,44 @@ Result TaskStore::CreateSchema() {
 		"CREATE INDEX IF NOT EXISTS idx_conversation_thread_state_session_id "
 		"ON ConversationThreadState(session_id);";
 
-	return db_.Exec(kSchemaSql);
+	Result schemaResult = db_.Exec(kSchemaSql);
+	if (!schemaResult) return schemaResult;
+
+	// 既存DBへの列追加。CREATE TABLE IF NOT EXISTS は既存テーブルを変更しないため、
+	// 後から足した列はここで補う。既に在る場合のエラーは無視してよい。
+	if (!HasColumn("Evidence", "reflected")) {
+		(void)db_.Exec("ALTER TABLE Evidence ADD COLUMN reflected INTEGER NOT NULL DEFAULT 0;");
+	}
+	return Result::Ok();
+}
+
+bool TaskStore::HasColumn(const std::string& table, const std::string& column) {
+	Statement stmt;
+	if (!db_.Prepare("SELECT COUNT(*) FROM pragma_table_info(?1) WHERE name=?2;", &stmt)) {
+		return false;
+	}
+	stmt.BindText(1, table);
+	stmt.BindText(2, column);
+	if (stmt.Step() != Statement::StepResult::Row) return false;
+	return stmt.ColumnInt64(0) > 0;
+}
+
+Result TaskStore::MarkEvidenceReflected(const std::vector<EvidenceId>& evidenceIds) {
+	if (evidenceIds.empty()) return Result::Ok();
+	std::lock_guard<std::mutex> lock(mutex_);
+	Transaction tx(db_);
+
+	Statement stmt;
+	Result r = db_.Prepare("UPDATE Evidence SET reflected=1 WHERE id=?1;", &stmt);
+	if (!r) return r;
+	for (const EvidenceId id : evidenceIds) {
+		stmt.Reset();
+		stmt.BindInt64(1, id);
+		if (stmt.Step() == Statement::StepResult::Error) {
+			return Result::Fail("MarkEvidenceReflected: update failed");
+		}
+	}
+	return tx.Commit();
 }
 
 SessionId TaskStore::CreateSession(const Json& goal) {
@@ -397,7 +439,7 @@ Json TaskStore::SearchConversationHistory(
 		Statement stmt;
 		Result r = db_.Prepare(
 			"SELECT Task.session_id, Evidence.source_type, Evidence.source_uri, "
-			"Evidence.claim, Evidence.payload_json, Evidence.confidence "
+			"Evidence.claim, Evidence.payload_json, Evidence.confidence, Evidence.reflected "
 			"FROM Evidence JOIN Task ON Evidence.task_id = Task.id "
 			"WHERE Task.session_id < ?1 ORDER BY Task.session_id DESC, Evidence.id DESC;",
 			&stmt);
@@ -410,6 +452,15 @@ Json TaskStore::SearchConversationHistory(
 				if (!Matches(claim, lowered) && !Matches(payloadText, lowered)) continue;
 				Json payload = Json::parse(payloadText, nullptr, false);
 				if (payload.is_discarded()) payload = Json::object();
+
+				// 最終応答へ反映されなかった失敗Evidenceは引き継がない（宣言の注記参照）。
+				// 判定基準はEvidenceBuilderのcoverage計算と同じものを使う。
+				Evidence probe;
+				probe.provenance.sourceType = stmt.ColumnText(1);
+				probe.payload = payload;
+				const bool reflected = stmt.ColumnInt64(6) != 0;
+				if (!reflected && IsFailureEvidence(probe)) continue;
+
 				entries.push_back(Json::object({
 					{"kind", "evidence"},
 					{"sessionId", stmt.ColumnInt64(0)},

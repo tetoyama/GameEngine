@@ -70,6 +70,12 @@ public:
 	//   kind="threadState"  : Intakeが確定させた構造化要約
 	//   kind="assistantTurn": 過去のAgent応答
 	// queryが空でなければ本文の部分一致で絞る（大小無視のASCII比較）。
+	// 失敗Evidenceのうち、最終応答へ反映されなかったものは返さない。
+	// 反映された失敗（例:「そのEntityは存在しなかった」と応答した）は
+	// 「前回これは無かった」という知識なので残す。
+	// 反映されなかった失敗は、同じ探索を繰り返させるだけで害になる
+	// （実機: 存在しない Taro を探した ToolUnsatisfied が次セッションへ
+	//  観測として戻り、修復ラウンドを空振りさせた）。
 	Json SearchConversationHistory(
 		SessionId beforeSessionId,
 		const std::string& query,
@@ -89,6 +95,11 @@ public:
 
 	// Evidence
 	EvidenceId AddEvidence(const Evidence& evidence);
+
+	// 最終応答へ反映されたEvidenceへ印をつける（＝仮説のsupportsに挙がったもの）。
+	// 失敗Evidenceを次のセッションへ引き継ぐかの判定に使う。
+	Result MarkEvidenceReflected(const std::vector<EvidenceId>& evidenceIds);
+
 	std::optional<Evidence> GetEvidence(EvidenceId evidenceId);
 	std::vector<Evidence> GetEvidenceForTask(TaskId taskId);
 	std::vector<Evidence> GetEvidenceForSession(SessionId sessionId);
@@ -106,6 +117,9 @@ public:
 	Json GetSessionSummary(SessionId sessionId);
 
 private:
+	// 既存DBに列が在るか（後から足した列の移行判定に使う）。
+	bool HasColumn(const std::string& table, const std::string& column);
+
 	Result CreateSchema();
 	TaskRow RowFromStatement(Statement& stmt);
 	Evidence EvidenceFromStatement(Statement& stmt);

@@ -286,6 +286,73 @@ void TestReferenceOnlySupportIsRejected() {
 	std::printf("  [ok] gate#7 rejects hypotheses supported only by conversation references\n");
 }
 
+// ---------------------------------
+// 4) 最終応答へ反映されなかった失敗Evidenceは引き継がないこと
+// ---------------------------------
+// 実機（transcript_20260727_155429）:
+//   「今日はいい天気ですね」に対しIntakeが前ターンの名前「Taro」を
+//   resolvedEntityName へ引き継ぎ、修復ラウンドが存在しないTaroを探して
+//   ToolUnsatisfied を3件作った。応答にはその失敗は反映されていない。
+//   この記録が次セッションへ「観測」として戻ると、同じ探索を繰り返させる。
+//
+// 反映された失敗（例:「そのEntityは存在しなかった」と答えた）は残す。
+// 「前回これは無かった」という知識であり、同じ轍を防ぐ側に働くため。
+void TestUnreflectedFailureIsNotCarriedOver() {
+	std::remove(kDbPath);
+	TaskStore store;
+	assert(store.Open(kDbPath));
+
+	const SessionId session = store.CreateSession(Json::object({{"goal", "挨拶へ応答する"}}));
+	const TaskId task = store.CreateTask(session, kInvalidId, "Retrieval", Json::object(), 0);
+
+	Evidence unreflected;
+	unreflected.taskId = task;
+	unreflected.claim = "UNREFLECTED_FAILURE: Entity 'Taro' は見つからなかった";
+	unreflected.provenance.sourceType = "ToolUnsatisfied";
+	unreflected.provenance.sourceUri = "FindEntityByName";
+	const EvidenceId unreflectedId = store.AddEvidence(unreflected);
+	assert(unreflectedId != kInvalidId);
+
+	Evidence reflected;
+	reflected.taskId = task;
+	reflected.claim = "REFLECTED_FAILURE: Component 'JumpForce' は存在しなかった";
+	reflected.provenance.sourceType = "ToolUnsatisfied";
+	reflected.provenance.sourceUri = "ReadComponent";
+	const EvidenceId reflectedId = store.AddEvidence(reflected);
+	assert(reflectedId != kInvalidId);
+
+	Evidence success;
+	success.taskId = task;
+	success.claim = "SUCCESS_EVIDENCE: Entityを5件取得した";
+	success.provenance.sourceType = "Tool:ListEntities";
+	success.provenance.sourceUri = "ListEntities";
+	assert(store.AddEvidence(success) != kInvalidId);
+
+	// 最終仮説が根拠に挙げたのは reflected だけ、という状況を作る。
+	assert(store.MarkEvidenceReflected({reflectedId}));
+
+	store.SetConversationResponse(session, "こんにちは。");
+
+	CapabilityRegistry registry;
+	CommandPipeline pipeline(&registry);
+	RegisterConversationHistoryTool(pipeline, &store);
+	const CapabilityToken token = registry.IssueToken("test", {"*"}, PermissionLevel::Read);
+	SetCurrentSessionId(99);
+
+	const CommandResult result = pipeline.Submit(
+		MakeRequest("GetConversationHistory", Json::object({{"limit", 20}}), token));
+	assert(result.status == CommandStatus::Ok);
+	const std::string dumped = result.payload.dump();
+
+	assert(dumped.find("UNREFLECTED_FAILURE") == std::string::npos);
+	assert(dumped.find("REFLECTED_FAILURE") != std::string::npos);
+	assert(dumped.find("SUCCESS_EVIDENCE") != std::string::npos);
+
+	SetCurrentSessionId(0);
+	std::remove(kDbPath);
+	std::printf("  [ok] unreflected failure evidence is not carried into a new session\n");
+}
+
 } // namespace
 
 int main() {
@@ -294,6 +361,7 @@ int main() {
 	TestToolReturnsAllKinds();
 	TestQueryAndKindFilter();
 	TestReferenceOnlySupportIsRejected();
+	TestUnreflectedFailureIsNotCarriedOver();
 
 	std::printf("=== ALL PASSED ===\n");
 	return 0;

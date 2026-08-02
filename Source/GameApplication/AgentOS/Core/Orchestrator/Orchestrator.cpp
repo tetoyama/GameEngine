@@ -54,6 +54,30 @@ namespace {
 //   - 必須項目が欠ける／Tool名が不明なら、Task自体を作らない
 //
 // 戻り値: このTaskを実行してよいか。
+// 仮説がsupportsに挙げたEvidence IDを集める。
+// 「最終応答に反映された」の近似としてこれを使う（Synthesisは仮説とEvidenceから
+// 応答を作るため、supportsに挙がったものが応答の材料になる）。
+std::vector<EvidenceId> CollectSupportedEvidenceIds(const Json& rankedHypotheses) {
+	std::vector<EvidenceId> ids;
+	if (!rankedHypotheses.is_object() || !rankedHypotheses.contains("hypotheses") ||
+	    !rankedHypotheses.at("hypotheses").is_array()) {
+		return ids;
+	}
+	std::unordered_set<std::int64_t> seen;
+	for (const Json& hypothesis : rankedHypotheses.at("hypotheses")) {
+		if (!hypothesis.is_object() || !hypothesis.contains("supports") ||
+		    !hypothesis.at("supports").is_array()) {
+			continue;
+		}
+		for (const Json& support : hypothesis.at("supports")) {
+			if (!support.is_number_integer()) continue;
+			const std::int64_t id = support.get<std::int64_t>();
+			if (seen.insert(id).second) ids.push_back(static_cast<EvidenceId>(id));
+		}
+	}
+	return ids;
+}
+
 bool SanitizeRepairCommand(const Json& toolCatalog, Json* command, std::string* rejectReason) {
 	if (command == nullptr || !command->is_object()) {
 		if (rejectReason) *rejectReason = "command is not an object";
@@ -703,6 +727,15 @@ OrchestratorResult Orchestrator::RunSession(const std::string& userRequest) {
 	}
 
 	store_->UpdateSessionState(sessionId, completed ? "Completed" : "Stopped");
+
+	// 最終仮説が根拠に挙げたEvidenceへ「反映済み」の印をつける。
+	//
+	// 失敗Evidenceを次のセッションへ引き継ぐかの判定に使う。
+	// 反映された失敗（例:「そのEntityは存在しなかった」と答えた）は
+	// 「前回これは無かった」という知識なので残す。
+	// 反映されなかった失敗は同じ探索を繰り返させるだけなので、
+	// TaskStore::SearchConversationHistory が引き継がない。
+	store_->MarkEvidenceReflected(CollectSupportedEvidenceIds(rankedJson));
 
 	sessionResult.completed = completed;
 	sessionResult.report = report;

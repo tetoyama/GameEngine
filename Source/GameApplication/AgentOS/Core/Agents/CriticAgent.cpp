@@ -446,50 +446,40 @@ std::string JoinIdentifiers(const std::vector<std::string>& identifiers) {
 // まだ空であれば、不足識別子を調べ直すための修復Taskを1件合成し、Repairループ
 // が実際に到達できるようにする。IsCompleteSceneSnapshotの決定的バイパスからも
 // 必ず呼び出すこと（Snapshotとして内部完結していても目的未達を見逃さないため）。
-// 目的識別子を「要求の権威ある表現」から集める。
+// 目的識別子は「ユーザーが実際に書いた文」からだけ集める。
 //
-// 実機失敗（transcript_20260726_230620）:
-//   入力     「SqliteDb::Prepareの実装を見せて」
-//   Intake   「SqliteDb::Prepare メソッドの実装コードを表示する」へ言い換え
-//   結果     Intakeが足しただけの「メソッド」「コード」を目的識別子として
-//            要求し、Evidenceに無いためhard fail。修復Taskが2つ合成され、
-//            どちらもEvidenceを産まず coverage 1.0 → 0.333 へ悪化した。
+// 実機失敗1（transcript_20260727_230620）:
+//   入力「SqliteDb::Prepareの実装を見せて」がIntakeで
+//   「SqliteDb::Prepare メソッドの実装コードを表示する」へ言い換えられ、
+//   Intakeが足しただけの「メソッド」「コード」を目的識別子として要求した。
+//   → resolvedRequest（自由文の言い換え）は読まないことにした。
 //
-//   このときLLM Criticはプロンプト内でcurrentUserInputを見ており、
-//   goalSatisfied=true・全項目1.0と正しく判定していた。
-//   つまり「原文を見ている側には決定権がなく、決定権を持つ決定的ゲートは
-//   原文を見ていない」という配線の欠落が原因である。
+// 実機失敗2（transcript_20260727_155429）:
+//   入力「今日はいい天気ですね」に対してIntakeが
+//   resolvedEntityName に前ターンの「Taro」を引き継いで書いた。
+//   Sceneに Taro は存在しないため「目的未達」と判定され、
+//   修復ラウンドが Taro を探しに行って失敗Evidenceを3件作り、
+//   通っていた状態を壊した。
+//   → 構造化フィールド（targetConcept / resolvedEntityName）も読まないことにした。
 //
-// よってここではresolvedRequest（自由文の言い換え）を読まない。
+// Intakeが埋める欄は、前ターンの内容を引き継いだり概念名を入れたりする。
+// 「ユーザーが今なんと書いたか」だけがこのゲートの根拠になる。
+//
+// 失うもの: ユーザーが日本語で言い、Intakeが英語シンボルへ直した場合
+// （ジャンプ力 → JumpForce）、JumpForce側は検査できない。
+// そこは仮説のmissingEvidence申告とcoverageが見る。
 std::vector<std::string> CollectAuthoritativeGoalIdentifiers() {
 	const std::string userInput = prompts::CurrentUserInput();
-	const std::string targetConcept = prompts::CurrentTargetConcept();
-	const std::string resolvedEntity = prompts::CurrentResolvedEntityName();
-
-	std::vector<std::string> identifiers;
-	std::unordered_set<std::string> seen;
-	auto append = [&](const std::vector<std::string>& source) {
-		for (const std::string& id : source) {
-			const std::string key = IsAsciiOnlyIdentifier(id) ? ToLowerAsciiIdentifier(id) : id;
-			if (seen.count(key) != 0) continue;
-			seen.insert(key);
-			identifiers.push_back(id);
-		}
-	};
 
 	// 原文からはASCII識別子と引用トークンのみ。理由はCriticAgent.hを参照。
-	append(critic_internal::ExtractGoalIdentifiers(userInput, /*includeKatakana=*/false));
-	// 構造化フィールドはIntakeが対象として確定させたものなので全形式を取る。
-	append(critic_internal::ExtractGoalIdentifiers(targetConcept));
-	append(critic_internal::ExtractGoalIdentifiers(resolvedEntity));
-
-	// 原文も構造化フィールドも一切無いときだけresolvedRequestへ退避する。
-	// 本番のIntakeは両経路でcurrentUserInputを必ず設定するため、
-	// ここへ来るのはContextが未設定の場合（単体テスト等）に限られる。
-	if (userInput.empty() && targetConcept.empty() && resolvedEntity.empty()) {
-		append(critic_internal::ExtractGoalIdentifiers(prompts::CurrentResolvedRequest()));
+	if (!userInput.empty()) {
+		return critic_internal::ExtractGoalIdentifiers(userInput, /*includeKatakana=*/false);
 	}
-	return identifiers;
+
+	// 原文が無いときだけresolvedRequestへ退避する。
+	// 本番のIntakeは必ずcurrentUserInputを設定するため、ここへ来るのは
+	// Contextが未設定の場合（単体テスト等）に限られる。
+	return critic_internal::ExtractGoalIdentifiers(prompts::CurrentResolvedRequest());
 }
 
 bool ApplyGoalIdentifierGate(const Json& builtEvidence, CriticVerdict* out) {
