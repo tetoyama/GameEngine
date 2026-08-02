@@ -324,6 +324,7 @@ void PerformanceMonitor::RebuildFrameSpikes(){
 			if(FrameSpikes.size() > 32){
 				FrameSpikes.pop_front();
 			}
+		}
 		previousWasSpike = true;
 		previousSpikeFrame = frame.frame;
 	}
@@ -462,33 +463,9 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 	ImGui::Spacing();
 
 	if(ImGui::CollapsingHeader("Frame Budget", ImGuiTreeNodeFlags_DefaultOpen)){
-		BudgetPlot(
-			"Update CPU",
-			"##UpdateBudget",
-			UpdateSamples,
-			SAMPLE_LENGTH,
-			updateCurrent,
-			updateAverage,
-			frameBudget
-		);
-		BudgetPlot(
-			"Draw CPU",
-			"##DrawBudget",
-			DrawSamples,
-			SAMPLE_LENGTH,
-			drawCurrent,
-			drawAverage,
-			frameBudget
-		);
-		BudgetPlot(
-			"GPU Frame",
-			"##GpuBudget",
-			GPUFrameTimeSamples,
-			SAMPLE_LENGTH,
-			gpuCurrent,
-			gpuAverage,
-			frameBudget
-		);
+		BudgetPlot("Update CPU", "##UpdateBudget", UpdateSamples, SAMPLE_LENGTH, updateCurrent, updateAverage, frameBudget);
+		BudgetPlot("Draw CPU", "##DrawBudget", DrawSamples, SAMPLE_LENGTH, drawCurrent, drawAverage, frameBudget);
+		BudgetPlot("GPU Frame", "##GpuBudget", GPUFrameTimeSamples, SAMPLE_LENGTH, gpuCurrent, gpuAverage, frameBudget);
 	}
 
 	if(ImGui::CollapsingHeader("CPU / GPU Breakdown", ImGuiTreeNodeFlags_DefaultOpen)){
@@ -614,13 +591,7 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 		: ImGuiTreeNodeFlags_DefaultOpen;
 	if(ImGui::CollapsingHeader("Frame Spike Diagnostics", spikeFlags)){
 		ImGui::SetNextItemWidth(150.0f);
-		ImGui::SliderFloat(
-			"Threshold",
-			&SpikeThresholdMilliseconds,
-			5.0f,
-			100.0f,
-			"%.1f ms"
-		);
+		ImGui::SliderFloat("Threshold", &SpikeThresholdMilliseconds, 5.0f, 100.0f, "%.1f ms");
 		ImGui::SameLine();
 		if(ImGui::Button("Clear History")){
 			FrameHistory.clear();
