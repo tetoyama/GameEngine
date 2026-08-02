@@ -113,6 +113,12 @@ inline void Inspect(
 	ImGui::PushID(&component);
 	DrawModelPath(component, context);
 	if(component.model){
+		ImGui::Separator();
+		ModelRendererSubMeshInspector::Draw(
+			component.subMeshes,
+			*component.model
+		);
+		ImGui::Separator();
 		DrawAnimationList(component);
 		ImGui::Separator();
 		DrawMotionBlend(component);
