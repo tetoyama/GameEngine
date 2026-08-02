@@ -1,12 +1,48 @@
 #include <cassert>
 #include <cstdint>
+#include <string>
+#include <vector>
 
 #include "Engine/Resources/Data/modelData.h"
+#include "Engine/Resources/Data/modelAssimpMaterialNormalization.h"
+#include "Engine/Scene/Component/materialComponent.h"
+#include "Engine/Scene/System/Render/Model/ModelMaterialResolver.h"
 
 int main(){
 	static_assert(InvalidModelSubMeshID == 0);
 	static_assert(InvalidImportedMaterialID == 0);
 	static_assert(InvalidCustomMaterialID == 0);
+
+	using namespace ModelAssimpMaterialNormalization;
+	assert(NormalizeTexturePath("./Textures\\Body//BaseColor.png") ==
+		"Textures/Body/BaseColor.png");
+	assert(ParseEmbeddedTextureIndex("*17") == 17);
+	assert(ParseEmbeddedTextureIndex("Texture.png") == InvalidModelSourceIndex);
+	assert(ColorSpaceFor(MaterialTextureSemantic::BaseColor) ==
+		MaterialColorSpace::SRGB);
+	assert(ColorSpaceFor(MaterialTextureSemantic::Normal) ==
+		MaterialColorSpace::Linear);
+
+	std::vector<ModelMaterialImportDiagnostic> idDiagnostics;
+	StableLocalIDAllocator ids;
+	const std::uint32_t bodyID = ids.Allocate(
+		"material",
+		"Body",
+		0,
+		&idDiagnostics
+	);
+	const std::uint32_t bodyIDCollision = ids.Allocate(
+		"material",
+		"Body",
+		0,
+		&idDiagnostics
+	);
+	assert(bodyID != 0);
+	assert(bodyIDCollision != 0);
+	assert(bodyID != bodyIDCollision);
+	assert(idDiagnostics.size() == 1);
+	assert(idDiagnostics[0].code ==
+		ModelMaterialImportDiagnosticCode::StableLocalIDCollision);
 
 	MaterialDescriptor descriptor;
 	descriptor.shaderID = 4;
@@ -19,6 +55,7 @@ int main(){
 	MaterialTextureBinding baseColor;
 	baseColor.semantic = MaterialTextureSemantic::BaseColor;
 	baseColor.colorSpace = MaterialColorSpace::SRGB;
+	baseColor.sourcePath = ".\\Textures\\Body_BaseColor.png";
 	baseColor.assetPath = "Textures/Body_BaseColor.png";
 
 	MaterialTextureBinding normal;
@@ -50,6 +87,7 @@ int main(){
 	glassMaterial.id = 20;
 	glassMaterial.name = "Glass";
 	glassMaterial.sourceMaterialIndex = 1;
+	glassMaterial.descriptor.shaderID = 7;
 	glassMaterial.descriptor.renderState.alphaMode = MaterialAlphaMode::Blend;
 	model->ImportedMaterials.push_back(glassMaterial);
 
@@ -85,14 +123,73 @@ int main(){
 	state.castShadow = false;
 	state.material.source = SubMeshMaterialSource::CustomMaterial;
 	state.material.customMaterialID = 30;
-	assert(state.subMeshID == 200);
-	assert(state.material.customMaterialID == 30);
 
+	MaterialComponent materialComponent;
 	CustomMaterialEntry customGlass;
 	customGlass.id = 30;
 	customGlass.name = "CustomGlass";
 	customGlass.inlineMaterial = glassMaterial.descriptor;
-	assert(customGlass.inlineMaterial.renderState.alphaMode == MaterialAlphaMode::Blend);
+	customGlass.inlineMaterial.shaderID = 9;
+	materialComponent.materials.push_back(customGlass);
+
+	const ModelMaterialResolveResult customResolved =
+		ModelMaterialResolver::Resolve(
+			*model,
+			model->FindSubMesh(glass.id),
+			&state,
+			&materialComponent
+		);
+	assert(customResolved.IsResolved());
+	assert(customResolved.source == ModelMaterialResolutionSource::CustomMaterial);
+	assert(customResolved.issue == ModelMaterialResolutionIssue::None);
+	assert(customResolved.customMaterialID == 30);
+	assert(customResolved.GetDescriptor()->shaderID == 9);
+
+	state.material.customMaterialID = 999;
+	const ModelMaterialResolveResult brokenCustom =
+		ModelMaterialResolver::Resolve(
+			*model,
+			model->FindSubMesh(glass.id),
+			&state,
+			&materialComponent
+		);
+	assert(brokenCustom.IsResolved());
+	assert(brokenCustom.usedFallback);
+	assert(brokenCustom.issue ==
+		ModelMaterialResolutionIssue::MissingCustomMaterial);
+	assert(brokenCustom.source ==
+		ModelMaterialResolutionSource::ImportedMaterialFallback);
+	assert(brokenCustom.importedMaterialID == glassMaterial.id);
+	assert(brokenCustom.GetDescriptor()->shaderID == 7);
+
+	const ModelMaterialResolveResult missingComponent =
+		ModelMaterialResolver::Resolve(
+			*model,
+			model->FindSubMesh(glass.id),
+			&state,
+			nullptr
+		);
+	assert(missingComponent.usedFallback);
+	assert(missingComponent.issue ==
+		ModelMaterialResolutionIssue::MissingMaterialComponent);
+	assert(missingComponent.source ==
+		ModelMaterialResolutionSource::ImportedMaterialFallback);
+
+	ModelSubMeshDefinition brokenSubMesh = glass;
+	brokenSubMesh.defaultMaterialID = 12345;
+	const ModelMaterialResolveResult engineFallback =
+		ModelMaterialResolver::Resolve(
+			*model,
+			&brokenSubMesh,
+			nullptr,
+			nullptr
+		);
+	assert(engineFallback.IsResolved());
+	assert(engineFallback.usedFallback);
+	assert(engineFallback.source ==
+		ModelMaterialResolutionSource::EngineDefault);
+	assert(engineFallback.issue ==
+		ModelMaterialResolutionIssue::MissingImportedMaterial);
 
 	(void)model;
 	return 0;
