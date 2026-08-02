@@ -133,15 +133,15 @@ int main(){
 	> ownedTargets;
 	for(std::size_t index = 0; index < 5; ++index){
 		ownedTargets[index] = CreateColorTarget(
-			*primary.device,
+			*primary.device.Get(),
 			DXGI_FORMAT_R16G16B16A16_FLOAT
 		);
 	}
 	ownedTargets[5] = CreateColorTarget(
-		*primary.device,
+		*primary.device.Get(),
 		DXGI_FORMAT_R32G32B32A32_UINT
 	);
-	const auto depth = CreateDepthTarget(*primary.device);
+	const auto depth = CreateDepthTarget(*primary.device.Get());
 
 	std::array<
 		ID3D11RenderTargetView*,
@@ -177,7 +177,7 @@ int main(){
 	assert(reboundDepth.Get() == depth.Get());
 
 	auto wrongSize = CreateColorTarget(
-		*primary.device,
+		*primary.device.Get(),
 		DXGI_FORMAT_R16G16B16A16_FLOAT,
 		16,
 		32
@@ -188,7 +188,7 @@ int main(){
 
 	targets[0] = ownedTargets[0].Get();
 	auto foreignTarget = CreateColorTarget(
-		*foreign.device,
+		*foreign.device.Get(),
 		DXGI_FORMAT_R16G16B16A16_FLOAT
 	);
 	targets[1] = foreignTarget.Get();

@@ -42,6 +42,7 @@
 
 #include "Graphics/graphicsContext.h"
 #include "Graphics/mainRenderer.h"
+#include "Graphics/RHI/RHIService.h"
 
 #include "Resources/resourceService.h"
 #include "Resources/Data/vertexShaderData.h"
@@ -60,6 +61,7 @@
 #include "System/Render/RenderSystem/RenderPacket/RenderPacketTransformDX11.h"
 #include "System/Render/RenderSystem/RenderWorld/RenderWorldExtraction.h"
 #include "System/Render/RenderSystem/RenderWorld/RenderWorldExtractionTaskRegistrar.h"
+#include "System/Render/Model/ModelGeometryRuntimeTaskRegistrar.h"
 
 #include "Component/RenderLayerComponent.h"
 #include "Component/transformComponent.h"
@@ -124,6 +126,35 @@ void RenderSystem::BuildRenderPackets(){
 	);
 }
 
+void RenderSystem::SynchronizeModelGeometryRuntime(){
+	if(!m_context || !m_context->graphics){
+		m_modelGeometryRuntime.Abandon();
+		return;
+	}
+
+	RHI::RenderHardwareInterfaceService* service =
+		m_context->graphics->GetRHIService();
+	RHI::IRHIDevice* device = service ? service->GetDevice() : nullptr;
+	const RHI::DeviceGeneration deviceGeneration = service
+		? service->GetDeviceGeneration()
+		: RHI::InvalidDeviceGeneration;
+	if(!device || deviceGeneration == RHI::InvalidDeviceGeneration){
+		m_modelGeometryRuntime.Abandon();
+		return;
+	}
+
+	const RenderPacketFrameBuffer& frameBuffer = m_renderWorld.Packets();
+	const std::span<const RenderPacket> packets = frameBuffer.IsReady()
+		? std::span<const RenderPacket>(frameBuffer.Packets())
+		: std::span<const RenderPacket>{};
+	m_modelGeometryRuntime.Synchronize(
+		*device,
+		packets,
+		m_renderWorld.Generation(),
+		deviceGeneration
+	);
+}
+
 void RenderSystem::SubmitRenderPackets(){
 	(void)m_renderWorld.MarkSubmitted();
 	Draw();
@@ -149,6 +180,7 @@ void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){
 
 	RenderSystemAnimationTaskRegistrar::Register(*this, builder);
 	RenderWorldExtractionTaskRegistrar::Register(*this, builder);
+	ModelGeometryRuntimeTaskRegistrar::Register(*this, builder);
 
 	SystemAccess submitAccess = SystemAccess::LegacyExclusive();
 	submitAccess.ReadResource<RenderPacketFrameBuffer>();

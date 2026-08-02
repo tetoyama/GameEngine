@@ -26,6 +26,7 @@
 #include "System/Render/RenderSystem/RenderWorld/RenderWorld.h"
 #include "System/Render/RenderSystem/RenderPass/RenderPassContext.h"
 #include "System/Render/Animation/ModelRendererGpuRuntimeStorage.h"
+#include "System/Render/Model/ModelGeometryRuntimeStorage.h"
 
 struct SceneManagerContext;
 struct PixelShaderData;
@@ -142,6 +143,7 @@ public:
 	void Stop() override {
 		m_renderWorld.Reset();
 		m_modelRendererGpuRuntime.Reset();
+		m_modelGeometryRuntime.Reset();
 	}
 
 	void Update(float deltaTime);
@@ -154,6 +156,7 @@ public:
 
 	void Draw();
 	void BuildRenderPackets();
+	void SynchronizeModelGeometryRuntime();
 	void SubmitRenderPackets();
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override;
@@ -234,6 +237,14 @@ public:
 
 	const ModelRendererGpuRuntimeStorage& GetModelRendererGpuRuntime() const noexcept {
 		return m_modelRendererGpuRuntime;
+	}
+
+	ModelGeometryRuntimeStorage& GetModelGeometryRuntime() noexcept {
+		return m_modelGeometryRuntime;
+	}
+
+	const ModelGeometryRuntimeStorage& GetModelGeometryRuntime() const noexcept {
+		return m_modelGeometryRuntime;
 	}
 
 	RenderPacketFrameBuffer& GetRenderPacketBuffer() noexcept {
@@ -325,6 +336,9 @@ private:
 
 	// ModelRendererComponentから分離したEntity単位の動的Vertex Buffer Runtime。
 	ModelRendererGpuRuntimeStorage m_modelRendererGpuRuntime;
+
+	// ModelData単位の共有Static Vertex / Index RHI Geometry Runtime。
+	ModelGeometryRuntimeStorage m_modelGeometryRuntime;
 
 	// 隔離済みLegacy実装のコンパイル互換だけに残す。Active経路は使用しない。
 	RenderWorldPacketCompatibility m_renderPacketBuffer;

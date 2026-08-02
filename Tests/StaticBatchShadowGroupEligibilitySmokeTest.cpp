@@ -2,7 +2,7 @@
 #include <cassert>
 #include <cstddef>
 
-#include "Engine/Scene/System/Render/StaticBatch/StaticBatchShadowGroupEligibility.h"
+#include "Engine/Scene/System/Render/StaticBatch/StaticBatchShadowGroupPacketEligibility.h"
 
 namespace {
 
@@ -41,85 +41,64 @@ int main(){
 	constexpr std::array<std::size_t, 2> packetIndices{0, 1};
 
 	StaticBatchPacketCacheEntry group = MakeGroup();
-	auto result = StaticBatchShadowGroupEligibility::Resolve(
+	auto rejectReason = StaticBatchShadowGroupPacketEligibility::Validate(
 		group,
 		packetIndices,
 		packets
 	);
-	assert(
-		result.rejectReason ==
-		StaticBatchShadowGroupRejectReason::MaterialUnavailable
-	);
+	assert(rejectReason == StaticBatchShadowGroupRejectReason::None);
 
 	group.instanceCount = 1;
-	result = StaticBatchShadowGroupEligibility::Resolve(
+	rejectReason = StaticBatchShadowGroupPacketEligibility::Validate(
 		group,
 		packetIndices,
 		packets
 	);
-	assert(
-		result.rejectReason ==
-		StaticBatchShadowGroupRejectReason::SingleInstance
-	);
+	assert(rejectReason == StaticBatchShadowGroupRejectReason::SingleInstance);
 
 	group = MakeGroup();
 	group.firstInstance = 1;
-	result = StaticBatchShadowGroupEligibility::Resolve(
+	rejectReason = StaticBatchShadowGroupPacketEligibility::Validate(
 		group,
 		packetIndices,
 		packets
 	);
-	assert(
-		result.rejectReason ==
-		StaticBatchShadowGroupRejectReason::InvalidPacketRange
-	);
+	assert(rejectReason == StaticBatchShadowGroupRejectReason::InvalidPacketRange);
 
 	group = MakeGroup();
 	packets[1].passMask = RenderPacketPassMask::GBuffer;
-	result = StaticBatchShadowGroupEligibility::Resolve(
+	rejectReason = StaticBatchShadowGroupPacketEligibility::Validate(
 		group,
 		packetIndices,
 		packets
 	);
-	assert(
-		result.rejectReason ==
-		StaticBatchShadowGroupRejectReason::MissingShadowPass
-	);
+	assert(rejectReason == StaticBatchShadowGroupRejectReason::MissingShadowPass);
 
 	packets[1] = MakePacket(2);
 	packets[1].materialKey = 9;
-	result = StaticBatchShadowGroupEligibility::Resolve(
+	rejectReason = StaticBatchShadowGroupPacketEligibility::Validate(
 		group,
 		packetIndices,
 		packets
 	);
-	assert(
-		result.rejectReason ==
-		StaticBatchShadowGroupRejectReason::GroupPacketMismatch
-	);
+	assert(rejectReason == StaticBatchShadowGroupRejectReason::GroupPacketMismatch);
 
 	packets[1] = MakePacket(2);
 	packets[0].kind = RenderPacketKind::Mesh;
-	result = StaticBatchShadowGroupEligibility::Resolve(
+	rejectReason = StaticBatchShadowGroupPacketEligibility::Validate(
 		group,
 		packetIndices,
 		packets
 	);
-	assert(
-		result.rejectReason ==
-		StaticBatchShadowGroupRejectReason::UnsupportedPacketKind
-	);
+	assert(rejectReason == StaticBatchShadowGroupRejectReason::UnsupportedPacketKind);
 
 	packets[0] = MakePacket(1);
 	packets[0].layer = RenderLayer::Transparent3D;
-	result = StaticBatchShadowGroupEligibility::Resolve(
+	rejectReason = StaticBatchShadowGroupPacketEligibility::Validate(
 		group,
 		packetIndices,
 		packets
 	);
-	assert(
-		result.rejectReason ==
-		StaticBatchShadowGroupRejectReason::UnsupportedRenderLayer
-	);
+	assert(rejectReason == StaticBatchShadowGroupRejectReason::UnsupportedRenderLayer);
 	return 0;
 }

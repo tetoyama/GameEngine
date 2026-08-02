@@ -3,11 +3,14 @@
 #include <algorithm>
 #include <cstdint>
 #include <limits>
+#include <memory>
 
+#include "Resources/Data/modelMaterialTypes.h"
 #include "Scene/Entity/Entity.h"
 #include "System/Render/RenderSystem/renderLayer.h"
 
 struct SceneContext;
+struct ModelData;
 class TransformComponent;
 class MaterialComponent;
 class TextureComponent;
@@ -179,6 +182,30 @@ struct RenderPacketTransformSnapshot {
 	bool hasParentWorld = false;
 };
 
+// Imported MaterialはModelData内を参照し、Custom MaterialだけFrame-local
+// Snapshotを所有する。これによりDraw側はMaterialComponentを再探索しない。
+struct RenderPacketModelMaterialSnapshot {
+	const MaterialDescriptor* descriptor = nullptr;
+	std::shared_ptr<const MaterialDescriptor> ownedDescriptor;
+	ModelMaterialResolutionSource source =
+		ModelMaterialResolutionSource::EngineDefault;
+	ModelMaterialResolutionIssue issue =
+		ModelMaterialResolutionIssue::None;
+	ModelMaterialResolutionIssue fallbackIssue =
+		ModelMaterialResolutionIssue::None;
+	ImportedMaterialID importedMaterialID = InvalidImportedMaterialID;
+	CustomMaterialID customMaterialID = InvalidCustomMaterialID;
+	bool usedFallback = false;
+
+	const MaterialDescriptor* GetDescriptor() const noexcept {
+		return ownedDescriptor ? ownedDescriptor.get() : descriptor;
+	}
+
+	bool IsResolved() const noexcept {
+		return GetDescriptor() != nullptr;
+	}
+};
+
 // Frame-local, non-owning bindings. Scheduler read hazards and the
 // MainThread submit barrier keep these addresses stable until submit ends.
 struct RenderPacketComponentBindings {
@@ -229,11 +256,18 @@ struct RenderPacket {
 	RenderLayer layer = RenderLayer::Opaque3D;
 	RenderPacketPassMask passMask = RenderPacketPassMask::None;
 	uint32_t materialKey = 0;
+	// subMeshIndex is the runtime Geometry index. subMeshID is the stable
+	// Asset-local identity used by Scene persistence and reimport tracking.
 	uint32_t subMeshIndex = RenderPacketAllSubMeshes;
+	ModelSubMeshID subMeshID = InvalidModelSubMeshID;
 	int32_t orderInLayer = 0;
 	uint64_t sortKey = 0;
 	uint64_t stableSequence = 0;
 	RenderPacketTransformSnapshot transform;
+	RenderPacketModelMaterialSnapshot modelMaterial;
+	// Frame-owned asset snapshot used by runtime synchronization. This keeps
+	// resource lifetime independent from the non-owning component bindings.
+	std::shared_ptr<ModelData> modelResource;
 	RenderPacketComponentBindings bindings;
 
 	constexpr bool TargetsAllSubMeshes() const noexcept {
@@ -242,6 +276,10 @@ struct RenderPacket {
 
 	constexpr bool TargetsSubMesh(std::uint32_t index) const noexcept {
 		return subMeshIndex == index;
+	}
+
+	constexpr bool TargetsSubMeshID(ModelSubMeshID id) const noexcept {
+		return id != InvalidModelSubMeshID && subMeshID == id;
 	}
 };
 
@@ -257,9 +295,11 @@ inline bool RenderPacketLess(const RenderPacket& lhs, const RenderPacket& rhs) n
 	if(lhs.subMeshIndex != rhs.subMeshIndex){
 		return lhs.subMeshIndex < rhs.subMeshIndex;
 	}
+	if(lhs.subMeshID != rhs.subMeshID){
+		return lhs.subMeshID < rhs.subMeshID;
+	}
 	return lhs.stableSequence < rhs.stableSequence;
 }
-
 
 struct RenderPacketViewItem {
 	const RenderPacket* packet = nullptr;

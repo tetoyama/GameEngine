@@ -131,6 +131,34 @@ inline void CombineMaterial(
 	Combine(hash, static_cast<std::uint64_t>(material.MaterialFlags));
 }
 
+inline void CombineMaterialDescriptor(
+	std::uint64_t& hash,
+	const MaterialDescriptor& descriptor
+) noexcept {
+	Combine(hash, static_cast<std::uint64_t>(
+		static_cast<std::uint32_t>((std::max)(0, descriptor.shaderID))
+	));
+	for(float value : descriptor.parameters.baseColor){
+		CombineFloat(hash, value);
+	}
+	for(float value : descriptor.parameters.emissiveColor){
+		CombineFloat(hash, value);
+	}
+	CombineFloat(hash, descriptor.parameters.metallic);
+	CombineFloat(hash, descriptor.parameters.roughness);
+	CombineFloat(hash, descriptor.parameters.ambientOcclusion);
+	CombineFloat(hash, descriptor.parameters.emissiveIntensity);
+	CombineFloat(hash, descriptor.parameters.opacity);
+	CombineFloat(hash, descriptor.parameters.normalScale);
+	CombineFloat(hash, descriptor.parameters.heightScale);
+	Combine(hash, static_cast<std::uint64_t>(descriptor.renderState.alphaMode));
+	Combine(hash, static_cast<std::uint64_t>(descriptor.renderState.cullMode));
+	CombineFloat(hash, descriptor.renderState.alphaCutoff);
+	Combine(hash, descriptor.renderState.depthWrite ? 1ull : 0ull);
+	Combine(hash, descriptor.renderState.receiveShadow ? 1ull : 0ull);
+	Combine(hash, descriptor.legacyMaterialFlags);
+}
+
 inline std::uint64_t MakePipelineKey(const RenderPacket& packet) noexcept {
 	std::uint64_t key = 0x504950454c494e45ull;
 	Combine(key, static_cast<std::uint64_t>(packet.kind));
@@ -179,6 +207,8 @@ inline std::uint64_t MakeGeometryKey(const RenderPacket& packet) noexcept {
 	Combine(key, static_cast<std::uint64_t>(model->AiScene->mNumMeshes));
 	Combine(key, static_cast<std::uint64_t>(model->MeshGeometry.size()));
 	Combine(key, static_cast<std::uint64_t>(packet.subMeshIndex));
+	Combine(key, static_cast<std::uint64_t>(packet.subMeshID));
+	Combine(key, model->GetGeometryRevision());
 
 	if(!packet.TargetsAllSubMeshes()){
 		if(packet.subMeshIndex >= model->AiScene->mNumMeshes) return 0;
@@ -200,6 +230,43 @@ inline std::uint64_t MakeGeometryKey(const RenderPacket& packet) noexcept {
 		);
 	}
 	return key == 0 ? 1 : key;
+}
+
+inline void CombineDescriptorTextureSet(
+	std::uint64_t& key,
+	const ModelData& model,
+	const MaterialDescriptor& descriptor
+) noexcept {
+	Combine(key, static_cast<std::uint64_t>(descriptor.textures.size()));
+	for(const MaterialTextureBinding& binding : descriptor.textures){
+		Combine(key, static_cast<std::uint64_t>(binding.semantic));
+		Combine(key, static_cast<std::uint64_t>(binding.colorSpace));
+		Combine(key, HashString(binding.assetPath));
+		Combine(key, HashString(binding.sourcePath));
+		Combine(key, binding.sourceTextureIndex);
+		Combine(key, binding.uvChannel);
+		CombineFloat(key, binding.uvScale[0]);
+		CombineFloat(key, binding.uvScale[1]);
+		CombineFloat(key, binding.uvOffset[0]);
+		CombineFloat(key, binding.uvOffset[1]);
+		CombineFloat(key, binding.uvRotation);
+		CombineFloat(key, binding.strength);
+		Combine(key, binding.embedded ? 1ull : 0ull);
+
+		auto found = binding.assetPath.empty()
+			? model.m_Texture.end()
+			: model.m_Texture.find(binding.assetPath);
+		if(found == model.m_Texture.end() && !binding.sourcePath.empty()){
+			found = model.m_Texture.find(binding.sourcePath);
+		}
+		Combine(key, found != model.m_Texture.end() ? 1ull : 0ull);
+		Combine(
+			key,
+			found != model.m_Texture.end() && found->second != nullptr
+				? 1ull
+				: 0ull
+		);
+	}
 }
 
 inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
@@ -234,12 +301,22 @@ inline std::uint64_t MakeTextureSetKey(const RenderPacket& packet) noexcept {
 		return 0;
 	}
 
-	const std::shared_ptr<ModelData>& model =
-		packet.bindings.modelRenderer->model;
+	const std::shared_ptr<ModelData> model = packet.modelResource
+		? packet.modelResource
+		: packet.bindings.modelRenderer->model;
 	if(!model || !model->AiScene) return 0;
 	if(!packet.TargetsAllSubMeshes() &&
 		packet.subMeshIndex >= model->AiScene->mNumMeshes){
 		return 0;
+	}
+
+	if(const MaterialDescriptor* descriptor =
+		packet.modelMaterial.GetDescriptor()){
+		std::uint64_t key = 0x4d4f44454c444553ull;
+		Combine(key, static_cast<std::uint64_t>(packet.subMeshIndex));
+		Combine(key, static_cast<std::uint64_t>(packet.subMeshID));
+		CombineDescriptorTextureSet(key, *model, *descriptor);
+		return key == 0 ? 1 : key;
 	}
 
 	std::vector<std::string_view> textureNames;
@@ -305,7 +382,15 @@ inline std::uint64_t MakeModelMaterialStateKey(
 
 inline std::uint64_t MakeMaterialStateKey(const RenderPacket& packet) noexcept {
 	std::uint64_t key = 0x4d4154455249414cull;
-	if(const MaterialComponent* component = packet.bindings.material){
+	const MaterialDescriptor* resolvedDescriptor =
+		packet.modelMaterial.GetDescriptor();
+	if(resolvedDescriptor){
+		CombineMaterialDescriptor(key, *resolvedDescriptor);
+		Combine(key, static_cast<std::uint64_t>(packet.modelMaterial.source));
+		Combine(key, packet.modelMaterial.importedMaterialID);
+		Combine(key, packet.modelMaterial.customMaterialID);
+		Combine(key, packet.modelMaterial.usedFallback ? 1ull : 0ull);
+	}else if(const MaterialComponent* component = packet.bindings.material){
 		Combine(key, static_cast<std::uint64_t>(component->ShaderID));
 		CombineMaterial(key, component->Material);
 	}else if(packet.kind == RenderPacketKind::Mesh){
@@ -314,7 +399,7 @@ inline std::uint64_t MakeMaterialStateKey(const RenderPacket& packet) noexcept {
 		return 0;
 	}
 
-	if(packet.kind == RenderPacketKind::Model){
+	if(packet.kind == RenderPacketKind::Model && !resolvedDescriptor){
 		if(!packet.bindings.modelRenderer) return 0;
 		const std::uint64_t modelMaterialKey =
 			MakeModelMaterialStateKey(packet, *packet.bindings.modelRenderer);

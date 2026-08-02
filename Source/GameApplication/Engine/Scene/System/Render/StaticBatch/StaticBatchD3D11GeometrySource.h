@@ -21,6 +21,11 @@ struct StaticBatchD3D11GeometrySource {
 	RHI::IndexFormat indexFormat = RHI::IndexFormat::UInt32;
 	std::uint64_t geometryResourceKey = 0;
 
+	// Geometry Keyを変えずに同一Assetの内容だけが差し替わるケースを識別する。
+	// ModelData由来SourceはModel Geometry Revisionを設定する。Revision契約を
+	// 持たないLegacy / Mesh Sourceは0のままでもよい。
+	std::uint64_t sourceRevision = 0;
+
 	std::uint32_t IndexElementSize() const noexcept {
 		return indexFormat == RHI::IndexFormat::UInt16
 			? static_cast<std::uint32_t>(sizeof(std::uint16_t))

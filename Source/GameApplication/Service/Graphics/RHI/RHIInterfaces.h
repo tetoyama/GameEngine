@@ -11,6 +11,9 @@
 
 namespace RHI {
 
+using DeviceGeneration = std::uint64_t;
+inline constexpr DeviceGeneration InvalidDeviceGeneration = 0;
+
 class IRHICommandList {
 public:
 	virtual ~IRHICommandList() = default;
@@ -63,6 +66,8 @@ public:
 
 class IRHIDevice {
 public:
+	using LifetimeToken = std::weak_ptr<const std::uint8_t>;
+
 	virtual ~IRHIDevice() = default;
 	virtual BackendType GetBackendType() const noexcept = 0;
 	virtual const DeviceCapabilities& GetCapabilities() const noexcept = 0;
@@ -95,6 +100,13 @@ public:
 	virtual IRHISwapChain* GetSwapChain() = 0;
 	virtual const IRHISwapChain* GetSwapChain() const = 0;
 	virtual void WaitIdle() = 0;
+
+	// Runtime StorageはこのTokenを弱参照し、Device破棄後に保存済みの
+	// 生Pointerを逆参照せずAbandonへ切り替える。
+	LifetimeToken GetLifetimeToken() const noexcept {
+		return m_lifetimeToken;
+	}
+
 	bool PresentSwapChain(bool verticalSync){
 		IRHISwapChain* swapChain = GetSwapChain();
 		if(!swapChain) return false;
@@ -107,6 +119,10 @@ public:
 		WaitIdle();
 		return swapChain->Resize(width, height);
 	}
+
+private:
+	std::shared_ptr<const std::uint8_t> m_lifetimeToken =
+		std::make_shared<const std::uint8_t>(std::uint8_t{0});
 };
 
 } // namespace RHI

@@ -120,13 +120,13 @@ int main(){
 		static_cast<std::uint32_t>(sizeof(float) * 3u);
 
 	auto nativeVertexBuffer = CreateBuffer(
-		*primary.device,
+		*primary.device.Get(),
 		static_cast<UINT>(sizeof(vertices)),
 		D3D11_BIND_VERTEX_BUFFER,
 		vertices.data()
 	);
 	auto nativeIndexBuffer = CreateBuffer(
-		*primary.device,
+		*primary.device.Get(),
 		static_cast<UINT>(sizeof(indices)),
 		D3D11_BIND_INDEX_BUFFER,
 		indices.data()
@@ -190,7 +190,7 @@ int main(){
 	commandList->End();
 
 	auto foreignVertexBuffer = CreateBuffer(
-		*foreign.device,
+		*foreign.device.Get(),
 		static_cast<UINT>(sizeof(vertices)),
 		D3D11_BIND_VERTEX_BUFFER,
 		vertices.data()
@@ -209,13 +209,13 @@ int main(){
 
 	// Native Buffer互換Fallback。
 	auto bindingVertexBuffer = CreateBuffer(
-		*primary.device,
+		*primary.device.Get(),
 		static_cast<UINT>(sizeof(vertices)),
 		D3D11_BIND_VERTEX_BUFFER,
 		vertices.data()
 	);
 	auto bindingIndexBuffer = CreateBuffer(
-		*primary.device,
+		*primary.device.Get(),
 		static_cast<UINT>(sizeof(indices)),
 		D3D11_BIND_INDEX_BUFFER,
 		indices.data()
