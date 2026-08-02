@@ -102,8 +102,9 @@ void EditorService::Draw(EditorDrawContext ctx) {
 		MImGui::DrawInspectorEmptyState(icons);
 	}
 
-	// Docking owns geometry and interaction. The overlay only replaces the
-	// visible label area with a semantic glyph plus upstream-style ellipsis.
+	// Dear ImGui owns the complete tab presentation and interaction contract.
+	// We only add an optional glyph in unused trailing space; labels, ellipsis,
+	// surfaces, close buttons and dock geometry remain untouched.
 	MImGui::DrawDockTabOverlay(icons);
 
 	m_CompletedPanelTimings = m_CurrentPanelTimings;
