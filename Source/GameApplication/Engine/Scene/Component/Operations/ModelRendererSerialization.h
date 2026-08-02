@@ -12,6 +12,36 @@
 
 namespace ModelRendererSerialization {
 
+inline YAML::Node OptionalChild(
+	const YAML::Node& node,
+	const char* key
+) noexcept {
+	try{
+		if(!node.IsMap()) return YAML::Node{};
+		const YAML::Node child = node[key];
+		if(child.IsDefined()) return child;
+	}catch(const YAML::Exception&){
+	}
+	return YAML::Node{};
+}
+
+template<class T>
+inline bool TryDecodeValue(
+	const YAML::Node& node,
+	const char* key,
+	T& output
+) noexcept {
+	try{
+		if(!node.IsMap()) return false;
+		const YAML::Node child = node[key];
+		if(!child.IsDefined() || child.IsNull()) return false;
+		output = child.as<T>();
+		return true;
+	}catch(const YAML::Exception&){
+		return false;
+	}
+}
+
 inline YAML::Node Encode(const ModelRendererComponent& component){
 	YAML::Node node;
 	const std::string filePath = component.model
@@ -43,32 +73,41 @@ inline bool Decode(
 	SceneContext* context,
 	const YAML::Node& node
 ){
-	if(!node.IsMap()){
+	try{
+		if(!node.IsMap()){
+			return false;
+		}
+	}catch(const YAML::Exception&){
 		return false;
 	}
 
-	if(node["FilePath"]){
-		component.modelFilePath = node["FilePath"].as<std::string>();
-	}
-	if(node["isBlender"]){
-		component.isBlender = node["isBlender"].as<bool>();
-	}
-	if(node["AnimationTime"]){
-		component.animationTime = node["AnimationTime"].as<float>();
-	}
+	TryDecodeValue(node, "FilePath", component.modelFilePath);
+	TryDecodeValue(node, "isBlender", component.isBlender);
+	TryDecodeValue(node, "AnimationTime", component.animationTime);
 
 	component.animations.clear();
-	if(node["Animations"] && node["Animations"].IsMap()){
-		for(const auto& animationNode : node["Animations"]){
-			component.animations.emplace_back(
-				animationNode.first.as<std::string>(),
-				animationNode.second.as<std::string>()
-			);
+	const YAML::Node animations = OptionalChild(node, "Animations");
+	try{
+		if(animations.IsMap()){
+			for(const auto& animationNode : animations){
+				try{
+					component.animations.emplace_back(
+						animationNode.first.as<std::string>(),
+						animationNode.second.as<std::string>()
+					);
+				}catch(const YAML::Exception&){
+					// 壊れたAnimation Entryだけを無視する。
+				}
+			}
 		}
+	}catch(const YAML::Exception&){
+		component.animations.clear();
 	}
 
+	// 旧Scene / Play開始前のTemp SceneにはSubMeshes Nodeが存在しない。
+	// 欠落Keyを安全なNull Nodeへ変換し、空Overrideとして復元する。
 	ModelMaterialYamlSerialization::DecodeSubMeshStates(
-		node["SubMeshes"],
+		OptionalChild(node, "SubMeshes"),
 		component.subMeshes
 	);
 	component.blendedAnimations.clear();
