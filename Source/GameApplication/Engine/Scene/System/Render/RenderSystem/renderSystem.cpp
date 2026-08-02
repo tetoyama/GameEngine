@@ -135,7 +135,10 @@ void RenderSystem::SynchronizeModelGeometryRuntime(){
 	RHI::RenderHardwareInterfaceService* service =
 		m_context->graphics->GetRHIService();
 	RHI::IRHIDevice* device = service ? service->GetDevice() : nullptr;
-	if(!device){
+	const RHI::DeviceGeneration deviceGeneration = service
+		? service->GetDeviceGeneration()
+		: RHI::InvalidDeviceGeneration;
+	if(!device || deviceGeneration == RHI::InvalidDeviceGeneration){
 		m_modelGeometryRuntime.Abandon();
 		return;
 	}
@@ -147,7 +150,8 @@ void RenderSystem::SynchronizeModelGeometryRuntime(){
 	m_modelGeometryRuntime.Synchronize(
 		*device,
 		packets,
-		m_renderWorld.Generation()
+		m_renderWorld.Generation(),
+		deviceGeneration
 	);
 }
 
