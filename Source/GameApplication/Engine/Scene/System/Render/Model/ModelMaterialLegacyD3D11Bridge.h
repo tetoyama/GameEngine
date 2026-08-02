@@ -38,12 +38,13 @@ inline MATERIAL ToLegacyMaterial(
 	const MaterialDescriptor& descriptor
 ) noexcept {
 	MATERIAL material{};
+	// Resolver / Import AdapterでbaseColor.aへOpacityを一度だけ畳み込む。
+	// Bridgeでは再乗算せず、Canonicalな最終Alphaを使用する。
 	material.BaseColor = float4(
 		descriptor.parameters.baseColor[0],
 		descriptor.parameters.baseColor[1],
 		descriptor.parameters.baseColor[2],
-		descriptor.parameters.baseColor[3] *
-			descriptor.parameters.opacity
+		descriptor.parameters.baseColor[3]
 	);
 	material.Metallic = descriptor.parameters.metallic;
 	material.Roughness = descriptor.parameters.roughness;
