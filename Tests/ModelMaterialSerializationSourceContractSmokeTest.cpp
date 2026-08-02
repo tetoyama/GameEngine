@@ -75,7 +75,9 @@ int main(){
 	);
 	Require(subMeshInspector, "EnsureState");
 	Require(subMeshInspector, "Model Default");
-	Require(subMeshInspector, "Custom Material ID");
+	Require(subMeshInspector, "CustomMaterialDisplayName");
+	Require(subMeshInspector, "DrawCustomMaterialAssignment");
+	Require(subMeshInspector, "Missing ID");
 	Require(subMeshInspector, "Reset SubMesh State");
 	Require(subMeshInspector, "state.visible");
 	Require(subMeshInspector, "state.castShadow");
@@ -85,6 +87,9 @@ int main(){
 	);
 	Require(rendererInspector, "ModelRendererSubMeshInspector::Draw");
 	Require(rendererInspector, "component.subMeshes");
+	Require(rendererInspector, "FindSiblingMaterialComponent");
+	Require(rendererInspector, "GetAllBaseComponents<ModelRendererComponent>");
+	Require(rendererInspector, "GetComponent<MaterialComponent>");
 
 	const std::string yaml = ReadText(
 		"Source/GameApplication/Engine/Resources/Data/modelMaterialYamlSerialization.h"
