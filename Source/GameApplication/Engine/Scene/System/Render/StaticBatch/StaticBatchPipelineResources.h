@@ -139,6 +139,12 @@ public:
 		return released && !IsAllocated();
 	}
 
+	void Abandon() noexcept {
+		m_vertexShader = {};
+		m_pixelShader = {};
+		m_pipelineState = {};
+	}
+
 	bool IsReady() const noexcept {
 		return static_cast<bool>(m_vertexShader) &&
 			static_cast<bool>(m_pixelShader) &&

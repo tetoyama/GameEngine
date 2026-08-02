@@ -8,6 +8,7 @@
 #pragma once
 
 #include "Backends/YAMLConverters.h"
+#include "Resources/Data/modelMaterialYamlSerialization.h"
 
 namespace ModelRendererSerialization {
 
@@ -23,6 +24,16 @@ inline YAML::Node Encode(const ModelRendererComponent& component){
 	node["AnimationTime"] = component.animationTime;
 	for(const auto& [animationName, animationPath] : component.animations){
 		node["Animations"][animationName] = animationPath;
+	}
+
+	const YAML::Node subMeshStates =
+		ModelMaterialYamlSerialization::EncodeSubMeshStates(
+			component.subMeshes
+		);
+	if(subMeshStates.size() != 0){
+		node["SubMeshStateSchemaVersion"] =
+			ModelMaterialYamlSerialization::SchemaVersion;
+		node["SubMeshes"] = subMeshStates;
 	}
 	return node;
 }
@@ -56,6 +67,10 @@ inline bool Decode(
 		}
 	}
 
+	ModelMaterialYamlSerialization::DecodeSubMeshStates(
+		node["SubMeshes"],
+		component.subMeshes
+	);
 	component.blendedAnimations.clear();
 	component.CreateModel(context);
 	return true;

@@ -154,6 +154,14 @@ public:
 	ID3D11Device* NativeDevice() const noexcept { return m_device.Get(); }
 	ID3D11DeviceContext* NativeContext() const noexcept { return m_context.Get(); }
 	IDXGISwapChain* NativeSwapChain() const noexcept { return m_swapChain.NativeSwapChain(); }
+
+	// Transitional interop for legacy draw paths. Ownership remains in the
+	// RHI resource pool; callers receive a non-owning pointer valid while the
+	// BufferHandle remains alive.
+	ID3D11Buffer* NativeBuffer(BufferHandle handle) const noexcept {
+		const D3D11BufferResource* resource = Find(handle);
+		return resource ? resource->object.Get() : nullptr;
+	}
 private:
 	friend class D3D11RHICommandList;
 	friend class D3D11RHICommandQueue;
