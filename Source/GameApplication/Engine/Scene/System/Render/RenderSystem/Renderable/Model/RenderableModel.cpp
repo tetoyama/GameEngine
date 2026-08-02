@@ -138,6 +138,8 @@ void RenderableModel::Execute(
 	}
 
 	if(hasOverrideTexture){
+		// Entity Texture OverrideはModel付属Texture Setを完全に置換する。
+		material.MaterialFlags &= MATERIAL_FLAG_USE_ENVIRONMENT_MAP;
 		if(textureComponent->m_TextureData->pTexture){
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
 			BindTexture(
