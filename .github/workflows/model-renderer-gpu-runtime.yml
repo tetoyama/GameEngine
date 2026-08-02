@@ -13,8 +13,13 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/Model/**"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchD3D11GeometryBinding.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchD3D11GeometrySource.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometryRuntimeStorage.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchPipelineResources.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchShadowPipelineResources.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchUploadSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
@@ -24,6 +29,7 @@ on:
       - "Tests/ModelRendererGpuRuntimeStorageSmokeTest.cpp"
       - "Tests/ModelGeometryRuntimeStorageSmokeTest.cpp"
       - "Tests/StaticBatchGeometryRevisionSmokeTest.cpp"
+      - "Tests/StaticBatchRhiOwnershipContractSmokeTest.cpp"
       - "Docs/RHI_Device_Ownership_And_Model_Geometry_Revision_Contract.md"
       - ".github/workflows/model-renderer-gpu-runtime.yml"
   push:
@@ -38,8 +44,13 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/Model/**"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchD3D11GeometryBinding.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchD3D11GeometrySource.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometryRuntimeStorage.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchPipelineResources.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchShadowPipelineResources.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchUploadSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
@@ -49,6 +60,7 @@ on:
       - "Tests/ModelRendererGpuRuntimeStorageSmokeTest.cpp"
       - "Tests/ModelGeometryRuntimeStorageSmokeTest.cpp"
       - "Tests/StaticBatchGeometryRevisionSmokeTest.cpp"
+      - "Tests/StaticBatchRhiOwnershipContractSmokeTest.cpp"
       - "Docs/RHI_Device_Ownership_And_Model_Geometry_Revision_Contract.md"
       - ".github/workflows/model-renderer-gpu-runtime.yml"
   workflow_dispatch:
@@ -142,3 +154,20 @@ jobs:
           /link /NODEFAULTLIB:yaml-cppd.lib
           /NODEFAULTLIB:DirectXTex_Debug.lib
           && static-batch-geometry-revision-test.exe
+
+  static-batch-rhi-ownership:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run static batch RHI ownership contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          Tests/StaticBatchRhiOwnershipContractSmokeTest.cpp
+          /Fe:static-batch-rhi-ownership-test.exe
+          && static-batch-rhi-ownership-test.exe
