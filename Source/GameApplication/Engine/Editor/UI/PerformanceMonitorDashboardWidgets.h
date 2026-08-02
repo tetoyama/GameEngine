@@ -52,6 +52,10 @@ inline float Percentile(
 		return 0.0f;
 	}
 
+	// Dashboard histories are currently 60 samples. Keep a bounded stack
+	// workspace so percentile inspection never allocates while the profiler is
+	// measuring the frame. If a future caller supplies more data, prefer the
+	// most recent 512 samples because the dashboard represents recent health.
 	constexpr std::size_t MaxPercentileSamples = 512;
 	std::array<float, MaxPercentileSamples> values{};
 	const int firstSample = (std::max)(
