@@ -7,15 +7,19 @@
 
 #include <Psapi.h>
 #include <algorithm>
+#include <array>
 #include <cstddef>
 #include <cstdio>
 #include <iterator>
+#include <utility>
+#include <vector>
 
 #include <ImGui/imgui.h>
 #include <ImGui/imgui_internal.h>
 
 #include "Editor/editorService.h"
 #include "Editor/UI/MenuBar.h"
+#include "Editor/UI/PerformanceMonitorDashboardWidgets.h"
 #include "sceneManager.h"
 #include "Service/Graphics/graphicsContext.h"
 
@@ -43,6 +47,31 @@ const char* GpuTimingStatusName(GpuFrameTimingStatus status){
 		case GpuFrameTimingStatus::Dropped: return "Dropped";
 	}
 	return "Unknown";
+}
+
+void DrawTimingTableRow(
+	const char* label,
+	float current,
+	float average,
+	float budgetMilliseconds
+){
+	ImGui::TableNextRow();
+	ImGui::TableSetColumnIndex(0);
+	ImGui::TextUnformatted(label);
+	ImGui::TableSetColumnIndex(1);
+	ImGui::Text("%.3f ms", current);
+	ImGui::TableSetColumnIndex(2);
+	ImGui::TextDisabled("%.3f ms", average);
+	ImGui::TableSetColumnIndex(3);
+	const float ratio = budgetMilliseconds > 0.0f
+		? current / budgetMilliseconds
+		: 0.0f;
+	ImGui::PushStyleColor(
+		ImGuiCol_PlotHistogram,
+		PerformanceMonitorDashboardWidgets::LoadColor(ratio)
+	);
+	ImGui::ProgressBar((std::min)(ratio, 1.0f), ImVec2(-1.0f, 0.0f), "");
+	ImGui::PopStyleColor();
 }
 
 } // namespace
@@ -295,26 +324,28 @@ void PerformanceMonitor::RebuildFrameSpikes(){
 			if(FrameSpikes.size() > 32){
 				FrameSpikes.pop_front();
 			}
-		}
 		previousWasSpike = true;
 		previousSpikeFrame = frame.frame;
 	}
 }
 
 void PerformanceMonitor::Draw(const EditorDrawContext ctx){
+	using namespace PerformanceMonitorDashboardWidgets;
+
 	RecordCompletedFrame(ctx);
 	ApplyGpuFrameTimings(ctx);
 	RebuildFrameSpikes();
 
-	const double FPS = ctx.FPS;
-	const double FixedFPS = ctx.FixedUpdateFPS;
-	bool* showPerformanceMonitor = &m_editor->GetUI<MenuBar>()->showPerformanceMonitor;
+	const double fps = ctx.FPS;
+	const double fixedFps = ctx.FixedUpdateFPS;
+	bool* showPerformanceMonitor =
+		&m_editor->GetUI<MenuBar>()->showPerformanceMonitor;
 
-	PROCESS_MEMORY_COUNTERS_EX pmc{};
+	PROCESS_MEMORY_COUNTERS_EX memory{};
 	const BOOL memoryAvailable = GetProcessMemoryInfo(
 		GetCurrentProcess(),
-		reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&pmc),
-		sizeof(pmc)
+		reinterpret_cast<PROCESS_MEMORY_COUNTERS*>(&memory),
+		sizeof(memory)
 	);
 
 	SampleCount = (SampleCount + 1) % TARGET_FPS;
@@ -324,308 +355,348 @@ void PerformanceMonitor::Draw(const EditorDrawContext ctx){
 		ShiftSamples(UsageSamples);
 		ShiftSamples(CommitSizeSamples);
 		ShiftSamples(WorkingSetSizeSamples);
-		FixedFpsSamples[SAMPLE_LENGTH - 1] = static_cast<float>(FixedFPS);
-		DeltaFpsSamples[SAMPLE_LENGTH - 1] = static_cast<float>(FPS);
+		FixedFpsSamples[SAMPLE_LENGTH - 1] = static_cast<float>(fixedFps);
+		DeltaFpsSamples[SAMPLE_LENGTH - 1] = static_cast<float>(fps);
 
 		if(memoryAvailable){
-			const SIZE_T usageBase = pmc.WorkingSetSize + pmc.PagefileUsage;
+			const SIZE_T usageBase = memory.WorkingSetSize + memory.PagefileUsage;
 			UsageSamples[SAMPLE_LENGTH - 1] = usageBase > 0
-				? 100.0f * static_cast<float>(pmc.WorkingSetSize) /
+				? 100.0f * static_cast<float>(memory.WorkingSetSize) /
 					static_cast<float>(usageBase)
 				: 0.0f;
 			CommitSizeSamples[SAMPLE_LENGTH - 1] =
-				pmc.PagefileUsage / 1000000.0f;
+				memory.PagefileUsage / 1000000.0f;
 			WorkingSetSizeSamples[SAMPLE_LENGTH - 1] =
-				pmc.WorkingSetSize / 1000000.0f;
+				memory.WorkingSetSize / 1000000.0f;
 		}
 	}
 
-	if(!showPerformanceMonitor || !*showPerformanceMonitor){
-		return;
-	}
+	if(!showPerformanceMonitor || !*showPerformanceMonitor) return;
 
 	ImGuiWindowClass windowClass;
 	windowClass.DockNodeFlagsOverrideSet = ImGuiDockNodeFlags_NoWindowMenuButton;
 	ImGui::SetNextWindowClass(&windowClass);
-	ImGui::Begin("Performance Monitor", showPerformanceMonitor);
-
-	auto averageSamples = [](const float* samples){
-		float total = 0.0f;
-		for(int index = 0; index < SAMPLE_LENGTH; ++index){
-			total += samples[index];
-		}
-		return total / static_cast<float>(SAMPLE_LENGTH);
-	};
-	auto averageValidSamples = [](const float* samples){
-		float total = 0.0f;
-		int count = 0;
-		for(int index = 0; index < SAMPLE_LENGTH; ++index){
-			if(samples[index] > 0.0f){
-				total += samples[index];
-				++count;
-			}
-		}
-		return count > 0 ? total / static_cast<float>(count) : 0.0f;
-	};
-
-	if(ImGui::TreeNodeEx("負荷計測", ImGuiTreeNodeFlags_DefaultOpen)){
-		float fixedAverage = 0.0f;
-		float frameAverage = 0.0f;
-		int count = 0;
-		for(int index = 0; index < SAMPLE_LENGTH; ++index){
-			if(FixedFpsSamples[index] > 0.0f){
-				fixedAverage += FixedFpsSamples[index];
-				frameAverage += DeltaFpsSamples[index];
-				++count;
-			}
-		}
-		if(count > 0){
-			fixedAverage /= count;
-			frameAverage /= count;
-		}
-
-		ImGui::Text("Fixed: %.2f Avg: %.2f",
-			FixedFpsSamples[SAMPLE_LENGTH - 1], fixedAverage);
-		ImGui::PlotLines("##Fixed", FixedFpsSamples, SAMPLE_LENGTH);
-		ImGui::Text("Frame: %.2f Avg: %.2f",
-			DeltaFpsSamples[SAMPLE_LENGTH - 1], frameAverage);
-		ImGui::PlotLines("##Frame", DeltaFpsSamples, SAMPLE_LENGTH);
-		ImGui::Text("Update: Current %.4fms Avg %.4fms",
-			UpdateSamples[SAMPLE_LENGTH - 1], averageSamples(UpdateSamples));
-		ImGui::PlotLines("##Update", UpdateSamples, SAMPLE_LENGTH, 0, "", 0.0f, 1000.0f / 60.0f);
-		ImGui::Text("Draw: Current %.4fms Avg %.4fms",
-			DrawSamples[SAMPLE_LENGTH - 1], averageSamples(DrawSamples));
-		ImGui::PlotLines("##Draw", DrawSamples, SAMPLE_LENGTH, 0, "", 0.0f, 1000.0f / 60.0f);
-		ImGui::TreePop();
+	if(!ImGui::Begin("Performance Monitor", showPerformanceMonitor)){
+		ImGui::End();
+		return;
 	}
 
-	if(ImGui::TreeNodeEx("描画CPU / GPU内訳", ImGuiTreeNodeFlags_DefaultOpen)){
-		ImGui::Text("VSync: %s", ctx.VSyncEnabled ? "ON" : "OFF");
-		ImGui::Text("Tearing: %s", ctx.TearingSupported ? "Supported" : "Unsupported");
-		ImGui::Text(
-			"Frame Pacing: %s / Timeouts %llu",
-			ctx.FrameLatencyWaitableObjectEnabled ? "Waitable Object" : "DXGI Fallback",
-			static_cast<unsigned long long>(ctx.FrameLatencyWaitTimeoutCount)
-		);
+	const float frameBudget = 1000.0f / 60.0f;
+	const float updateCurrent = UpdateSamples[SAMPLE_LENGTH - 1];
+	const float drawCurrent = DrawSamples[SAMPLE_LENGTH - 1];
+	const float cpuCurrent = updateCurrent + drawCurrent;
+	const float updateAverage = Average(UpdateSamples, SAMPLE_LENGTH);
+	const float drawAverage = Average(DrawSamples, SAMPLE_LENGTH);
 
-		const FrameTimingRecord* latest =
-			FrameHistory.empty() ? nullptr : &FrameHistory.back();
-		const FrameTimingRecord* latestResolved = nullptr;
-		for(auto it = FrameHistory.rbegin(); it != FrameHistory.rend(); ++it){
-			if(it->gpuStatus == GpuFrameTimingStatus::Resolved){
-				latestResolved = &*it;
-				break;
-			}
+	const FrameTimingRecord* latest =
+		FrameHistory.empty() ? nullptr : &FrameHistory.back();
+	const FrameTimingRecord* latestResolved = nullptr;
+	for(auto iterator = FrameHistory.rbegin(); iterator != FrameHistory.rend(); ++iterator){
+		if(iterator->gpuStatus == GpuFrameTimingStatus::Resolved){
+			latestResolved = &*iterator;
+			break;
+		}
+	}
+	const float gpuCurrent = latestResolved
+		? latestResolved->gpuMilliseconds
+		: 0.0f;
+	const float gpuAverage = Average(GPUFrameTimeSamples, SAMPLE_LENGTH, true);
+	const float workingSetMb = memoryAvailable
+		? static_cast<float>(memory.WorkingSetSize / 1000000.0)
+		: 0.0f;
+
+	char value[64]{};
+	char detail[96]{};
+	if(ImGui::BeginTable(
+		"PerformanceSummary",
+		4,
+		ImGuiTableFlags_SizingStretchSame |
+		ImGuiTableFlags_NoSavedSettings |
+		ImGuiTableFlags_NoPadOuterX
+	)){
+		ImGui::TableNextColumn();
+		std::snprintf(value, sizeof(value), "%.1f FPS", fps);
+		std::snprintf(detail, sizeof(detail), "Fixed %.1f Hz", fixedFps);
+		MetricCard("FPS", "Frame Rate", value, detail, fps > 0.0 ? 60.0f / static_cast<float>(fps) : 2.0f);
+
+		ImGui::TableNextColumn();
+		std::snprintf(value, sizeof(value), "%.2f ms", cpuCurrent);
+		std::snprintf(detail, sizeof(detail), "Update %.2f + Draw %.2f", updateCurrent, drawCurrent);
+		MetricCard("CPU", "CPU Frame", value, detail, cpuCurrent / frameBudget);
+
+		ImGui::TableNextColumn();
+		if(latestResolved){
+			std::snprintf(value, sizeof(value), "%.2f ms", gpuCurrent);
+			std::snprintf(
+				detail,
+				sizeof(detail),
+				"Frame %llu · Avg %.2f",
+				static_cast<unsigned long long>(latestResolved->frame),
+				gpuAverage
+			);
+		}else{
+			std::snprintf(value, sizeof(value), "Pending");
+			std::snprintf(detail, sizeof(detail), "Waiting for GPU query");
+		}
+		MetricCard("GPU", "GPU Frame", value, detail, gpuCurrent / frameBudget);
+
+		ImGui::TableNextColumn();
+		std::snprintf(value, sizeof(value), "%.0f MB", workingSetMb);
+		std::snprintf(
+			detail,
+			sizeof(detail),
+			"Commit %.0f MB",
+			memoryAvailable ? memory.PagefileUsage / 1000000.0 : 0.0
+		);
+		MetricCard("Memory", "Working Set", value, detail, 0.0f);
+		ImGui::EndTable();
+	}
+
+	ImGui::TextDisabled(
+		"VSync %s  ·  Tearing %s  ·  Pacing %s  ·  Timeouts %llu",
+		ctx.VSyncEnabled ? "ON" : "OFF",
+		ctx.TearingSupported ? "Supported" : "Unavailable",
+		ctx.FrameLatencyWaitableObjectEnabled ? "Waitable Object" : "DXGI Fallback",
+		static_cast<unsigned long long>(ctx.FrameLatencyWaitTimeoutCount)
+	);
+	ImGui::Spacing();
+
+	if(ImGui::CollapsingHeader("Frame Budget", ImGuiTreeNodeFlags_DefaultOpen)){
+		BudgetPlot(
+			"Update CPU",
+			"##UpdateBudget",
+			UpdateSamples,
+			SAMPLE_LENGTH,
+			updateCurrent,
+			updateAverage,
+			frameBudget
+		);
+		BudgetPlot(
+			"Draw CPU",
+			"##DrawBudget",
+			DrawSamples,
+			SAMPLE_LENGTH,
+			drawCurrent,
+			drawAverage,
+			frameBudget
+		);
+		BudgetPlot(
+			"GPU Frame",
+			"##GpuBudget",
+			GPUFrameTimeSamples,
+			SAMPLE_LENGTH,
+			gpuCurrent,
+			gpuAverage,
+			frameBudget
+		);
+	}
+
+	if(ImGui::CollapsingHeader("CPU / GPU Breakdown", ImGuiTreeNodeFlags_DefaultOpen)){
+		if(ImGui::BeginTable(
+			"DrawTimingBreakdown",
+			4,
+			ImGuiTableFlags_RowBg |
+			ImGuiTableFlags_BordersInnerH |
+			ImGuiTableFlags_SizingStretchProp
+		)){
+			ImGui::TableSetupColumn("Stage", ImGuiTableColumnFlags_WidthStretch, 1.5f);
+			ImGui::TableSetupColumn("Current", ImGuiTableColumnFlags_WidthFixed, 86.0f);
+			ImGui::TableSetupColumn("Average", ImGuiTableColumnFlags_WidthFixed, 86.0f);
+			ImGui::TableSetupColumn("Budget", ImGuiTableColumnFlags_WidthStretch, 1.0f);
+			ImGui::TableHeadersRow();
+			DrawTimingTableRow("Frame Pacing Wait", FramePacingWaitSamples[SAMPLE_LENGTH - 1], Average(FramePacingWaitSamples, SAMPLE_LENGTH), frameBudget);
+			DrawTimingTableRow("Frame Setup", FrameSetupSamples[SAMPLE_LENGTH - 1], Average(FrameSetupSamples, SAMPLE_LENGTH), frameBudget);
+			DrawTimingTableRow("ImGui Begin", ImGuiBeginSamples[SAMPLE_LENGTH - 1], Average(ImGuiBeginSamples, SAMPLE_LENGTH), frameBudget);
+			DrawTimingTableRow("Render Schedule", RenderScheduleSamples[SAMPLE_LENGTH - 1], Average(RenderScheduleSamples, SAMPLE_LENGTH), frameBudget);
+			DrawTimingTableRow("Debug Draw", DebugDrawSamples[SAMPLE_LENGTH - 1], Average(DebugDrawSamples, SAMPLE_LENGTH), frameBudget);
+			DrawTimingTableRow("Editor UI Build", EditorUIBuildSamples[SAMPLE_LENGTH - 1], Average(EditorUIBuildSamples, SAMPLE_LENGTH), frameBudget);
+			DrawTimingTableRow("ImGui Render", ImGuiRenderSamples[SAMPLE_LENGTH - 1], Average(ImGuiRenderSamples, SAMPLE_LENGTH), frameBudget);
+			DrawTimingTableRow("Present / Queue Wait", PresentSamples[SAMPLE_LENGTH - 1], Average(PresentSamples, SAMPLE_LENGTH), frameBudget);
+			DrawTimingTableRow("Unaccounted Draw CPU", UnaccountedSamples[SAMPLE_LENGTH - 1], Average(UnaccountedSamples, SAMPLE_LENGTH), frameBudget);
+			ImGui::EndTable();
 		}
 
 		if(latest){
-			ImGui::Text(
-				"GPU status: Frame %llu / %s",
+			ImGui::TextDisabled(
+				"Latest GPU query: Frame %llu · %s",
 				static_cast<unsigned long long>(latest->frame),
 				GpuTimingStatusName(latest->gpuStatus)
 			);
 		}
-		if(latestResolved){
-			ImGui::Text(
-				"GPU latest resolved: Frame %llu %.4fms / Avg %.4fms",
-				static_cast<unsigned long long>(latestResolved->frame),
-				latestResolved->gpuMilliseconds,
-				averageValidSamples(GPUFrameTimeSamples)
-			);
-			ImGui::PlotLines(
-				"##GPUFrameTime",
-				GPUFrameTimeSamples,
-				SAMPLE_LENGTH,
-				0,
-				"",
-				0.0f,
-				1000.0f / 60.0f
-			);
-
-			if(ImGui::TreeNodeEx("GPU Pass内訳", ImGuiTreeNodeFlags_DefaultOpen)){
-				float accountedGpuMilliseconds = 0.0f;
-				for(std::size_t index = 0; index < GpuPassTimingScopeCount; ++index){
-					const std::uint64_t bit = 1ull << index;
-					const GpuPassTimingScope scope =
-						static_cast<GpuPassTimingScope>(index);
-					if((latestResolved->gpuResolvedPassMask & bit) != 0){
-						const float milliseconds =
-							latestResolved->gpuPassMilliseconds[index];
-						accountedGpuMilliseconds += milliseconds;
-						ImGui::Text(
-							"%s: %.4fms",
-							GpuPassTimingScopeName(scope),
-							milliseconds
-						);
-					} else if((latestResolved->gpuInvalidPassMask & bit) != 0){
-						ImGui::TextDisabled(
-							"%s: Invalid",
-							GpuPassTimingScopeName(scope)
-						);
-					}
-				}
-				const float unaccountedGpuMilliseconds = (std::max)(
-					0.0f,
-					latestResolved->gpuMilliseconds - accountedGpuMilliseconds
-				);
-				ImGui::Separator();
-				ImGui::Text(
-					"Accounted GPU: %.4fms / Unaccounted GPU: %.4fms",
-					accountedGpuMilliseconds,
-					unaccountedGpuMilliseconds
-				);
-				ImGui::TreePop();
+		if(latestResolved && ImGui::TreeNodeEx("GPU Passes", ImGuiTreeNodeFlags_DefaultOpen)){
+			std::vector<std::pair<std::size_t, float>> passes;
+			float accounted = 0.0f;
+			for(std::size_t index = 0; index < GpuPassTimingScopeCount; ++index){
+				const std::uint64_t bit = 1ull << index;
+				if((latestResolved->gpuResolvedPassMask & bit) == 0) continue;
+				const float milliseconds = latestResolved->gpuPassMilliseconds[index];
+				accounted += milliseconds;
+				passes.emplace_back(index, milliseconds);
 			}
-		} else{
-			ImGui::TextDisabled("GPU Frame Time: waiting for a resolved query result");
-		}
-		ImGui::Separator();
-
-		auto drawTimingRow = [&](const char* label, const char* plotId, float* samples){
-			ImGui::Text(
-				"%s: Current %.4fms Avg %.4fms",
-				label,
-				samples[SAMPLE_LENGTH - 1],
-				averageSamples(samples)
+			std::sort(
+				passes.begin(),
+				passes.end(),
+				[](const auto& left, const auto& right){ return left.second > right.second; }
 			);
-			ImGui::PlotLines(plotId, samples, SAMPLE_LENGTH, 0, "", 0.0f, 1000.0f / 60.0f);
-		};
-		drawTimingRow("Frame Pacing Wait", "##FramePacingWait", FramePacingWaitSamples);
-		drawTimingRow("Frame Setup", "##DrawFrameSetup", FrameSetupSamples);
-		drawTimingRow("ImGui Begin / UI Frame", "##DrawImGuiBegin", ImGuiBeginSamples);
-		drawTimingRow("Render Schedule CPU", "##DrawRenderSchedule", RenderScheduleSamples);
-		drawTimingRow("Debug Draw CPU", "##DrawDebug", DebugDrawSamples);
-		drawTimingRow("Editor UI Build CPU", "##DrawEditorUI", EditorUIBuildSamples);
-		drawTimingRow("ImGui Render / Platform Windows", "##DrawImGuiRender", ImGuiRenderSamples);
-		drawTimingRow("Present / Residual Queue Wait", "##DrawPresent", PresentSamples);
-		drawTimingRow("Unaccounted Draw CPU", "##DrawUnaccounted", UnaccountedSamples);
-		ImGui::TreePop();
+
+			if(ImGui::BeginTable(
+				"GpuPassTable",
+				3,
+				ImGuiTableFlags_RowBg |
+				ImGuiTableFlags_BordersInnerH |
+				ImGuiTableFlags_SizingStretchProp
+			)){
+				ImGui::TableSetupColumn("Pass", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableSetupColumn("Time", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+				ImGui::TableSetupColumn("Frame Share", ImGuiTableColumnFlags_WidthStretch);
+				ImGui::TableHeadersRow();
+				for(const auto& [index, milliseconds] : passes){
+					ImGui::TableNextRow();
+					ImGui::TableSetColumnIndex(0);
+					ImGui::TextUnformatted(GpuPassTimingScopeName(static_cast<GpuPassTimingScope>(index)));
+					ImGui::TableSetColumnIndex(1);
+					ImGui::Text("%.3f ms", milliseconds);
+					ImGui::TableSetColumnIndex(2);
+					const float share = gpuCurrent > 0.0f ? milliseconds / gpuCurrent : 0.0f;
+					ImGui::ProgressBar((std::min)(share, 1.0f), ImVec2(-1.0f, 0.0f), "");
+				}
+				ImGui::EndTable();
+			}
+			ImGui::TextDisabled(
+				"Accounted %.3f ms · Unaccounted %.3f ms",
+				accounted,
+				(std::max)(0.0f, gpuCurrent - accounted)
+			);
+			ImGui::TreePop();
+		}
 	}
 
-	if(ImGui::TreeNodeEx("Editor Panel CPU", ImGuiTreeNodeFlags_DefaultOpen)){
-		for(auto& series : PanelTimingSamples){
-			ImGui::PushID(series.name.c_str());
-			ImGui::Text(
-				"%s: Current %.4fms Avg %.4fms",
-				series.name.c_str(),
-				series.samples[SAMPLE_LENGTH - 1],
-				averageSamples(series.samples.data())
-			);
-			ImGui::PlotLines(
-				"##PanelTiming",
-				series.samples.data(),
-				SAMPLE_LENGTH,
-				0,
-				"",
-				0.0f,
-				1000.0f / 60.0f
-			);
-			ImGui::PopID();
+	if(ImGui::CollapsingHeader("Editor Panel CPU")){
+		std::vector<const PanelTimingSampleSeries*> sortedPanels;
+		sortedPanels.reserve(PanelTimingSamples.size());
+		for(const PanelTimingSampleSeries& series : PanelTimingSamples){
+			sortedPanels.push_back(&series);
 		}
-		ImGui::TreePop();
+		std::sort(
+			sortedPanels.begin(),
+			sortedPanels.end(),
+			[](const PanelTimingSampleSeries* left, const PanelTimingSampleSeries* right){
+				return left->samples[SAMPLE_LENGTH - 1] > right->samples[SAMPLE_LENGTH - 1];
+			}
+		);
+
+		if(ImGui::BeginTable(
+			"EditorPanelTimingTable",
+			3,
+			ImGuiTableFlags_RowBg |
+			ImGuiTableFlags_BordersInnerH |
+			ImGuiTableFlags_SizingStretchProp
+		)){
+			ImGui::TableSetupColumn("Panel", ImGuiTableColumnFlags_WidthStretch);
+			ImGui::TableSetupColumn("Current", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+			ImGui::TableSetupColumn("Average", ImGuiTableColumnFlags_WidthFixed, 90.0f);
+			ImGui::TableHeadersRow();
+			for(const PanelTimingSampleSeries* series : sortedPanels){
+				ImGui::TableNextRow();
+				ImGui::TableSetColumnIndex(0);
+				ImGui::TextUnformatted(series->name.c_str());
+				ImGui::TableSetColumnIndex(1);
+				ImGui::Text("%.3f ms", series->samples[SAMPLE_LENGTH - 1]);
+				ImGui::TableSetColumnIndex(2);
+				ImGui::TextDisabled("%.3f ms", Average(series->samples.data(), SAMPLE_LENGTH));
+			}
+			ImGui::EndTable();
+		}
 	}
 
-	if(ImGui::TreeNodeEx("Frame Spike Diagnostics", ImGuiTreeNodeFlags_DefaultOpen)){
-		ImGui::SetNextItemWidth(140.0f);
-		ImGui::SliderFloat("Threshold (ms)", &SpikeThresholdMilliseconds, 5.0f, 100.0f, "%.1f");
+	const ImGuiTreeNodeFlags spikeFlags = FrameSpikes.empty()
+		? ImGuiTreeNodeFlags_None
+		: ImGuiTreeNodeFlags_DefaultOpen;
+	if(ImGui::CollapsingHeader("Frame Spike Diagnostics", spikeFlags)){
+		ImGui::SetNextItemWidth(150.0f);
+		ImGui::SliderFloat(
+			"Threshold",
+			&SpikeThresholdMilliseconds,
+			5.0f,
+			100.0f,
+			"%.1f ms"
+		);
 		ImGui::SameLine();
-		if(ImGui::Button("Clear Spikes")){
+		if(ImGui::Button("Clear History")){
 			FrameHistory.clear();
 			FrameSpikes.clear();
 			DeferredGpuResults.clear();
 		}
-		ImGui::TextDisabled("CPU/GPU values are joined only when their Frame Serial matches");
+		ImGui::TextDisabled("CPU and GPU samples are joined only by matching Frame Serial.");
 
 		if(FrameSpikes.empty()){
-			ImGui::TextDisabled("No frame spikes above threshold");
-		} else{
-			for(auto it = FrameSpikes.rbegin(); it != FrameSpikes.rend(); ++it){
-				const FrameSpikeRecord& spike = *it;
+			ImGui::TextDisabled("No frame spikes above the current threshold.");
+		}else{
+			for(auto iterator = FrameSpikes.rbegin(); iterator != FrameSpikes.rend(); ++iterator){
+				const FrameSpikeRecord& spike = *iterator;
 				ImGui::PushID(static_cast<int>(spike.frame & 0x7fffffff));
-				ImGui::BulletText(
-					"Frame %llu Peak %.3fms / %s %.3fms%s%s",
+				char header[192]{};
+				std::snprintf(
+					header,
+					sizeof(header),
+					"Frame %llu · %.2f ms · %s%s%s",
 					static_cast<unsigned long long>(spike.frame),
 					spike.peakMilliseconds,
 					spike.dominantSection.c_str(),
-					spike.dominantMilliseconds,
-					spike.startup ? " [Startup]" : "",
-					spike.resize ? " [Resize]" : ""
+					spike.startup ? " · Startup" : "",
+					spike.resize ? " · Resize" : ""
 				);
-				ImGui::TextDisabled(
-					"Update %.3f / Draw %.3f / GPU %.3f (%s) / Pacing %.3f / Render %.3f / Editor %.3f / Present %.3f / Unaccounted %.3f ms",
-					spike.updateMilliseconds,
-					spike.drawMilliseconds,
-					spike.gpuMilliseconds,
-					GpuTimingStatusName(spike.gpuStatus),
-					spike.framePacingMilliseconds,
-					spike.renderMilliseconds,
-					spike.editorMilliseconds,
-					spike.presentMilliseconds,
-					spike.unaccountedMilliseconds
-				);
-				if(!spike.dominantPanel.empty()){
-					ImGui::TextDisabled(
-						"Editor peak: %s %.3fms",
-						spike.dominantPanel.c_str(),
-						spike.dominantPanelMilliseconds
-					);
-				}
-				if(spike.resize){
-					ImGui::TextDisabled("Resize CPU: %.3fms", spike.resizeMilliseconds);
+				if(ImGui::TreeNodeEx(header, ImGuiTreeNodeFlags_SpanAvailWidth)){
+					ImGui::Text("Update %.3f ms", spike.updateMilliseconds);
+					ImGui::Text("Draw %.3f ms", spike.drawMilliseconds);
+					ImGui::Text("GPU %.3f ms (%s)", spike.gpuMilliseconds, GpuTimingStatusName(spike.gpuStatus));
+					ImGui::Text("Frame pacing %.3f ms", spike.framePacingMilliseconds);
+					ImGui::Text("Render schedule %.3f ms", spike.renderMilliseconds);
+					ImGui::Text("Editor UI %.3f ms", spike.editorMilliseconds);
+					ImGui::Text("Present %.3f ms", spike.presentMilliseconds);
+					ImGui::Text("Unaccounted %.3f ms", spike.unaccountedMilliseconds);
+					if(!spike.dominantPanel.empty()){
+						ImGui::TextDisabled(
+							"Editor peak: %s %.3f ms",
+							spike.dominantPanel.c_str(),
+							spike.dominantPanelMilliseconds
+						);
+					}
+					if(spike.resize){
+						ImGui::TextDisabled("Resize CPU %.3f ms", spike.resizeMilliseconds);
+					}
+					ImGui::TreePop();
 				}
 				ImGui::PopID();
 			}
 		}
-		ImGui::TreePop();
 	}
 
-	if(ImGui::TreeNodeEx("-メモリ使用量-", ImGuiTreeNodeFlags_DefaultOpen)){
-		float usageAverage = 0.0f;
-		int count = 0;
-		for(int index = 0; index < SAMPLE_LENGTH; ++index){
-			if(FixedFpsSamples[index] > 0.0f){
-				usageAverage += UsageSamples[index];
-				++count;
-			}
-		}
-		if(count > 0){
-			usageAverage /= count;
-		}
-		char text[64]{};
-		std::snprintf(text, sizeof(text), "usage:Avg:%.2f%%", usageAverage);
-		ImGui::PlotLines(text, UsageSamples, SAMPLE_LENGTH, 0, "", 0.0f, 100.0f);
-		std::snprintf(text, sizeof(text), "Commit:%dMB", static_cast<int>(pmc.PagefileUsage / 1000000));
-		ImGui::PlotLines(text, CommitSizeSamples, SAMPLE_LENGTH);
-		std::snprintf(text, sizeof(text), "Working:%dMB", static_cast<int>(pmc.WorkingSetSize / 1000000));
-		ImGui::PlotLines(text, WorkingSetSizeSamples, SAMPLE_LENGTH);
-		ImGui::TreePop();
+	if(ImGui::CollapsingHeader("Memory")){
+		const float usageAverage = Average(UsageSamples, SAMPLE_LENGTH, true);
+		char overlay[96]{};
+		std::snprintf(overlay, sizeof(overlay), "Average %.1f%%", usageAverage);
+		ImGui::PlotLines("Usage", UsageSamples, SAMPLE_LENGTH, 0, overlay, 0.0f, 100.0f, ImVec2(-1.0f, 58.0f));
+		std::snprintf(overlay, sizeof(overlay), "Working Set %.0f MB", workingSetMb);
+		ImGui::PlotLines("Working Set", WorkingSetSizeSamples, SAMPLE_LENGTH, 0, overlay, 0.0f, FLT_MAX, ImVec2(-1.0f, 58.0f));
+		std::snprintf(overlay, sizeof(overlay), "Commit %.0f MB", memoryAvailable ? memory.PagefileUsage / 1000000.0 : 0.0);
+		ImGui::PlotLines("Commit", CommitSizeSamples, SAMPLE_LENGTH, 0, overlay, 0.0f, FLT_MAX, ImVec2(-1.0f, 58.0f));
 	}
 
-	// H2 Phase 2a-1: デバイスロスト検証フック
-	// （Docs/StepH2_Device_Lost_Recovery_Design.md）
-	if(ImGui::TreeNodeEx("-Debug-")){
+	if(ImGui::CollapsingHeader("Debug")){
 		GraphicsContext* graphics = m_editor->sceneManager
 			? m_editor->sceneManager->GetContext()->graphics
 			: nullptr;
-
 		ImGui::BeginDisabled(!graphics || graphics->IsDeviceLost());
 		if(ImGui::Button("Simulate Device Lost") && graphics){
 			graphics->MarkDeviceLostForTest();
 		}
 		ImGui::EndDisabled();
 		ImGui::SameLine();
-		ImGui::TextDisabled("(?)");
-		if(ImGui::IsItemHovered()){
-			ImGui::SetTooltip(
-				"デバイスロスト検出経路の検証用。\n"
-				"現状(Phase 1)はGraceful終了するためアプリが閉じます。\n"
-				"実TDRの検証は dxcap -forcetdr を使用してください。"
-			);
-		}
+		ImGui::TextDisabled("Closes the app through the graceful device-lost path.");
 		if(graphics && graphics->IsDeviceLost()){
-			ImGui::TextUnformatted("Device Lost状態: 終了処理へ移行します");
+			ImGui::TextUnformatted("Device Lost: transitioning to shutdown.");
 		}
-		ImGui::TreePop();
 	}
 
 	ImGui::End();
