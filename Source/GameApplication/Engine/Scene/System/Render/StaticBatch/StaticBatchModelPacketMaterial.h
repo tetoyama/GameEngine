@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstdint>
 
+#include "System/Render/Model/ModelMaterialLegacyD3D11Bridge.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
 
 enum class StaticBatchModelMaterialRejectReason : std::uint8_t {
@@ -91,7 +92,6 @@ inline StaticBatchModelMaterialRejectReason Resolve(
 	StaticBatchModelMaterialState& state,
 	bool applyGBufferAlphaRule = true
 ) noexcept {
-	const MaterialComponent* materialComponent = packet.bindings.material;
 	const TextureComponent* textureComponent = packet.bindings.texture;
 	const bool hasOverrideTexture =
 		textureComponent && textureComponent->m_TextureData;
@@ -100,9 +100,22 @@ inline StaticBatchModelMaterialRejectReason Resolve(
 		overrideTexture = textureComponent->m_TextureData->pTexture.Get();
 	}
 
+	MATERIAL resolvedPacketMaterial{};
+	const MaterialDescriptor* descriptor =
+		packet.modelMaterial.GetDescriptor();
+	const MaterialComponent* materialComponent = packet.bindings.material;
+	if(descriptor){
+		resolvedPacketMaterial =
+			ModelMaterialLegacyD3D11Bridge::ToLegacyMaterial(*descriptor);
+	}
+
 	const StaticBatchModelMaterialInput input{
-		materialComponent ? &materialComponent->Material : nullptr,
-		materialComponent ? materialComponent->ShaderID : 0,
+		descriptor
+			? &resolvedPacketMaterial
+			: (materialComponent ? &materialComponent->Material : nullptr),
+		descriptor
+			? descriptor->shaderID
+			: (materialComponent ? materialComponent->ShaderID : 0),
 		StaticBatchResourceKey::ResolveUVState(textureComponent),
 		hasOverrideTexture,
 		overrideTexture
