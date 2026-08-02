@@ -11,13 +11,16 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialResolver.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialLegacyD3D11Bridge.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialPassRouting.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelMaterialResolver.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelPacketMaterial.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/Forward/ForwardPass.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
       - "Tests/ModelMaterialFoundationSmokeTest.cpp"
+      - "Tests/ModelMaterialPassRoutingSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
       - "Docs/Step18I_Model_Material_Import_Foundation_Plan.md"
@@ -33,13 +36,16 @@ on:
       - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialResolver.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialLegacyD3D11Bridge.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialPassRouting.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelMaterialResolver.h"
       - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelPacketMaterial.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/Forward/ForwardPass.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
       - "Tests/ModelMaterialFoundationSmokeTest.cpp"
+      - "Tests/ModelMaterialPassRoutingSmokeTest.cpp"
       - "Tests/StaticBatchResourceKeySmokeTest.cpp"
       - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
       - "Docs/Step18I_Model_Material_Import_Foundation_Plan.md"
@@ -57,6 +63,14 @@ permissions:
 jobs:
   contract:
     runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source: Tests/ModelMaterialFoundationSmokeTest.cpp
+            output: model-material-foundation-test.exe
+          - source: Tests/ModelMaterialPassRoutingSmokeTest.cpp
+            output: model-material-pass-routing-test.exe
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,7 +78,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Compile and run model material foundation contract
+      - name: Compile and run model material contract
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
@@ -76,8 +90,8 @@ jobs:
           /I Source/GameApplication/Engine
           /I Source/GameApplication/Engine/Scene
           /I Source/GameApplication/Service
-          Tests/ModelMaterialFoundationSmokeTest.cpp
-          /Fe:model-material-foundation-test.exe
+          ${{ matrix.source }}
+          /Fe:${{ matrix.output }}
           /link /NODEFAULTLIB:yaml-cppd.lib
           /NODEFAULTLIB:DirectXTex_Debug.lib
-          && model-material-foundation-test.exe
+          && ${{ matrix.output }}
