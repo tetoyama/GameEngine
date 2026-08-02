@@ -32,6 +32,7 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
       - "Tests/CustomMaterialCollectionSmokeTest.cpp"
       - "Tests/ModelMaterialFoundationSmokeTest.cpp"
+      - "Tests/ModelMaterialInspectorHeaderSmokeTest.cpp"
       - "Tests/ModelMaterialPassRoutingSmokeTest.cpp"
       - "Tests/ModelSubMeshStateSynchronizationSmokeTest.cpp"
       - "Tests/ModelMaterialSerializationSourceContractSmokeTest.cpp"
@@ -71,6 +72,7 @@ on:
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
       - "Tests/CustomMaterialCollectionSmokeTest.cpp"
       - "Tests/ModelMaterialFoundationSmokeTest.cpp"
+      - "Tests/ModelMaterialInspectorHeaderSmokeTest.cpp"
       - "Tests/ModelMaterialPassRoutingSmokeTest.cpp"
       - "Tests/ModelSubMeshStateSynchronizationSmokeTest.cpp"
       - "Tests/ModelMaterialSerializationSourceContractSmokeTest.cpp"
@@ -99,6 +101,8 @@ jobs:
             output: custom-material-collection-test.exe
           - source: Tests/ModelMaterialFoundationSmokeTest.cpp
             output: model-material-foundation-test.exe
+          - source: Tests/ModelMaterialInspectorHeaderSmokeTest.cpp
+            output: model-material-inspector-header-test.exe
           - source: Tests/ModelMaterialPassRoutingSmokeTest.cpp
             output: model-material-pass-routing-test.exe
           - source: Tests/ModelSubMeshStateSynchronizationSmokeTest.cpp
