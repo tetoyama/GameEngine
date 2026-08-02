@@ -7,7 +7,7 @@
 // - never redraw tab text or background
 // - never modify ContentWidth / RequestedWidth / tab.Width
 // - never replace Dear ImGui ellipsis, close-button, focus or hover behavior
-// - draw a glyph only in genuinely unused trailing space
+// - draw only inside the stock leading frame-padding region
 //
 // =======================================================================
 #pragma once
@@ -58,49 +58,36 @@ inline void DrawDockTabOverlay(const EditorIconLibrary& icons){
 				false
 			);
 
-			const float fontSize = window->FontRefSize > 0.0f
-				? window->FontRefSize
-				: context->FontSize;
+			// Use only the padding Dear ImGui already reserved before the label.
+			// This keeps the standard label, ellipsis and close-button geometry
+			// completely untouched while making the glyph deterministic.
+			const float leadingPadding = tabBar->FramePadding.x;
+			if(leadingPadding < 4.0f) break;
+
 			const float iconSize = (std::max)(
-				8.0f,
-				(std::min)(11.0f, fontSize * 0.72f)
+				4.0f,
+				(std::min)(7.0f, leadingPadding - 1.0f)
 			);
-			const float labelGap = 5.0f;
-			const float rightSafety = 3.0f;
-
-			const char* label = window->Name;
-			const char* labelEnd = ImGui::FindRenderedTextEnd(label);
-			const float labelWidth = ImGui::CalcTextSize(label, labelEnd).x;
-			const float labelStartX = tabRect.Min.x + tabBar->FramePadding.x;
-			const float labelEndX = labelStartX + labelWidth;
-
-			// A closeable tab may reveal its close button on hover. Always protect
-			// that hit target, but do not take any width away from the stock label:
-			// the glyph is optional and simply disappears when the spare region is
-			// too small.
-			const bool hasCloseButton =
-				(tab.Flags & ImGuiTabItemFlags_NoCloseButton) == 0;
-			const float trailingLimit = tabRect.Max.x - tabBar->FramePadding.x -
-				(hasCloseButton ? fontSize : 0.0f) - rightSafety;
-			const float iconX = labelEndX + labelGap;
-
-			if(iconX + iconSize > trailingLimit){
-				break;
-			}
-
+			const float iconX = tabRect.Min.x +
+				(std::max)(0.5f, (leadingPadding - iconSize) * 0.5f);
 			const float centerY = (tabRect.Min.y + tabRect.Max.y) * 0.5f;
-			const bool focused = (tabBar->Flags & ImGuiTabBarFlags_IsFocused) != 0;
-			const float alpha = selected
-				? (focused ? 0.88f : 0.64f)
-				: (hovered ? 0.72f : 0.46f);
 
+			const bool focused =
+				(tabBar->Flags & ImGuiTabBarFlags_IsFocused) != 0;
+			const float alpha = selected
+				? (focused ? 0.92f : 0.68f)
+				: (hovered ? 0.76f : 0.50f);
+
+			ImDrawList* drawList = tabBar->Window->DrawList;
+			drawList->PushClipRect(tabRect.Min, tabRect.Max, true);
 			DrawEditorIcon(
-				tabBar->Window->DrawList,
+				drawList,
 				icons.Get(iconType),
 				ImVec2(iconX, centerY - iconSize * 0.5f),
 				iconSize,
 				alpha
 			);
+			drawList->PopClipRect();
 			break;
 		}
 	}
