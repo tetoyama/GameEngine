@@ -40,10 +40,16 @@ inline ModelMaterialPassRoutingDecision Resolve(const RenderPacket& packet) noex
 
 	if(RequiresAlphaBlend(packet)){
 		decision.submitGBuffer = false;
-		decision.submitForward = HasRenderPacketPass(
-			RenderPacketPassesForKind(packet.kind),
-			RenderPacketPassMask::Forward
-		);
+		const bool deferredLayer =
+			packet.layer == RenderLayer::Opaque3D ||
+			packet.layer == RenderLayer::Background2D ||
+			packet.layer == RenderLayer::Debug;
+		if(deferredLayer){
+			decision.submitForward = HasRenderPacketPass(
+				RenderPacketPassesForKind(packet.kind),
+				RenderPacketPassMask::Forward
+			);
+		}
 		if(packet.kind != RenderPacketKind::Sprite &&
 			(packet.layer == RenderLayer::Opaque3D ||
 			 packet.layer == RenderLayer::Background2D)){
