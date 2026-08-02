@@ -37,6 +37,11 @@ public:
 	void Draw(const EditorDrawContext ctx) override;
 
 private:
+	// Dear ImGui does not expose a NoHorizontalScrollbar flag. Horizontal
+	// scrolling is disabled by default unless HorizontalScrollbar is requested,
+	// so zero flags are the correct behavior for the existing call site.
+	static constexpr int ImGuiWindowFlags_NoHorizontalScrollbar = 0;
+
 	enum class ViewMode {
 		Grid,
 		List
