@@ -1,6 +1,6 @@
 # Step 18-I: Model Material Import Foundation Progress
 
-Status: **MMI-1 / MMI-2 / MMI-3 foundation in progress — 2026-08-02**
+Status: **MMI-1 / MMI-2 / MMI-3 runtime foundation implemented; persistence foundation in verification — 2026-08-03**
 
 対象:
 
@@ -15,7 +15,7 @@ Status: **MMI-1 / MMI-2 / MMI-3 foundation in progress — 2026-08-02**
 
 ---
 
-## 1. 今回実装した範囲
+## 1. 実装済み範囲
 
 ### 1.1 Assimp Material正規化Adapter
 
@@ -47,15 +47,20 @@ Material Parameter:
 - Base Color
 - Metallic
 - Roughness
+- Ambient Occlusion
 - Opacity
 - Emissive Color / Intensity
-- Bump Scale
-- Double Sided
+- Normal Scale
+- Height Scale
+- Alpha Mode / Alpha Cutoff
+- Cull Mode
+- Depth Write
+- Receive Shadow
 
 Texture Binding:
 
 - Source Path
-- 正規化Path
+- 正規化Asset Path
 - Embedded Texture Index
 - UV Channel
 - UV Scale / Offset / Rotation
@@ -110,13 +115,118 @@ Packetは次を保持する。
 
 Custom MaterialはFrame-owned Snapshotへ複製し、Imported MaterialはPacketが所有する`ModelData`内定義を参照する。
 
-### 1.4 SubMesh Render State
+旧単一`MaterialComponent::ShaderID / MATERIAL`はCustom Materialと同一視せず、Imported Defaultへ重ねる明示的なLegacy Overrideとして維持する。
+
+### 1.4 Legacy D3D11 Bridge
+
+`ModelMaterialLegacyD3D11Bridge`を追加した。
+
+解決済み`MaterialDescriptor`から次を生成する。
+
+- Legacy `MATERIAL`定数
+- Shader ID
+- Base Color / Normal-Bump / Roughness / Metallic / AO / Height / Emissive Texture参照
+- Runtime Bindingに基づくLegacy Texture Flag
+
+通常Model Drawは描画時の色・Material State・Texture選択に`aiMaterial`を使用せず、Packet Material Snapshotを使用する。
+
+Static BatchもPacket Material Snapshotを優先し、Snapshot欠落時だけ旧Assimp経路へFallbackする。
+
+### 1.5 SubMesh Render State
 
 正規化済みSubMesh Packet展開では、`ModelRendererComponent::subMeshes`から次を適用する。
 
 - `visible == false`: Packetを生成しない
 - `castShadow == false`: Shadow Pass Maskを除外
 - Material Source / Custom Material ID: Resolverへ渡す
+
+Static Batch Resource Keyには次を含める。
+
+- Material Resolution Source
+- Imported / Custom Material ID
+- Material Parameter / Render State
+- Texture Set
+- Stable ModelSubMeshID
+- Geometry Revision
+
+MaterialやSubMeshが異なるPacketを同一Batchへ誤統合しない。
+
+### 1.6 Material Alpha Mode / Pass Routing
+
+`ModelMaterialPassRouting`を追加し、通常描画とStatic Batchで同一判定を使用する。
+
+- `Blend`
+  - Opaque / Background Model PacketをGBufferから除外
+  - Sorted Forwardへ昇格
+  - Base Color Alphaが1でもAlpha Modeを優先
+- `Masked`
+  - Deferred / Shadowを維持
+  - Static Batch GBuffer ShaderのAlpha discardを使用
+- 明示`Transparent3D / SortTransparent3D / OverlayUI`
+  - Entity LayerをMaterialが上書きしない
+- Packet Snapshot欠落時
+  - Legacy Base Color Alpha判定を防御的Fallbackとして使用
+
+### 1.7 YAML Persistence
+
+`modelMaterialYamlSerialization.h`を追加し、Schema Version 1として次を保存する。
+
+`MaterialComponent`:
+
+- 旧`ShaderID / Material`を後方互換として維持
+- `CustomMaterialEntry[]`
+- `MaterialDescriptor`
+- Texture Binding
+- Material Render State
+
+`ModelRendererComponent`:
+
+- Stable `ModelSubMeshID`ごとのSparse Override
+- Visible
+- Cast Shadow
+- Material Source
+- Custom Material ID
+
+読み込み時には次を行う。
+
+- 0 IDを拒否
+- 重複IDは先頭だけ採用
+- 壊れたEnum / 数値を既定値へFallback
+- 非有限値を置換
+- 0..1 ParameterをClamp
+- Texture Color Space欠落時はSemanticから既定値を決定
+
+### 1.8 Reimport State Synchronization
+
+`ModelSubMeshStateSynchronization`を追加した。
+
+同一Model AssetのReload / Reimport時:
+
+- Stable ModelSubMeshIDで既存Overrideを継承
+- 削除されたSubMeshの状態を除去
+- 新規SubMeshへDefault Stateを追加
+- Import後のSubMesh順へ並べ替え
+- 重複 / 無効IDを除去
+- 無効Custom Material AssignmentをModel Defaultへ戻す
+
+一時的なResource Service不足またはModel Load失敗では、YAMLから復元したOverrideを破棄しない。
+
+別Model Pathへ変更した場合はOverrideを明示的にClearし、別Assetへ偶然同じLocal IDが存在しても状態を持ち越さない。
+
+### 1.9 Custom Material Collection API
+
+`CustomMaterialCollection`と`MaterialComponent`公開APIを追加した。
+
+- Stable ID割当
+- Add
+- Remove
+- Find
+- Sanitize
+- Invalid / Duplicate ID除去
+- 空Nameの既定名生成
+- `uint32_t`最大ID到達時の空きID探索
+
+SubMeshが削除済みCustom Material IDを参照した場合は、既存Resolver契約によりImported DefaultへFallbackする。
 
 ---
 
@@ -129,52 +239,101 @@ Custom MaterialはFrame-owned Snapshotへ複製し、Imported MaterialはPacket�
 - SemanticごとのColor Space
 - Stable Local IDとCollision Diagnostic
 - Imported Material解決
+- Legacy Material Override
 - Custom Material解決
 - Broken Custom IDのImported Default Fallback
 - MaterialComponent欠落時Fallback
 - Imported Material欠落時Engine Default Fallback
+- Legacy D3D11 Material / Texture Bridge
+
+`ModelMaterialPassRoutingSmokeTest`:
+
+- OpaqueのDeferred維持
+- BlendのSorted Forward昇格
+- MaskedのDeferred維持
+- Legacy Alpha Fallback
+- 明示Transparent / Overlay Layer維持
 
 `RenderPacketModelSubMeshExpansionSmokeTest`:
 
 - Stable ModelSubMeshIDとGeometry Indexの分離
 - SubMesh配列順とGeometry配列順が異なる場合のPacket展開
-- PacketへのImported Material Snapshot
+- PacketへのMaterial Snapshot
 - Material Shader Keyの更新
-- Legacy Component PointerなしでのMaterial解決
+- Visible / Cast Shadow契約
+
+`ModelSubMeshStateSynchronizationSmokeTest`:
+
+- Invalid / Duplicate / Stale ID除去
+- Reimport順への再配置
+- Existing Override保持
+- 新規SubMeshのDefault State生成
+- 壊れたCustom Assignmentの修復
+
+`CustomMaterialCollectionSmokeTest`:
+
+- ID割当
+- Add / Remove
+- Empty Name補完
+- Invalid / Duplicate ID Sanitize
+- 最大ID到達時の空きID探索
+
+`ModelMaterialSerializationSourceContractSmokeTest`:
+
+- Material / SubMesh YAML接続
+- Runtime Reimport同期
+- 一時Load失敗時の状態保持
+- 別Model Path変更時の状態Clear
+- Component Collection API接続
 
 回帰確認:
 
 - Header-only化前はMesh-only `StaticBatchFrameBufferIntegrationSmokeTest`へAssimp Link依存が伝播し失敗した
 - `aiMaterialProperty`直接読取へ変更後、同Smokeは成功へ復帰した
+- Alpha Routing導入後、専用Material契約とWindows Debug / Release Buildは成功済み
 
 ---
 
-## 3. 意図的に未実装の範囲
+## 3. 現在の検証状態
 
-今回の範囲には含めない。
+2026-08-03時点:
+
+- Alpha RoutingまでのModel Material Foundation Smoke: 成功
+- Alpha RoutingまでのWindows Debug / Release x64 Build: 成功
+- YAML Persistence / Reimport Synchronization / Custom Material Collection追加後:
+  - GitHub hosted runner待ち
+  - 失敗ログなし
+  - 成功は未確定
+
+---
+
+## 4. 意図的に未実装の範囲
 
 - Texture Asset ServiceへのImport委譲
 - Embedded Texture BinaryのAsset化
 - RHI Texture / Texture View Runtime
-- 全Material Texture SlotのShader Binding
-- Static Batch Resolverからの`aiMaterial`参照撤去
-- 通常`RenderableModel`からの`aiMaterial`参照撤去
-- YAML / Inspector
-- Reimport対応表の永続化
-- MaterialAsset YAML
+- 全Texture SlotのStatic Batch Shader Binding
+- Static Batch Snapshot欠落用Assimp Fallbackの撤去
+- MaterialAsset YAMLと差分Override
+- Custom Material Descriptorの完全なInspector編集UI
+- ModelRenderer InspectorからMaterialComponentを解決するEntity-aware SubMesh Assignment Combo
+- Reimport Diagnostic UI
 - Tangent `float4` / Bitangent Sign
 - UV1以降のVertex Layout
 
 ---
 
-## 4. 次工程
+## 5. 次工程
 
 ```text
-1. Packet Material DescriptorをLegacy MATERIALへ変換するBridgeを追加
-2. RenderableModelの色・Material StateをPacket Snapshotから取得
-3. StaticBatchModelMaterialResolverをPacket Snapshotへ移行
-4. Texture Runtime Handle / RHI Binding境界を設計・実装
-5. Draw中のaiMaterial参照を完全撤去
+1. Persistence / Reimport / Collectionの専用CIとWindows Buildを緑化
+2. Custom Material Inspector編集UI
+3. Entity-aware Inspector Contextを導入
+4. ModelRenderer SubMesh -> Custom Material Assignment UI
+5. Texture Runtime Handle / RHI Binding境界
+6. Static Batchの全Texture Slot対応
+7. Snapshot欠落用aiMaterial Fallback撤去
+8. MaterialAsset YAML + Component差分Override
 ```
 
 Assimpは最終的にImport Adapter内部だけで参照し、Render Extraction以降へ`aiMaterial*`を渡さない。
