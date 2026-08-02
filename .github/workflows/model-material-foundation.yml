@@ -5,7 +5,7 @@ on:
     branches: [master]
     paths:
       - "Source/GameApplication/Engine/Resources/Data/modelMaterialTypes.h"
-      - "Source/GameApplication/Engine/Resources/Data/modelAssimpMaterialNormalization.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelAssimpMaterialPropertyNormalization.h"
       - "Source/GameApplication/Engine/Resources/Data/modelData.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
@@ -21,7 +21,7 @@ on:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
       - "Source/GameApplication/Engine/Resources/Data/modelMaterialTypes.h"
-      - "Source/GameApplication/Engine/Resources/Data/modelAssimpMaterialNormalization.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelAssimpMaterialPropertyNormalization.h"
       - "Source/GameApplication/Engine/Resources/Data/modelData.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
