@@ -7,6 +7,8 @@ Status: **Implemented foundation — 2026-08-02**
 - `refactor/ecs-scheduler-foundation`
 - PR #45
 - `ModelGeometryRuntimeStorage`
+- `StaticBatchModelGeometryRuntimeStorage`
+- `StaticBatchD3D11GeometryBinding`
 - `RenderHardwareInterfaceService`
 - `ModelData::MeshGeometry`
 
@@ -16,7 +18,7 @@ Status: **Implemented foundation — 2026-08-02**
 
 Model Geometry Runtimeが、破棄済みまたは交換済みのRHI DeviceへNative Resource破棄を発行することを防ぐ。
 
-また、ModelDataのPointer、Mesh数、Vertex数、Index数が変化しないGeometry更新でも、共有Vertex / Index Runtimeを確実に再生成する。
+また、ModelDataのPointer、Mesh数、Vertex数、Index数が変化しないGeometry更新でも、通常RenderableとStatic Batchの共有Vertex / Index Runtimeを確実に再生成する。
 
 ---
 
@@ -105,6 +107,8 @@ Abandonは通常のScene切替や、Deviceが有効な状態の停止処理に�
 
 旧Device Handleを新Deviceへ渡してDestroyしてはならない。
 
+RHI共通契約は他のGPU Runtime Storageにも再利用可能だが、各StorageはDevice Binding、Reset、Abandonの採用を個別に行う。今回の実装対象は通常Model Geometry Runtimeである。
+
 ---
 
 ## 6. Model Geometry Revision
@@ -134,9 +138,9 @@ Animation Pose、Material Parameter、SubMesh Material Assignmentだけの変更
 
 ---
 
-## 7. Runtime一致条件
+## 7. 通常Model Geometry Runtime一致条件
 
-Model Geometry Runtimeを再利用できるのは、最低限次がすべて一致する場合だけとする。
+通常Model Geometry Runtimeを再利用できるのは、最低限次がすべて一致する場合だけとする。
 
 - ModelData identity
 - Geometry Revision
@@ -151,7 +155,33 @@ Build中にGeometry Revisionが変化した場合、新Runtimeを公開せず破
 
 ---
 
-## 8. Telemetry
+## 8. Static BatchへのRevision伝播
+
+Static BatchはGeometry Resource KeyだけでGeometry内容を識別しない。
+
+ModelData由来Geometryでは次の経路でRevisionを伝播する。
+
+```text
+ModelData::Geometry Revision
+    -> StaticBatchModelCpuGeometrySourceProvider
+    -> StaticBatchD3D11GeometrySource::sourceRevision
+    -> StaticBatchModelGeometryRuntimeStorage Entry
+    -> StaticBatchD3D11GeometryBinding
+```
+
+契約:
+
+- CPU Snapshot EntryはModel identity、Entity側Model Runtime Revision、共有Geometry Revision、SubMesh Scopeで一致判定する
+- Snapshot複製中にGeometry Revisionが変化した場合は公開しない
+- D3D11 Geometry BindingはGeometry Key、Stride、Countが同一でもSource Revisionが異なれば再利用しない
+- Geometry KeyはBatch Group分類用として維持し、Asset内容の更新検知をRevisionへ分離する
+- Revision契約を持たないLegacy / Mesh Sourceは`sourceRevision == 0`を許容する
+
+これにより同サイズReimportで通常Renderableだけ更新され、Static Batchが古いGPU Bufferを保持する不整合を防ぐ。
+
+---
+
+## 9. Telemetry
 
 最低限次を観測可能にする。
 
@@ -165,9 +195,11 @@ Build中にGeometry Revisionが変化した場合、新Runtimeを公開せず破
 - Reset failure
 - Rejected model
 
+通常Model Geometry RuntimeとStatic Batch CPU Snapshot Runtimeは、Geometry Revisionによる置換を個別に記録する。
+
 ---
 
-## 9. 検証条件
+## 10. 検証条件
 
 - 同じDevice / Generation / Geometry RevisionではHandleを再利用する
 - 同じVertex数・Index数でもGeometry Revision更新後はHandleを置換する
@@ -176,3 +208,5 @@ Build中にGeometry Revisionが変化した場合、新Runtimeを公開せず破
 - 有効な同一DeviceでのResetはHandleをDestroyする
 - Device破棄後のResetは生Pointerを逆参照せずAbandonする
 - RHI ServiceのAdopt / Release / Re-adopt / ResetでGenerationが変化する
+- Static Batch Bindingは同じGeometry KeyとCountでもSource Revision不一致を拒否する
+- Static Batch CPU SnapshotはGeometry Revision変更後に置換される
