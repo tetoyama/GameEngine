@@ -4,6 +4,7 @@
 #include <cstdint>
 
 #include "System/Render/Model/ModelMaterialLegacyD3D11Bridge.h"
+#include "System/Render/Model/ModelMaterialPassRouting.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
 
 enum class StaticBatchModelMaterialRejectReason : std::uint8_t {
@@ -92,6 +93,11 @@ inline StaticBatchModelMaterialRejectReason Resolve(
 	StaticBatchModelMaterialState& state,
 	bool applyGBufferAlphaRule = true
 ) noexcept {
+	if(applyGBufferAlphaRule &&
+		!ModelMaterialPassRouting::ShouldSubmitGBuffer(packet)){
+		return StaticBatchModelMaterialRejectReason::ExcludedByGBufferAlphaRule;
+	}
+
 	const TextureComponent* textureComponent = packet.bindings.texture;
 	const bool hasOverrideTexture =
 		textureComponent && textureComponent->m_TextureData;
