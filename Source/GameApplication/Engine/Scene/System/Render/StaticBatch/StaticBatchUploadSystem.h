@@ -35,31 +35,16 @@ public:
 	}
 
 	void Initialize() override {
-		RHI::IRHIDevice* device = ResolveDevice();
-		m_pipelineBootstrapResult = StaticBatchPipelineBootstrap::Initialize(
-			device,
-			m_pipelineResources
-		);
-		m_shadowPipelineBootstrapResult =
-			StaticBatchShadowPipelineBootstrap::Initialize(
-				device,
-				m_pipelineResources,
-				m_shadowPipelineResources
-			);
+		(void)ResolveBoundDevice();
 	}
 
 	void Finalize() override {
-		RHI::IRHIDevice* device = ResolveDevice();
-		if(device){
-			m_shadowVisibleGpuInstanceBuffer.Release(*device);
-			const bool shadowReleased =
-				m_shadowPipelineResources.Release(*device);
-			m_geometryBindingCache.Release(*device);
-			if(shadowReleased){
-				m_pipelineResources.Release(*device);
-			}
-			m_gpuInstanceBuffer.Release(*device);
+		if(RHI::IRHIDevice* device = ResolveReleaseDevice()){
+			ReleaseAllGpuResources(*device);
+		}else{
+			AbandonAllGpuResources();
 		}
+		ClearDeviceBinding();
 		m_modelGeometrySourceProvider.Reset();
 		m_shadowVisibleInstances.Reset();
 		m_shadowPipelineBootstrapResult =
@@ -71,9 +56,10 @@ public:
 	}
 
 	void Stop() override {
-		RHI::IRHIDevice* device = ResolveDevice();
-		if(device){
+		if(RHI::IRHIDevice* device = ResolveReleaseDevice()){
 			m_geometryBindingCache.Release(*device);
+		}else{
+			m_geometryBindingCache.Abandon();
 		}
 		m_modelGeometrySourceProvider.Reset();
 		m_lastUploadSucceeded = false;
@@ -115,7 +101,7 @@ public:
 			[this](const SystemTaskContext&){
 				UploadInstances();
 			}
-		);
+	);
 	}
 
 	const StaticBatchGpuInstanceBuffer& GetGpuInstanceBuffer() const noexcept {
@@ -220,6 +206,10 @@ public:
 		return m_lastUploadSucceeded;
 	}
 
+	RHI::DeviceGeneration BoundDeviceGeneration() const noexcept {
+		return m_boundDeviceGeneration;
+	}
+
 private:
 	struct StaticBatchGpuStoragePolicy {
 		std::size_t reserveCount = 0;
@@ -233,11 +223,116 @@ private:
 		return registry ? registry->GetSystem<RenderSystem>() : nullptr;
 	}
 
-	RHI::IRHIDevice* ResolveDevice() const noexcept {
+	RHI::RenderHardwareInterfaceService* ResolveRHIService() const noexcept {
 		if(!m_context || !m_context->graphics) return nullptr;
-		RHI::RenderHardwareInterfaceService* service =
-			m_context->graphics->GetRHIService();
-		return service ? service->GetDevice() : nullptr;
+		return m_context->graphics->GetRHIService();
+	}
+
+	bool IsBoundTo(
+		const RHI::IRHIDevice& device,
+		RHI::DeviceGeneration generation
+	) const noexcept {
+		return m_boundDevice == &device &&
+			m_boundDeviceGeneration == generation &&
+			generation != RHI::InvalidDeviceGeneration &&
+			!m_boundDeviceLifetime.expired();
+	}
+
+	RHI::IRHIDevice* ResolveReleaseDevice() const noexcept {
+		RHI::RenderHardwareInterfaceService* service = ResolveRHIService();
+		RHI::IRHIDevice* device = service ? service->GetDevice() : nullptr;
+		const RHI::DeviceGeneration generation = service
+			? service->GetDeviceGeneration()
+			: RHI::InvalidDeviceGeneration;
+		return device && IsBoundTo(*device, generation) ? device : nullptr;
+	}
+
+	RHI::IRHIDevice* ResolveBoundDevice(){
+		RHI::RenderHardwareInterfaceService* service = ResolveRHIService();
+		RHI::IRHIDevice* device = service ? service->GetDevice() : nullptr;
+		const RHI::DeviceGeneration generation = service
+			? service->GetDeviceGeneration()
+			: RHI::InvalidDeviceGeneration;
+
+		if(!device || generation == RHI::InvalidDeviceGeneration){
+			if(m_boundDevice || HasAllocatedGpuResources()){
+				AbandonAllGpuResources();
+				ClearDeviceBinding();
+			}
+			return nullptr;
+		}
+
+		if(IsBoundTo(*device, generation)){
+			BootstrapPipelines(*device);
+			return device;
+		}
+
+		// Device identity、Lifetime、Generationのいずれかが変わった場合、
+		// 旧Handleを新DeviceへDestroyしない。旧Resource Poolの破棄に委ねる。
+		AbandonAllGpuResources();
+		m_boundDevice = device;
+		m_boundDeviceLifetime = device->GetLifetimeToken();
+		m_boundDeviceGeneration = generation;
+		BootstrapPipelines(*device);
+		return device;
+	}
+
+	void BootstrapPipelines(RHI::IRHIDevice& device){
+		if(m_pipelineBootstrapResult ==
+			StaticBatchPipelineBootstrapResult::NotAttempted){
+			m_pipelineBootstrapResult = StaticBatchPipelineBootstrap::Initialize(
+				&device,
+				m_pipelineResources
+			);
+		}
+		if(m_shadowPipelineBootstrapResult ==
+			StaticBatchShadowPipelineBootstrapResult::NotAttempted){
+			m_shadowPipelineBootstrapResult =
+				StaticBatchShadowPipelineBootstrap::Initialize(
+					&device,
+					m_pipelineResources,
+					m_shadowPipelineResources
+				);
+		}
+	}
+
+	bool HasAllocatedGpuResources() const noexcept {
+		return m_pipelineResources.IsAllocated() ||
+			m_shadowPipelineResources.IsAllocated() ||
+			m_geometryBindingCache.BindingCount() != 0 ||
+			static_cast<bool>(m_gpuInstanceBuffer.Buffer()) ||
+			static_cast<bool>(m_shadowVisibleGpuInstanceBuffer.Buffer());
+	}
+
+	void ReleaseAllGpuResources(RHI::IRHIDevice& device) noexcept {
+		m_shadowVisibleGpuInstanceBuffer.Release(device);
+		const bool shadowReleased = m_shadowPipelineResources.Release(device);
+		m_geometryBindingCache.Release(device);
+		if(shadowReleased){
+			m_pipelineResources.Release(device);
+		}
+		m_gpuInstanceBuffer.Release(device);
+	}
+
+	void AbandonAllGpuResources() noexcept {
+		m_shadowVisibleGpuInstanceBuffer.Abandon();
+		m_shadowPipelineResources.Abandon();
+		m_geometryBindingCache.Abandon();
+		m_pipelineResources.Abandon();
+		m_gpuInstanceBuffer.Abandon();
+		m_modelGeometrySourceProvider.Reset();
+		m_shadowVisibleInstances.Reset();
+		m_shadowPipelineBootstrapResult =
+			StaticBatchShadowPipelineBootstrapResult::NotAttempted;
+		m_pipelineBootstrapResult =
+			StaticBatchPipelineBootstrapResult::NotAttempted;
+		m_lastUploadSucceeded = false;
+	}
+
+	void ClearDeviceBinding() noexcept {
+		m_boundDevice = nullptr;
+		m_boundDeviceLifetime.reset();
+		m_boundDeviceGeneration = RHI::InvalidDeviceGeneration;
 	}
 
 	StaticBatchGpuStoragePolicy ResolveStoragePolicy(
@@ -295,7 +390,7 @@ private:
 		m_modelGeometrySourceProvider.BeginSynchronization();
 
 		RenderSystem* renderSystem = ResolveRenderSystem();
-		RHI::IRHIDevice* device = ResolveDevice();
+		RHI::IRHIDevice* device = ResolveBoundDevice();
 		if(!renderSystem || !device){
 			m_modelGeometrySourceProvider.EndSynchronization();
 			return;
@@ -329,7 +424,7 @@ private:
 		m_lastUploadSucceeded = false;
 
 		RenderSystem* renderSystem = ResolveRenderSystem();
-		RHI::IRHIDevice* device = ResolveDevice();
+		RHI::IRHIDevice* device = ResolveBoundDevice();
 		if(!renderSystem || !device) return;
 
 		const RenderPacketFrameBuffer& frameBuffer =
@@ -382,6 +477,10 @@ private:
 	}
 
 	SceneManagerContext* m_context = nullptr;
+	RHI::IRHIDevice* m_boundDevice = nullptr;
+	RHI::IRHIDevice::LifetimeToken m_boundDeviceLifetime;
+	RHI::DeviceGeneration m_boundDeviceGeneration =
+		RHI::InvalidDeviceGeneration;
 	StaticBatchGpuInstanceBuffer m_gpuInstanceBuffer;
 	StaticBatchPipelineResources m_pipelineResources;
 	StaticBatchShadowPipelineResources m_shadowPipelineResources;
