@@ -189,6 +189,9 @@ inline void ShareBar(float ratio, float height = 5.0f){
 			height * 0.5f
 		);
 	}
+	if(ImGui::IsItemHovered()){
+		ImGui::SetTooltip("%.1f%%", ratio * 100.0f);
+	}
 }
 
 inline void BudgetPlot(
@@ -198,17 +201,25 @@ inline void BudgetPlot(
 	int sampleCount,
 	float current,
 	float average,
-	float targetMilliseconds
+	float targetValue,
+	const char* unit = "ms",
+	int precision = 2
 ){
 	ImGui::PushID(id);
 	const ImGuiStyle& style = ImGui::GetStyle();
-	char valueText[96]{};
+	const float peak = Maximum(samples, sampleCount);
+	char valueText[128]{};
 	std::snprintf(
 		valueText,
 		sizeof(valueText),
-		"%.2f ms  ·  avg %.2f ms",
+		"%.*f %s  ·  avg %.*f  ·  peak %.*f",
+		precision,
 		current,
-		average
+		unit,
+		precision,
+		average,
+		precision,
+		peak
 	);
 
 	ImGui::TextUnformatted(label);
@@ -233,11 +244,11 @@ inline void BudgetPlot(
 	);
 
 	const float plotMaximum = (std::max)(
-		targetMilliseconds * 1.10f,
-		Maximum(samples, sampleCount) * 1.10f
+		targetValue * 1.10f,
+		peak * 1.10f
 	);
-	if(plotMaximum > 0.0f && targetMilliseconds > 0.0f){
-		const float targetRatio = (std::min)(1.0f, targetMilliseconds / plotMaximum);
+	if(plotMaximum > 0.0f && targetValue > 0.0f){
+		const float targetRatio = (std::min)(1.0f, targetValue / plotMaximum);
 		const float targetY = maximum.y - size.y * targetRatio;
 		drawList->AddLine(
 			ImVec2(minimum.x, targetY),
@@ -250,7 +261,9 @@ inline void BudgetPlot(
 	if(sampleCount > 1 && plotMaximum > 0.0f){
 		const float width = maximum.x - minimum.x;
 		const float height = maximum.y - minimum.y;
-		const ImU32 lineColor = ImGui::GetColorU32(WithAlpha(style.Colors[ImGuiCol_PlotLines], 0.88f));
+		const ImU32 lineColor = ImGui::GetColorU32(
+			WithAlpha(style.Colors[ImGuiCol_PlotLines], 0.88f)
+		);
 		ImVec2 previous = minimum;
 		for(int index = 0; index < sampleCount; ++index){
 			const float x = minimum.x + width *
@@ -275,7 +288,13 @@ inline void BudgetPlot(
 				static_cast<int>(std::round(localX / width * (sampleCount - 1)))
 			)
 		);
-		ImGui::SetTooltip("Sample %d\n%.4f ms", index, samples[index]);
+		ImGui::SetTooltip(
+			"Sample %d\n%.*f %s",
+			index,
+			precision,
+			samples[index],
+			unit
+		);
 	}
 	ImGui::PopID();
 }
