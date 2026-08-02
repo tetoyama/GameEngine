@@ -56,6 +56,30 @@ inline ImVec4 LoadColor(float ratio){
 	return style.Colors[ImGuiCol_Text];
 }
 
+inline float MetricCardHeight(){
+	const float lineHeight = ImGui::GetTextLineHeight();
+	return (std::max)(72.0f, lineHeight * 3.0f + 26.0f);
+}
+
+inline void AddClippedText(
+	ImDrawList* drawList,
+	const ImVec2& position,
+	ImU32 color,
+	const char* text,
+	const ImVec4& clip
+){
+	drawList->AddText(
+		nullptr,
+		0.0f,
+		position,
+		color,
+		text,
+		nullptr,
+		0.0f,
+		&clip
+	);
+}
+
 inline void MetricCard(
 	const char* id,
 	const char* label,
@@ -65,29 +89,72 @@ inline void MetricCard(
 ){
 	ImGui::PushID(id);
 	const ImGuiStyle& style = ImGui::GetStyle();
-	const ImVec4 surface = WithAlpha(style.Colors[ImGuiCol_FrameBg], 0.54f);
-	const ImVec4 outline = WithAlpha(style.Colors[ImGuiCol_Border], 0.34f);
+	const float width = PositiveExtent(ImGui::GetContentRegionAvail().x);
+	const float height = MetricCardHeight();
+	const ImVec2 minimum = ImGui::GetCursorScreenPos();
+	ImGui::InvisibleButton("##Metric", ImVec2(width, height));
+	const bool hovered = ImGui::IsItemHovered();
+	const ImVec2 maximum(minimum.x + width, minimum.y + height);
+	ImDrawList* drawList = ImGui::GetWindowDrawList();
 
-	ImGui::PushStyleColor(ImGuiCol_ChildBg, surface);
-	ImGui::PushStyleColor(ImGuiCol_Border, outline);
-	ImGui::PushStyleVar(ImGuiStyleVar_ChildRounding, 6.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_ChildBorderSize, 1.0f);
-	ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2(10.0f, 7.0f));
-	if(ImGui::BeginChild(
-		"##Metric",
-		ImVec2(0.0f, 68.0f),
-		true,
-		ImGuiWindowFlags_NoScrollbar | ImGuiWindowFlags_NoScrollWithMouse
-	)){
-		ImGui::TextDisabled("%s", label);
-		ImGui::PushStyleColor(ImGuiCol_Text, LoadColor(loadRatio));
-		ImGui::TextUnformatted(value);
-		ImGui::PopStyleColor();
-		ImGui::TextDisabled("%s", detail);
+	drawList->AddRectFilled(
+		minimum,
+		maximum,
+		ImGui::GetColorU32(
+			WithAlpha(style.Colors[ImGuiCol_FrameBg], hovered ? 0.68f : 0.54f)
+		),
+		6.0f
+	);
+	drawList->AddRect(
+		minimum,
+		maximum,
+		ImGui::GetColorU32(
+			WithAlpha(style.Colors[ImGuiCol_Border], hovered ? 0.44f : 0.30f)
+		),
+		6.0f,
+		0,
+		1.0f
+	);
+
+	const float paddingX = 10.0f;
+	const float paddingY = 8.0f;
+	const float lineHeight = ImGui::GetTextLineHeight();
+	const float lineGap = 4.0f;
+	const ImVec4 clip(
+		minimum.x + paddingX,
+		minimum.y + 1.0f,
+		maximum.x - paddingX,
+		maximum.y - 1.0f
+	);
+	const float labelY = minimum.y + paddingY;
+	const float valueY = labelY + lineHeight + lineGap;
+	const float detailY = valueY + lineHeight + lineGap;
+
+	AddClippedText(
+		drawList,
+		ImVec2(minimum.x + paddingX, labelY),
+		ImGui::GetColorU32(style.Colors[ImGuiCol_TextDisabled]),
+		label,
+		clip
+	);
+	AddClippedText(
+		drawList,
+		ImVec2(minimum.x + paddingX, valueY),
+		ImGui::GetColorU32(LoadColor(loadRatio)),
+		value,
+		clip
+	);
+	AddClippedText(
+		drawList,
+		ImVec2(minimum.x + paddingX, detailY),
+		ImGui::GetColorU32(style.Colors[ImGuiCol_TextDisabled]),
+		detail,
+		clip
+	);
+
+	if(hovered){
+		ImGui::SetTooltip("%s\n%s\n%s", label, value, detail);
 	}
-	ImGui::EndChild();
-	ImGui::PopStyleVar(3);
-	ImGui::PopStyleColor(2);
 	ImGui::PopID();
 }
 
