@@ -7,6 +7,7 @@
 #include "Resources/resourceService.h"
 #include "Resources/Data/modelData.h"
 #include "System/Render/Animation/AnimationPoseEvaluator.h"
+#include "ModelSubMeshStateSynchronization.h"
 
 namespace ModelRendererRuntime {
 
@@ -38,6 +39,7 @@ inline void ReleaseBuffers(ModelRendererComponent& component){
 inline bool CreateModel(ModelRendererComponent& component, SceneContext* context){
 	if(component.modelFilePath.empty() || !context || !context->manager ||
 		!context->manager->resource){
+		component.subMeshes.clear();
 		return false;
 	}
 
@@ -49,8 +51,14 @@ inline bool CreateModel(ModelRendererComponent& component, SceneContext* context
 		component.isBlender
 	);
 	if(!component.model || !component.model->AiScene){
+		component.subMeshes.clear();
 		return false;
 	}
+
+	ModelSubMeshStateSynchronization::Synchronize(
+		component.subMeshes,
+		component.model->SubMeshes
+	);
 
 	for(const auto& [animationName, animationPath] : component.animations){
 		component.model->LoadAnimationSource(
@@ -65,6 +73,7 @@ inline void ResetModel(ModelRendererComponent& component){
 	ReleaseBuffers(component);
 	ResetAnimationRuntime(component);
 	component.model.reset();
+	component.subMeshes.clear();
 	component.blendedAnimations.clear();
 }
 
