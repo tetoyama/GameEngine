@@ -19,6 +19,7 @@ inline constexpr std::uint32_t InvalidModelSourceIndex =
 enum class MaterialTextureSemantic : std::uint8_t {
 	BaseColor = 0,
 	Normal,
+	Bump,
 	Height,
 	Metallic,
 	Roughness,
@@ -47,6 +48,9 @@ enum class MaterialCullMode : std::uint8_t {
 struct MaterialTextureBinding {
 	MaterialTextureSemantic semantic = MaterialTextureSemantic::BaseColor;
 	MaterialColorSpace colorSpace = MaterialColorSpace::SRGB;
+	// Source path is retained for diagnostics and reimport. assetPath is the
+	// normalized engine-facing reference used by runtime lookup.
+	std::string sourcePath;
 	std::string assetPath;
 	std::uint32_t sourceTextureIndex = InvalidModelSourceIndex;
 	std::uint8_t uvChannel = 0;
@@ -107,6 +111,31 @@ struct ImportedMaterialDefinition {
 	MaterialDescriptor descriptor;
 };
 
+enum class ModelMaterialImportDiagnosticSeverity : std::uint8_t {
+	Info = 0,
+	Warning,
+	Error
+};
+
+enum class ModelMaterialImportDiagnosticCode : std::uint8_t {
+	MissingMaterialName = 0,
+	MissingMeshName,
+	InvalidMaterialIndex,
+	EmptyTexturePath,
+	UnsupportedTextureMapping,
+	StableLocalIDCollision
+};
+
+struct ModelMaterialImportDiagnostic {
+	ModelMaterialImportDiagnosticSeverity severity =
+		ModelMaterialImportDiagnosticSeverity::Info;
+	ModelMaterialImportDiagnosticCode code =
+		ModelMaterialImportDiagnosticCode::MissingMaterialName;
+	std::string message;
+	std::uint32_t sourceMaterialIndex = InvalidModelSourceIndex;
+	std::uint32_t sourceMeshIndex = InvalidModelSourceIndex;
+};
+
 enum class SubMeshMaterialSource : std::uint8_t {
 	ModelDefault = 0,
 	CustomMaterial
@@ -128,4 +157,19 @@ struct CustomMaterialEntry {
 	CustomMaterialID id = InvalidCustomMaterialID;
 	std::string name;
 	MaterialDescriptor inlineMaterial;
+};
+
+enum class ModelMaterialResolutionSource : std::uint8_t {
+	ImportedMaterial = 0,
+	CustomMaterial,
+	ImportedMaterialFallback,
+	EngineDefault
+};
+
+enum class ModelMaterialResolutionIssue : std::uint8_t {
+	None = 0,
+	MissingSubMeshDefinition,
+	MissingImportedMaterial,
+	MissingMaterialComponent,
+	MissingCustomMaterial
 };
