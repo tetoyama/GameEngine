@@ -44,8 +44,17 @@ int main(){
 
 	assert(rhiInterfaces.find("using DeviceGeneration") != std::string::npos);
 	assert(rhiInterfaces.find("GetLifetimeToken()") != std::string::npos);
+	assert(rhiService.find("struct DeviceOwnershipSnapshot") !=
+		std::string::npos);
+	assert(rhiService.find("struct ConstDeviceOwnershipSnapshot") !=
+		std::string::npos);
+	assert(rhiService.find("GetDeviceOwnershipSnapshot()") !=
+		std::string::npos);
 	assert(rhiService.find("GetDeviceGeneration()") != std::string::npos);
 	assert(rhiService.find("AdvanceDeviceGeneration()") != std::string::npos);
+	assert(rhiService.find(
+		"ResetOwnedDevice();\n\t\tm_selectedBackend = device->GetBackendType();"
+	) != std::string::npos);
 
 	assert(uploadSystem.find("m_boundDeviceLifetime") != std::string::npos);
 	assert(uploadSystem.find("m_boundDeviceGeneration") != std::string::npos);
