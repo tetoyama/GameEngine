@@ -52,9 +52,39 @@ int main(){
 		std::string::npos);
 	assert(rhiService.find("GetDeviceGeneration()") != std::string::npos);
 	assert(rhiService.find("AdvanceDeviceGeneration()") != std::string::npos);
-	assert(rhiService.find(
-		"ResetOwnedDevice();\n\t\tm_selectedBackend = device->GetBackendType();"
-	) != std::string::npos);
+
+	// AdoptDeviceは旧Ownership Epochを終了してから新Deviceを公開する。
+	// 空白やコメントの変更では壊れず、関数内の処理順だけを検証する。
+	const std::size_t adoptBegin = rhiService.find("bool AdoptDevice(");
+	const std::size_t adoptEnd = rhiService.find(
+		"std::unique_ptr<IRHIDevice> ReleaseDevice()",
+		adoptBegin
+	);
+	assert(adoptBegin != std::string::npos);
+	assert(adoptEnd != std::string::npos);
+	const std::size_t resetPosition = rhiService.find(
+		"ResetOwnedDevice();",
+		adoptBegin
+	);
+	const std::size_t selectedBackendPosition = rhiService.find(
+		"m_selectedBackend = device->GetBackendType();",
+		adoptBegin
+	);
+	const std::size_t publishDevicePosition = rhiService.find(
+		"m_device = std::move(device);",
+		adoptBegin
+	);
+	const std::size_t advanceGenerationPosition = rhiService.find(
+		"AdvanceDeviceGeneration();",
+		adoptBegin
+	);
+	assert(resetPosition < adoptEnd);
+	assert(selectedBackendPosition < adoptEnd);
+	assert(publishDevicePosition < adoptEnd);
+	assert(advanceGenerationPosition < adoptEnd);
+	assert(resetPosition < selectedBackendPosition);
+	assert(selectedBackendPosition < publishDevicePosition);
+	assert(publishDevicePosition < advanceGenerationPosition);
 
 	assert(uploadSystem.find("struct StaticBatchRhiOwnershipTelemetry") !=
 		std::string::npos);
