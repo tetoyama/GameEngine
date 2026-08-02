@@ -54,14 +54,14 @@ inline StaticBatchModelMaterialRejectReason Resolve(
 	std::uint32_t packetMaterialKey,
 	const StaticBatchModelMaterialInput& input,
 	StaticBatchModelMaterialState& state,
-	bool applyGBufferAlphaRule = true
+	bool applyLegacyAlphaRule = true
 ) noexcept {
 	const std::uint32_t expectedShaderID =
 		static_cast<std::uint32_t>((std::max)(0, input.shaderID));
 	if(packetMaterialKey != expectedShaderID){
 		return StaticBatchModelMaterialRejectReason::ShaderKeyMismatch;
 	}
-	if(applyGBufferAlphaRule && input.material &&
+	if(applyLegacyAlphaRule && input.material &&
 		input.material->BaseColor.w < 0.999f){
 		return StaticBatchModelMaterialRejectReason::ExcludedByGBufferAlphaRule;
 	}
@@ -130,7 +130,7 @@ inline StaticBatchModelMaterialRejectReason Resolve(
 		packet.materialKey,
 		input,
 		state,
-		applyGBufferAlphaRule
+		applyGBufferAlphaRule && descriptor == nullptr
 	);
 }
 
