@@ -344,10 +344,10 @@ int ResolvePackedLightEntrySpan(LIGHT light, int firstEntryIndex, int activeEntr
 float3 ResolvePointShadowFaceDirection(int faceIndex)
 {
     if (faceIndex == 0) return float3( 1.0,  0.0,  0.0);
-    if (faceIndex == 1) return float3(-1.0,  0.0,  0.0);
-    if (faceIndex == 2) return float3( 0.0,  1.0,  0.0);
-    if (faceIndex == 3) return float3( 0.0, -1.0,  0.0);
-    if (faceIndex == 4) return float3( 0.0,  0.0,  1.0);
+    if (faceIndex == 1) return float3(-1.0,  0.0, 0.0);
+    if (faceIndex == 2) return float3( 0.0,  1.0, 0.0);
+    if (faceIndex == 3) return float3( 0.0, -1.0, 0.0);
+    if (faceIndex == 4) return float3( 0.0,  0.0, 1.0);
     return float3(0.0, 0.0, -1.0);
 }
 
