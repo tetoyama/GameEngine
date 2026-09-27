@@ -1,0 +1,102 @@
+// =======================================================================
+//
+// Orchestrator.h
+//
+// Intake → Plan → Retrieve → Evidence → Reason → Critic → Repair → Synthesize。
+// 会話履歴はIntakeAgentがTaskStoreから取得し、同一Worker threadの後続Agentへ共有する。
+//
+// =======================================================================
+#pragma once
+
+#include <functional>
+#include <string>
+
+#include "../AgentOsTypes.h"
+#include "../Json.h"
+#include "../Budget/Budget.h"
+#include "../Command/CapabilitySet.h"
+#include "../Command/CommandPipeline.h"
+#include "../Command/CommandTypes.h"
+#include "../Llm/ILlmBackend.h"
+#include "../Store/TaskStore.h"
+
+namespace agentos {
+
+// AgentOSServiceには以前の固定上限 `config.maxRepairRounds = 2` が残っていた。
+// Core側の既定値を大きくしても実機だけ2回で停止していたため、旧値2だけを
+// 既定のハードセーフティ上限へ正規化する。2以外の明示設定はテストを含め保持する。
+class RepairRoundLimit {
+public:
+	static constexpr int kDefault = 1000000;
+
+	constexpr RepairRoundLimit() noexcept = default;
+	constexpr RepairRoundLimit(int requested) noexcept
+		: value_(Normalize(requested)) {}
+
+	constexpr RepairRoundLimit& operator=(int requested) noexcept {
+		value_ = Normalize(requested);
+		return *this;
+	}
+
+	constexpr operator int() const noexcept { return value_; }
+	constexpr int Value() const noexcept { return value_; }
+
+	static constexpr int Normalize(int requested) noexcept {
+		return requested == 2 ? kDefault : requested;
+	}
+
+private:
+	int value_ = kDefault;
+};
+
+inline void to_json(Json& json, const RepairRoundLimit& value) {
+	json = value.Value();
+}
+
+struct OrchestratorConfig {
+	Budget budget;
+
+	// 実質的な停止判断はBudgetとEarlyStoppingが担う。
+	// 大規模調査を固定2ラウンドで切らないため、これは暴走時だけ届く
+	// 最終ハードセーフティ上限として十分大きくしておく。
+	RepairRoundLimit maxRepairRounds;
+};
+
+struct OrchestratorResult {
+	bool completed = false;
+	std::string report;
+	Json stopInfo = Json::object();
+	SessionId sessionId = kInvalidId;
+	Json rankedHypotheses = Json::object();
+
+	// 統合Evidenceの最終状態（coverage / failedEvidenceCount / retiredTasks 等）。
+	// なぜその判定になったのかを外から確認できるようにするために持つ。
+	// 停止理由だけでは「何が足りなかったのか」が分からず、
+	// 調査のたびにtranscriptを読み解く必要があった。
+	Json builtEvidence = Json::object();
+};
+
+class Orchestrator {
+public:
+	Orchestrator(ILlmBackend* llm, CommandPipeline* pipeline, TaskStore* store,
+	             CapabilityRegistry* capabilityRegistry, OrchestratorConfig config = {});
+
+	OrchestratorResult RunSession(const std::string& userRequest);
+
+	void SetProgressCallback(std::function<void(const std::string& stage, const Json& detail)> callback);
+	CapabilityToken GetLastIssuedToken() const;
+
+private:
+	void ReportProgress(const std::string& stage, const Json& detail);
+
+	ILlmBackend* llm_ = nullptr;
+	CommandPipeline* pipeline_ = nullptr;
+	TaskStore* store_ = nullptr;
+	CapabilityRegistry* capabilityRegistry_ = nullptr;
+	OrchestratorConfig config_;
+
+	std::function<void(const std::string&, const Json&)> progressCallback_;
+	CapabilityToken lastToken_;
+};
+
+} // namespace agentos

@@ -66,6 +66,9 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 			if(ImGui::MenuItem("Performance Monitor", nullptr, showPerformanceMonitor)){
 				showPerformanceMonitor = !showPerformanceMonitor;
 			}
+			if(ImGui::MenuItem("B.R.A.I.N.", nullptr, showBRAIN)){
+				showBRAIN = !showBRAIN;
+			}
 			ImGui::Separator();
 			if(ImGui::MenuItem("Scene Settings", nullptr, showSceneSettings)){
 				showSceneSettings = !showSceneSettings;
@@ -105,8 +108,6 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 				transportTargetX > menuEndX + 16.0f &&
 				transportTargetX + transportWidth < transportRightLimit;
 
-			// The transport is the global primary action. It stays centered and
-			// visually independent from navigation and contextual viewport tools.
 			if(canShowTransport && m_editor->sceneManager){
 				ImGui::SameLine();
 				ImGui::SetCursorPosX(transportTargetX);
@@ -164,8 +165,6 @@ void MenuBar::Draw(const EditorDrawContext ctx){
 				ImGui::PopID();
 			}
 
-			// Navigation remains secondary. It is shown only when labels fit;
-			// narrow windows fall back to the explicit Window menu.
 			if(canShowShortcuts){
 				ImGui::SameLine();
 				ImGui::SetCursorPosX(shortcutTargetX);
