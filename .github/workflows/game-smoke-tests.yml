@@ -24,20 +24,36 @@ permissions:
 
 jobs:
   rules:
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
+    runs-on: windows-2022
+    timeout-minutes: 15
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
 
       - name: ElemenTactics rules
-        shell: bash
-        run: |
-          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror             -I Source -I Source/GameApplication             Tests/ElemenTacticsRulesSmokeTest.cpp             -o elementactics-rules
-          ./elementactics-rules
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source\GameApplication
+          Source\GameApplication\Game\ElemenTactics\Rules\ElemenTacticsRules.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\ElemenTacticsAi.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\LlmDecisionAdapter.cpp
+          Tests\ElemenTacticsRulesSmokeTest.cpp
+          /Fe:elementactics-rules.exe
+          && elementactics-rules.exe
 
       - name: MiniGameCollection rules
-        shell: bash
-        run: |
-          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror             -I Source -I Source/GameApplication             Tests/MiniGameRulesSmokeTest.cpp             -o minigame-rules
-          ./minigame-rules
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source
+          /I Source\GameApplication
+          Tests\MiniGameRulesSmokeTest.cpp
+          /Fe:minigame-rules.exe
+          && minigame-rules.exe
