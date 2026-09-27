@@ -1,0 +1,43 @@
+name: Game Rules Smoke
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "Source/GameApplication/Game/ElemenTactics/**"
+      - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Tests/ElemenTacticsRulesSmokeTest.cpp"
+      - "Tests/MiniGameRulesSmokeTest.cpp"
+      - ".github/workflows/game-smoke-tests.yml"
+  pull_request:
+    branches: [develop]
+    paths:
+      - "Source/GameApplication/Game/ElemenTactics/**"
+      - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Tests/ElemenTacticsRulesSmokeTest.cpp"
+      - "Tests/MiniGameRulesSmokeTest.cpp"
+      - ".github/workflows/game-smoke-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: ElemenTactics rules
+        shell: bash
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror             -I Source -I Source/GameApplication             Tests/ElemenTacticsRulesSmokeTest.cpp             -o elementactics-rules
+          ./elementactics-rules
+
+      - name: MiniGameCollection rules
+        shell: bash
+        run: |
+          g++ -std=c++20 -Wall -Wextra -Wpedantic -Werror             -I Source -I Source/GameApplication             Tests/MiniGameRulesSmokeTest.cpp             -o minigame-rules
+          ./minigame-rules

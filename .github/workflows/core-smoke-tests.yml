@@ -1,0 +1,103 @@
+name: Engine Core Smoke
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "Source/GameApplication/Engine/Scene/**"
+      - "Source/GameApplication/Service/Graphics/RHI/**"
+      - "Tests/JobSystemSmokeTest.cpp"
+      - "Tests/DependencyScheduleExecutorSmokeTest.cpp"
+      - "Tests/SystemAccessContractSmokeTest.cpp"
+      - "Tests/DirectPagedComponentStorageTest.cpp"
+      - "Tests/TransformRotationSmokeTest.cpp"
+      - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
+      - "Tests/LocalLightShadowProjectionSmokeTest.cpp"
+      - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
+      - "Tests/LightShadowParticipationSmokeTest.cpp"
+      - "Tests/RHISmokeTest.cpp"
+      - "Tests/D3D11RHIBackendSmokeTest.cpp"
+      - "Tests/PlayerViewRefreshPolicySmokeTest.cpp"
+      - ".github/workflows/core-smoke-tests.yml"
+  pull_request:
+    branches: [develop]
+    paths:
+      - "Source/GameApplication/Engine/Scene/**"
+      - "Source/GameApplication/Service/Graphics/RHI/**"
+      - "Tests/JobSystemSmokeTest.cpp"
+      - "Tests/DependencyScheduleExecutorSmokeTest.cpp"
+      - "Tests/SystemAccessContractSmokeTest.cpp"
+      - "Tests/DirectPagedComponentStorageTest.cpp"
+      - "Tests/TransformRotationSmokeTest.cpp"
+      - "Tests/PointShadowFaceLayoutSmokeTest.cpp"
+      - "Tests/LocalLightShadowProjectionSmokeTest.cpp"
+      - "Tests/PackedLightEntryTraversalSmokeTest.cpp"
+      - "Tests/LightShadowParticipationSmokeTest.cpp"
+      - "Tests/RHISmokeTest.cpp"
+      - "Tests/D3D11RHIBackendSmokeTest.cpp"
+      - "Tests/PlayerViewRefreshPolicySmokeTest.cpp"
+      - ".github/workflows/core-smoke-tests.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: engine-core-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  core-smoke:
+    runs-on: windows-2022
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: Compile and run core smoke suite
+        shell: pwsh
+        run: |
+          $tests = @(
+            "JobSystemSmokeTest",
+            "DependencyScheduleExecutorSmokeTest",
+            "SystemAccessContractSmokeTest",
+            "DirectPagedComponentStorageTest",
+            "TransformRotationSmokeTest",
+            "PointShadowFaceLayoutSmokeTest",
+            "LocalLightShadowProjectionSmokeTest",
+            "PackedLightEntryTraversalSmokeTest",
+            "LightShadowParticipationSmokeTest",
+            "RHISmokeTest",
+            "D3D11RHIBackendSmokeTest",
+            "PlayerViewRefreshPolicySmokeTest"
+          )
+
+          foreach ($name in $tests) {
+            Write-Host "=== $name ==="
+            $source = "Tests/$name.cpp"
+            $exe = "$name.exe"
+
+            & cl /nologo /utf-8 /std:c++20 /EHsc /W4 /MTd `
+              /I Source `
+              /I Source/GameApplication `
+              /I Source/GameApplication/Backends `
+              /I Source/GameApplication/Engine `
+              /I Source/GameApplication/Engine/Scene `
+              /I Source/GameApplication/Service `
+              $source d3d11.lib dxgi.lib user32.lib "/Fe:$exe"
+
+            if ($LASTEXITCODE -ne 0) {
+              throw "Compile failed: $name"
+            }
+
+            & ".\$exe"
+            if ($LASTEXITCODE -ne 0) {
+              throw "Smoke test failed: $name"
+            }
+          }
