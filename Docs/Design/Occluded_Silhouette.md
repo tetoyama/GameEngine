@@ -1,8 +1,9 @@
 # レンダラ第1版 完成計画 — RenderGraphと遮蔽シルエット
 
 作成日: 2026-09-07  
-状態: 計画作成済み・実装未着手  
-調査基準: `agent/csm-unity-inspector` / `1d1aeefdc22950292e2158737f18ffa7613ddd88`
+状態: Active design proposal — `develop` 上で実装状況を再判定して着手  
+現在基準: `develop`  
+過去調査基準: `agent/csm-unity-inspector` / `1d1aeefdc22950292e2158737f18ffa7613ddd88`
 
 ## 1. 今回の完成地点
 
