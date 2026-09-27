@@ -246,7 +246,10 @@ void LLAMAAgent::WorkerMain(){
 // =====================================================
 // RunPromptInternal — 履歴一元管理版
 // =====================================================
-void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
+void LLAMAAgent::RunPromptInternal(
+	const std::string& prompt,
+	int retryDepth,
+	CancelSnapshot* snapshot){
 	OutputDebugStringA("==================================================\n");
 	OutputDebugStringA("LLAMAAgent: RunPromptInternal START\n");
 	OutputDebugStringA(("User Prompt: " + prompt + "\n").c_str());
@@ -266,34 +269,18 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 	// =====================================================
 	// Cancel rollback snapshot (top-level prompt unit)
 	// =====================================================
-	struct CancelSnapshot{
-		decltype(m_history) history;
-		decltype(m_pastTokens) pastTokens;
-		int nPast = 0;
-		bool valid = false;
-	};
-
-	static thread_local CancelSnapshot s_cancelSnapshot;
-
-	// outermost call only: keep the pre-call state
-	if(retryDepth == 0 || !s_cancelSnapshot.valid){
-		s_cancelSnapshot.history = m_history;
-		s_cancelSnapshot.pastTokens = m_pastTokens;
-		s_cancelSnapshot.nPast = m_nPast;
-		s_cancelSnapshot.valid = true;
+	CancelSnapshot localSnapshot;
+	CancelSnapshot* activeSnapshot = snapshot;
+	if(activeSnapshot == nullptr){
+		activeSnapshot = &localSnapshot;
+		activeSnapshot->history = m_history;
+		activeSnapshot->pastTokens = m_pastTokens;
+		activeSnapshot->nPast = m_nPast;
+		activeSnapshot->valid = true;
 	}
 
-	struct SnapshotScope{
-		int retryDepth;
-		~SnapshotScope(){
-			if(retryDepth == 0){
-				s_cancelSnapshot.valid = false;
-			}
-		}
-	} snapshotScope{retryDepth};
-
 	auto rollbackToSnapshot = [&](){
-		if(!s_cancelSnapshot.valid){
+		if(!activeSnapshot->valid){
 			return;
 		}
 
@@ -302,15 +289,15 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 		// 不要。ここで巻き戻すとReset適用と二重作業になる。
 		if(m_resetRequested.load(std::memory_order_acquire)){
 			OutputDebugStringA("[POST] Cancel caused by reset request. Skipping rollback replay.\n");
-			s_cancelSnapshot.valid = false;
+			activeSnapshot->valid = false;
 			return;
 		}
 
 		OutputDebugStringA("[POST] Cancel/abort detected. Rolling back to snapshot...\n");
 
-		const auto historySnapshot = s_cancelSnapshot.history;
-		const auto pastTokensSnapshot = s_cancelSnapshot.pastTokens;
-		const int nPastSnapshot = s_cancelSnapshot.nPast;
+		const auto historySnapshot = activeSnapshot->history;
+		const auto pastTokensSnapshot = activeSnapshot->pastTokens;
+		const int nPastSnapshot = activeSnapshot->nPast;
 
 		// Reset context and sampler to a clean state first
 		ResetContextUnlocked();
@@ -364,7 +351,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 			m_visibleOutput.clear();
 		}
 
-		s_cancelSnapshot.valid = false;
+		activeSnapshot->valid = false;
 		};
 
 	if(m_cancelRequested.load(std::memory_order_acquire)){
@@ -444,6 +431,15 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 	// add_ass=true を正しいテンプレートに対して渡している以上、この後処理は不要
 	// （かつ ChatML 以外のモデルでは逆に害になる）ので削除した。
 
+	// [AgentOS対応] 応答prefill。
+	// add_ass=true でassistantヘッダが付いた直後に response_prefix を差し込むことで、
+	// モデルの応答をこの文字列の続きから開始させる。AgentOSはここへ空のthinkブロック
+	// （"<think>\n\n</think>\n\n"）を渡し、Thinkingモードを確定的にスキップする。
+	// 空文字列（既定値）なら何もしないため、BRAIN等の既存利用へは影響しない。
+	if(!m_config->response_prefix.empty()){
+		diffFormatted += m_config->response_prefix;
+	}
+
 	DBG_UTF8(("\n[DEBUG] Input Diff Text:\n" + diffFormatted + "\n----------------------------\n").c_str());
 
 	// =====================================================
@@ -494,7 +490,7 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 		SummarizeAndReset();
 
 		OutputDebugStringA("[OVERFLOW] Re-trying RunPromptInternal with clean context summary baton.\n");
-		RunPromptInternal(prompt, retryDepth + 1);
+		RunPromptInternal(prompt, retryDepth + 1, activeSnapshot);
 		return;
 	}
 
@@ -593,6 +589,8 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 		m_output.clear();
 		m_visibleOutput.clear();
 	}
+	m_lastPromptTokens.store(ntok, std::memory_order_release);
+	m_lastGeneratedTokens.store(0, std::memory_order_release);
 
 	// =====================================================
 	// 7. 生成ループ
@@ -682,10 +680,11 @@ void LLAMAAgent::RunPromptInternal(const std::string& prompt, int retryDepth){
 		char dbg_buf[256]{};
 		int dbg_len = llama_token_to_piece(vocab, tok, dbg_buf, sizeof(dbg_buf), 0, false);
 		if(dbg_len > 0){
-			DBG_UTF8(("[Generated Piece]: " + std::string(dbg_buf, dbg_len) + "\n").c_str());
+			DBG_UTF8((std::string(dbg_buf, dbg_len) + " ").c_str());
 		}
 
 		++loop;
+		m_lastGeneratedTokens.store(loop, std::memory_order_release);
 		// [修正] 以前あったハードコード 4096 の安全ブレークは、
 		// while条件の genTokenLimit に統合したので撤去した。
 	}
@@ -1048,10 +1047,27 @@ void LLAMAAgent::ResetContextUnlocked(){
 	m_history.clear();
 	m_summaryText.clear();
 
+	// 通常はcapacityを再利用する。異常に膨張した一時PromptだけはReset時に返却し、
+	// 一度の巨大Conversation Contextが以後の常駐メモリ量を固定しないようにする。
+	const std::size_t tokenCapacityLimit = (std::max)(
+		static_cast<std::size_t>(m_config ? m_config->n_ctx * 2u : 0u),
+		static_cast<std::size_t>(65536));
+	if(m_pastTokens.capacity() > tokenCapacityLimit){
+		std::vector<llama_token>().swap(m_pastTokens);
+	}
+	if(m_history.capacity() > 128){
+		std::vector<MessageEntry>().swap(m_history);
+	}
+	if(m_summaryText.capacity() > 65536){
+		std::string().swap(m_summaryText);
+	}
+
 	{
 		std::lock_guard<std::mutex> o(m_outputMutex);
 		m_output.clear();
 		m_visibleOutput.clear();
+		if(m_output.capacity() > 65536) std::string().swap(m_output);
+		if(m_visibleOutput.capacity() > 65536) std::string().swap(m_visibleOutput);
 	}
 
 	OutputDebugStringA("[INFRA] LLAMAAgent::ResetContextUnlocked end\n");

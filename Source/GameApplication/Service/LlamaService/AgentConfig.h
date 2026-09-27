@@ -7,6 +7,7 @@
 
 #include <string>
 #include <cstdint>
+#include <thread>
 
 // ============================
 // AgentConfig
@@ -29,7 +30,38 @@ struct AgentConfig final {
 	// llama_context_params::n_threads
 	// プロンプト処理（バッチ）用スレッド数にも同じ値を流用する。
 	// 詳細は LLAMAAgent::CreateContext を参照。
+	// 直接値を書かず RecommendedThreads() を使うこと（理由は同関数のコメント参照）。
 	uint32_t n_threads = 8;
+
+	// ============================
+	// スレッド数の推奨値
+	// ============================
+	//
+	// LLMはゲームエンジンのプロセス内で動くため、全論理コアを占有してはいけない。
+	// 描画・JobSystem・OSに必ず余力を残す。ハードコードした固定値は
+	// 4コア機で過剰subscribe、32スレッド機で過少になるため使わない。
+	//
+	// 設計上の根拠：
+	//  - llama.cppのCPU推論はメモリ帯域律速で、SMT（Hyper-Threading）の
+	//    論理スレッドを足してもスループットがほぼ伸びない。よって物理コア数を基準にする。
+	//  - 同じ理由で8本を超えるとスケールしないため上限で頭打ちにする。
+	//
+	// reserveCores: LLM以外（描画/JobSystem）に残す物理コア数。
+	static uint32_t RecommendedThreads(uint32_t reserveCores = 2) noexcept {
+		const uint32_t logical = std::thread::hardware_concurrency();
+
+		// hardware_concurrency()は取得失敗時に0を返しうる。保守的な既定値へ倒す。
+		if(logical == 0) return 4;
+
+		// SMT前提で物理コア数を推定する。SMT無効環境では半分に見積もる形になるが、
+		// 「engineに余力を残す」方向の誤りなので安全側。
+		const uint32_t physical = (logical > 1) ? (logical / 2) : 1;
+
+		if(physical <= reserveCores) return 1;
+
+		const uint32_t threads = physical - reserveCores;
+		return (threads < 8) ? threads : 8;
+	}
 
 	// ============================
 	// sampler 設定
@@ -54,6 +86,14 @@ struct AgentConfig final {
 	// チャットモデルではこれ自体を 1.0f（無効）にするのが最も自然な応答になりやすい。
 	// 会話が長くなって語彙のループが気になる場合のみ、隠し味程度に 1.01f〜1.02f を試すこと。
 	float repeat_penalty = 1.01f;
+
+	// 応答prefill（assistant応答の先頭へ強制挿入する文字列）
+	// 空なら従来どおり何もしない。
+	// AgentOSは "<think>\n\n</think>\n\n" を設定してQwen系のThinkingを空欄で確定させ、
+	// JSON出力までのトークン浪費（実測で1回の呼び出しあたり1000token超）を防ぐ。
+	// /no_think ソフトスイッチが効かないモデルでも、prefillはテンプレート層で
+	// 確実に効く。ChatML以外のモデルで使う場合は内容の妥当性を確認すること。
+	std::string response_prefix;
 
 	// ============================
 	// Agent 実行制御

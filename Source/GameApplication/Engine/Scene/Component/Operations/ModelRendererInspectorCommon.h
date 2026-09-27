@@ -49,6 +49,7 @@ inline void ChangeModelPath(
 
 	component.ReleaseBuffers();
 	component.model.reset();
+	component.subMeshes.clear();
 	component.animations.clear();
 	component.blendedAnimations.clear();
 	component.modelFilePath = path;

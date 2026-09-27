@@ -1,5 +1,5 @@
 AppType: 0
-StartScene: Asset\Scene\scene_title.yaml
+StartScene: Asset/Game/ElemenTactics/Scene/ElemenTactics.scene
 Vsync: false
 MaximumFrameLatency: 3
 FullScreen: false

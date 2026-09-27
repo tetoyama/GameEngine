@@ -7,6 +7,7 @@
 #include "Resources/resourceService.h"
 #include "Resources/Data/modelData.h"
 #include "System/Render/Animation/AnimationPoseEvaluator.h"
+#include "ModelSubMeshStateSynchronization.h"
 
 namespace ModelRendererRuntime {
 
@@ -36,6 +37,8 @@ inline void ReleaseBuffers(ModelRendererComponent& component){
 }
 
 inline bool CreateModel(ModelRendererComponent& component, SceneContext* context){
+	// Resource Serviceがまだ利用できない一時状態では、YAMLから復元した
+	// SubMesh Overrideを保持する。成功したLoad時だけStable IDで再同期する。
 	if(component.modelFilePath.empty() || !context || !context->manager ||
 		!context->manager->resource){
 		return false;
@@ -52,6 +55,11 @@ inline bool CreateModel(ModelRendererComponent& component, SceneContext* context
 		return false;
 	}
 
+	ModelSubMeshStateSynchronization::Synchronize(
+		component.subMeshes,
+		component.model->SubMeshes
+	);
+
 	for(const auto& [animationName, animationPath] : component.animations){
 		component.model->LoadAnimationSource(
 			animationPath.c_str(),
@@ -65,6 +73,7 @@ inline void ResetModel(ModelRendererComponent& component){
 	ReleaseBuffers(component);
 	ResetAnimationRuntime(component);
 	component.model.reset();
+	component.subMeshes.clear();
 	component.blendedAnimations.clear();
 }
 

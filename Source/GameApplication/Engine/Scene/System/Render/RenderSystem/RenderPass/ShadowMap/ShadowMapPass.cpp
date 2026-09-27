@@ -293,97 +293,127 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 				XMVECTOR lightDir =
 					XMVector3Normalize(transform->front().ToXMVECTOR());
 
-				float cameraNear = ctx.cameraData.cameraComponent->NearClip;
-				float cameraFar = ctx.cameraData.cameraComponent->FarClip;
-				float fov = ctx.cameraData.cameraComponent->FOV;
-				float aspect = (ctx.screenSize.y > 0.0f)
+				const float cameraNear =
+					ctx.cameraData.cameraComponent->NearClip;
+				const float cameraFar =
+					ctx.cameraData.cameraComponent->FarClip;
+				const float fov = ctx.cameraData.cameraComponent->FOV;
+				const float aspect = (ctx.screenSize.y > 0.0f)
 					? (ctx.screenSize.x / ctx.screenSize.y)
 					: 1.0f;
-				float tanHalfFovV = tanf(fov * 0.5f);
-				float tanHalfFovH = tanHalfFovV * aspect;
+				const float tanHalfFovV = tanf(fov * 0.5f);
+				const float tanHalfFovH = tanHalfFovV * aspect;
 
-				XMMATRIX invCameraView =
+				const XMMATRIX invCameraView =
 					XMMatrixInverse(nullptr, ctx.viewMatrix);
 
-				const float csmNear = max(cameraNear, 0.1f);
-				const float csmFar = cameraFar;
-				constexpr float csmLambda = 0.85f;
+				CsmDirectionalLightSettings csmSettings = lightcomp->csm;
+				csmSettings.Normalize();
+				const int requestedCascadeCount = csmSettings.cascadeCount;
+				const float csmNear = (std::max)(cameraNear, 0.1f);
+				const float csmFar = csmSettings.ResolveShadowFar(
+					csmNear,
+					cameraFar
+				);
 
-				float splitDepths[DIRECTIONAL_CSM_CASCADE_COUNT];
-				for(int c = 0; c < DIRECTIONAL_CSM_CASCADE_COUNT; c++){
-					float p = (float)(c + 1) /
-						(float)DIRECTIONAL_CSM_CASCADE_COUNT;
-					float logSplit = csmNear * powf(csmFar / csmNear, p);
-					float uniSplit = csmNear + (csmFar - csmNear) * p;
-					splitDepths[c] =
-						csmLambda * logSplit +
-						(1.0f - csmLambda) * uniSplit;
+				float splitDepths[DIRECTIONAL_CSM_CASCADE_COUNT] = {};
+				for(int c = 0; c < requestedCascadeCount; ++c){
+					if(csmSettings.splitMode == CsmSplitMode::Manual){
+						const float ratio =
+							csmSettings.ResolveManualSplitRatio(
+								c,
+								requestedCascadeCount
+							);
+						splitDepths[c] = csmNear +
+							(csmFar - csmNear) * ratio;
+					}else{
+						const float p = static_cast<float>(c + 1) /
+							static_cast<float>(requestedCascadeCount);
+						const float logSplit = csmNear *
+							powf(csmFar / csmNear, p);
+						const float uniformSplit = csmNear +
+							(csmFar - csmNear) * p;
+						splitDepths[c] =
+							csmSettings.splitLambda * logSplit +
+							(1.0f - csmSettings.splitLambda) * uniformSplit;
+					}
 				}
+				splitDepths[requestedCascadeCount - 1] = csmFar;
 
 				float prevSplit = csmNear;
-				int firstCascadeSlot = lightCount;
+				const int firstCascadeSlot = lightCount;
 				int cascadeCount = 0;
 
 				for(int c = 0;
-					c < DIRECTIONAL_CSM_CASCADE_COUNT && lightCount < LIGHT_MAX_COUNT;
+					c < requestedCascadeCount && lightCount < LIGHT_MAX_COUNT;
 					++c){
 
-					float splitNear = prevSplit;
-					float splitFar = splitDepths[c];
+					const float splitNear = prevSplit;
+					const float splitFar = splitDepths[c];
 					prevSplit = splitFar;
 
 					XMVECTOR corners[8];
 					int idx = 0;
-					for(int zi = 0; zi < 2; zi++){
-						float z = zi == 0 ? splitNear : splitFar;
-						float hx = tanHalfFovH * z;
-						float hy = tanHalfFovV * z;
+					for(int zi = 0; zi < 2; ++zi){
+						const float z = zi == 0 ? splitNear : splitFar;
+						const float hx = tanHalfFovH * z;
+						const float hy = tanHalfFovV * z;
 
 						for(int sx = -1; sx <= 1; sx += 2){
 							for(int sy = -1; sy <= 1; sy += 2){
-								XMVECTOR viewCorner = XMVectorSet(
+								const XMVECTOR viewCorner = XMVectorSet(
 									sx * hx,
 									sy * hy,
 									z,
 									1.0f
 								);
-								corners[idx++] =
-									XMVector3TransformCoord(
-										viewCorner,
-										invCameraView
-									);
+								corners[idx++] = XMVector3TransformCoord(
+									viewCorner,
+									invCameraView
+								);
 							}
 						}
 					}
 
 					XMVECTOR center = XMVectorZero();
-					for(int i = 0; i < 8; i++){
-						center += corners[i];
+					for(const XMVECTOR& corner : corners){
+						center += corner;
 					}
 					center /= 8.0f;
 
 					float radius = 0.0f;
-					for(int i = 0; i < 8; i++){
-						float d = XMVectorGetX(
-							XMVector3Length(corners[i] - center)
+					for(const XMVECTOR& corner : corners){
+						const float distance = XMVectorGetX(
+							XMVector3Length(corner - center)
 						);
-						radius = (std::max)(radius, d);
+						radius = (std::max)(radius, distance);
 					}
-
 					radius = ceilf(radius * 16.0f) / 16.0f;
 
-					XMVECTOR eyev = center - lightDir * radius;
+					const float cascadeDepthRadius = radius;
+					const float cascadeXyScale = csmSettings.ResolveXyScale(
+						c,
+						requestedCascadeCount
+					);
+					const float cascadeXyRadius = (std::max)(
+						radius * cascadeXyScale,
+						0.001f
+					);
+
+					const XMVECTOR eyev =
+						center - lightDir * cascadeDepthRadius;
 					XMVECTOR upv = XMVectorSet(0, 1, 0, 0);
 					if(fabsf(XMVectorGetX(XMVector3Dot(upv, lightDir))) > 0.95f){
 						upv = XMVectorSet(0, 0, 1, 0);
 					}
 
-					XMMATRIX lightView = XMMatrixLookAtLH(eyev, center, upv);
-					XMMATRIX lightProj = XMMatrixOrthographicLH(
-						radius * 2.0f,
-						radius * 2.0f,
+					const XMMATRIX lightView =
+						XMMatrixLookAtLH(eyev, center, upv);
+					const XMMATRIX lightProj = XMMatrixOrthographicLH(
+						cascadeXyRadius * 2.0f,
+						cascadeXyRadius * 2.0f,
 						0.0f,
-						radius * 2.0f
+						cascadeDepthRadius * 2.0f
 					);
 
 					LIGHT cascadeLight = lightData;
@@ -414,14 +444,14 @@ void ShadowMapPass::Execute(const RenderPassContext& ctx){
 					);
 
 					light.Lights[lightCount] = cascadeLight;
-					lightCount++;
-					shadowCount++;
-					cascadeCount++;
+					++lightCount;
+					++shadowCount;
+					++cascadeCount;
 				}
 
 				if(cascadeCount > 0){
 					light.Lights[firstCascadeSlot].Position.w =
-						(float)cascadeCount;
+						static_cast<float>(cascadeCount);
 				}
 
 				hasCsmLight = true;

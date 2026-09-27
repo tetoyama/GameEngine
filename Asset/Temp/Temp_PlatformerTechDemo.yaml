@@ -63,7 +63,7 @@ Entities:
       - Component: TransformComponent
         Position:
           x: 0
-          y: 0.0324999914
+          y: 0.0349999927
           z: 0
         Rotation:
           - 0
@@ -195,9 +195,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: 10.441102
-          y: 149.472839
-          z: -6.98970461
+          x: 3.81661034
+          y: 160.178085
+          z: 2.519238
           w: 0
         Direction:
           x: -0.0696073472
@@ -229,17 +229,17 @@ Entities:
             - 0.556295395
             - -0
             - 0.830984652
-            - 0
+            - -4.21661091
           -
             - -0.828064203
             - 0.0837649107
             - 0.554340363
-            - -1.43051147e-06
+            - -11.6534195
           -
             - -0.0696073472
             - -0.996485591
             - 0.0465980321
-            - 150
+            - 159.763443
           -
             - 0
             - 0
@@ -1015,9 +1015,9 @@ Entities:
         Name: Enemy_Meadow
       - Component: TransformComponent
         Position:
-          x: 1.23122245e-05
+          x: 1.05554054e-05
           y: 0.450022221
-          z: 16.0002003
+          z: 16.0001717
         Rotation:
           - 0
           - 0
@@ -1114,9 +1114,9 @@ Entities:
         Name: Enemy_Orchard
       - Component: TransformComponent
         Position:
-          x: -4.9999299
+          x: -4.99993896
           y: 6.95002508
-          z: 78.9999084
+          z: 78.9999313
         Rotation:
           - 0
           - 0
@@ -1213,9 +1213,9 @@ Entities:
         Name: Enemy_Ruins
       - Component: TransformComponent
         Position:
-          x: -4.99992275
+          x: -4.99993181
           y: 6.45002508
-          z: 106.999855
+          z: 106.999878
         Rotation:
           - 0
           - 0
@@ -2909,7 +2909,7 @@ Entities:
         Name: PlatformerBoss
       - Component: TransformComponent
         Position:
-          x: -2.39331875e-05
+          x: -2.05138695e-05
           y: 0.999997973
           z: 148
         Rotation:

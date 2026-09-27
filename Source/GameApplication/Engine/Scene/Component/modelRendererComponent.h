@@ -20,6 +20,11 @@ class ModelRendererComponent: public IComponent {
 public:
 	std::shared_ptr<ModelData> model;
 	std::string modelFilePath;
+
+	// Entity固有のSubMesh表示状態とMaterial割当。
+	// Materialパラメータ自体はModelDataまたはMaterialComponentが所有する。
+	std::vector<ModelSubMeshRenderState> subMeshes;
+
 	std::vector<std::pair<std::string, std::string>> animations;
 	std::vector<AnimationBlend> blendedAnimations;
 	bool isBlender = false;
@@ -55,6 +60,28 @@ public:
 	void CreateModel(SceneContext* context);
 	void ReleaseBuffers();
 	void ResetAnimationRuntime();
+
+	const ModelSubMeshRenderState* FindSubMeshState(
+		ModelSubMeshID id
+	) const noexcept {
+		if(id == InvalidModelSubMeshID){
+			return nullptr;
+		}
+		for(const ModelSubMeshRenderState& state : subMeshes){
+			if(state.subMeshID == id){
+				return &state;
+			}
+		}
+		return nullptr;
+	}
+
+	ModelSubMeshRenderState* FindSubMeshState(
+		ModelSubMeshID id
+	) noexcept {
+		return const_cast<ModelSubMeshRenderState*>(
+			static_cast<const ModelRendererComponent*>(this)->FindSubMeshState(id)
+		);
+	}
 };
 
 #include "Operations/ModelRendererRuntime.h"
