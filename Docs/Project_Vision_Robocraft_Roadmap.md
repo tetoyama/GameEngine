@@ -18,8 +18,8 @@ Robocraft型ゲームは唯一の用途ではない。最も複雑なVertical Sl
 
 関連資料:
 
-- `Docs/ECS_Scheduler_Migration_Plan.md`
-- `Docs/GameEngine_Game_Development_Usability_Assessment.md`
+- `Docs/Architecture/ECS_and_Scheduling.md`
+- `Docs/Archive/Assessments/GameEngine_Game_Development_Usability_Assessment.md`
 
 ---
 

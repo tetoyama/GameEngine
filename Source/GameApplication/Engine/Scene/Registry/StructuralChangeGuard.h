@@ -14,7 +14,7 @@
 // - EntityCommandBuffer::CommitはPlayback区間だけ呼出Thread上でUnlockする
 // - Editor Domain / Scene Load / Editor Undo等のSchedule外の即時変更は影響を受けない
 //
-// (Review H-4 / M-3相当: Docs/ECS_Scheduler_Migration_Plan.md §1.4)
+// (Review H-4 / M-3相当: Docs/Architecture/ECS_and_Scheduling.md)
 namespace ECSStructural {
 
 inline std::atomic<int>& ScheduleLockDepth() noexcept {

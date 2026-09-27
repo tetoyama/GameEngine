@@ -71,7 +71,7 @@
 | **Editor** | Hierarchy、Inspector、Asset Browser、Scene / Player View、Gizmo、Picking、Undo / Redo、Profiler |
 | **Physics** | NVIDIA PhysX、Box / Sphere / Capsule / Mesh / HeightMap、Trigger、Layer Mask、Raycast |
 | **Animation / VFX** | Compute Shader Skinning、Animation Blend、Particle、Effekseer、Terrain、Wave Mesh |
-| **Scripting** | C++ Reflection、YAML Serialization、Inspector自動生成、C# DLL Hot Reload |
+| **Scripting** | C++ Reflection、YAML Serialization、Inspector自動生成、C++ Script DLL Hot Reload |
 | **Local AI** | llama.cppを利用したEditor内ローカルLLM Agent、非同期推論、KV Cache、Context要約 |
 | **Platform** | Win32 Window、Keyboard / Mouse / XInput、XAudio2、複数Windowを想定したService構成 |
 
@@ -117,8 +117,8 @@ flowchart LR
 ECS World
   -> SystemTask Schedule
   -> RenderWorld Extraction
-  -> GBuffer
   -> Shadow Map
+  -> GBuffer
   -> Deferred Lighting
   -> Forward / Transparency
   -> Post Effect Graph
@@ -128,7 +128,7 @@ ECS World
 
 設計上の主要な境界は、ECS WorldをRendererから直接参照させず、CPU側で抽出したRenderWorldを介して描画情報を受け渡す点にある。Systemは処理単位となるTaskを生成し、SchedulerがRead / Write Accessから実行依存を構築する。
 
-詳細な移行契約と進捗は [`Docs/ECS_Scheduler_Migration_Plan.md`](Docs/ECS_Scheduler_Migration_Plan.md) を参照。
+現在のECS / Scheduler契約は [`Docs/Architecture/ECS_and_Scheduling.md`](Docs/Architecture/ECS_and_Scheduling.md) を参照。
 
 ## Rendering highlights
 
@@ -182,7 +182,7 @@ ECS World
 | **3D Platformer Tech Demo** | Character Controller、PhysX、Camera Zone、Checkpoint、Boss、演出 | [PR #47](https://github.com/tetoyama/GameEngine/pull/47) |
 | **Mini-game Collection** | Multi-scene、短時間ゲームループ、CPU、Runtime UI、共通Presentation | [PR #48](https://github.com/tetoyama/GameEngine/pull/48) |
 | **ElemenTactics** | Hidden information、決定的ルール、AI、LLM Action Adapter | [PR #50](https://github.com/tetoyama/GameEngine/pull/50) |
-| **AgentOS** | ローカルLLM、複数Agent、Context管理、Editor統合UI | [`llm-agent`](https://github.com/tetoyama/GameEngine/tree/llm-agent) |
+| **AgentOS** | ローカルLLM、複数Agent、Context管理、Editor統合UI | [Docs](Docs/AgentOS/README.md) |
 
 ## ビルド
 
@@ -219,7 +219,7 @@ GameEngine/
 │  ├─ Engine/                  ECS, Scheduler, Renderer, Editor, Scene
 │  ├─ Service/                 Engine-wide services
 │  └─ Backends/                DirectX 11, PhysX, Assimp, llama.cpp, etc.
-├─ Docs/                       Design contracts, migration plans, audits
+├─ Docs/                       Canonical architecture, design proposals, archive
 ├─ Tests/                      Structural and runtime smoke tests
 ├─ GameEngine.sln
 └─ GameEngine.vcxproj
@@ -227,21 +227,25 @@ GameEngine/
 
 ## Roadmap
 
-現在の中心課題は次の通り。
+長期方針は [Project Vision](Docs/Project_Vision_Robocraft_Roadmap.md) を正とする。
 
-1. ECS / Scheduler契約の強制と安全な並列実行
-2. ECS WorldとRenderWorldの分離完了
-3. Direct3D 11 Rendererの安定化とGPUボトルネック削減
-4. Multi-Backend RHIの段階的実装
-5. Editorの制作効率・可観測性・堅牢性向上
-6. ローカルLLM AgentをチャットUIからタスク実行基盤へ発展
-7. 複数ジャンルの実ゲームによるEngine API検証
+現在の主要テーマは次の通り。
 
-進行中の詳細は以下に集約している。
+1. ECS / Scheduler / Service境界の安定化
+2. RenderWorld / RHI / Shadowのcorrectnessと描画コスト改善
+3. Editorの制作効率・可観測性・堅牢性向上
+4. AgentOS / B.R.A.I.N.を調査UIから実行基盤へ発展
+5. 複数ジャンルの実ゲームによるEngine API検証
+6. World CompositionとOptional Module化を進め、Construct系Vertical Sliceへ接続
 
-- [ECS / Scheduler / RHI Migration Plan](Docs/ECS_Scheduler_Migration_Plan.md)
-- [GPU Pixel Cost Optimization](Docs/Step19A_GPU_Pixel_Cost_Optimization.md)
-- [Documentation index](Docs/)
+詳細:
+
+- [Documentation index](Docs/README.md)
+- [Engine Overview](Docs/Architecture/Engine_Overview.md)
+- [ECS and Scheduling](Docs/Architecture/ECS_and_Scheduling.md)
+- [Rendering](Docs/Architecture/Rendering.md)
+- [AgentOS / B.R.A.I.N.](Docs/AgentOS/README.md)
+- [Testing and Branch Policy](Docs/Testing_Policy.md)
 
 ## Third-party libraries
 
