@@ -1,424 +1,286 @@
-# GameApplication
-つよつよゲームエンジンを作りたい！
-DirectX 11 ベースの自作ゲームエンジン（C++）。Unity / Unreal Engine 5 のような汎用エンジンのアーキテクチャ品質を目指して個人開発中。
+<p align="center">
+  <img src=".github/assets/gameengine-hero.svg" width="100%" alt="Abstract overview of the GameEngine architecture" />
+</p>
 
----
+<h1 align="center">GameEngine</h1>
 
-## 目次
+<p align="center">
+  ゲーム固有の要求に応じて、内部構造から拡張・変更できる個人開発ゲームエンジン。
+  <br />
+  <sub>A personal game engine built to understand, extend, and reshape every layer of the stack.</sub>
+</p>
 
-1. [プロジェクト概要](#プロジェクト概要)
-2. [クラス図](#クラス図)
-3. [サードパーティライブラリ・ライセンス](#サードパーティライブラリライセンス)
+<p align="center">
+  <img alt="C++20" src="https://img.shields.io/badge/C%2B%2B-20-00599C?style=flat-square&logo=cplusplus&logoColor=white" />
+  <img alt="DirectX 11" src="https://img.shields.io/badge/DirectX-11-59D8FF?style=flat-square&logo=windows&logoColor=0A1020" />
+  <img alt="Windows x64" src="https://img.shields.io/badge/Windows-x64-0078D4?style=flat-square&logo=windows11&logoColor=white" />
+  <img alt="Visual Studio 2022" src="https://img.shields.io/badge/Visual%20Studio-2022-8B7CFF?style=flat-square&logo=visualstudio&logoColor=white" />
+  <img alt="Apache License 2.0" src="https://img.shields.io/badge/license-Apache%202.0-55D88A?style=flat-square" />
+  <img alt="Active development" src="https://img.shields.io/badge/status-active%20development-FF9D5C?style=flat-square" />
+</p>
 
----
+<p align="center">
+  <a href="#設計方針">Philosophy</a> ·
+  <a href="#主な機能">Features</a> ·
+  <a href="#アーキテクチャ">Architecture</a> ·
+  <a href="#開発中のゲームプロジェクト">Projects</a> ·
+  <a href="#ビルド">Build</a> ·
+  <a href="#ライセンス">License</a> ·
+  <a href="Docs/">Docs</a>
+</p>
 
-## プロジェクト概要
+> [!IMPORTANT]
+> 本リポジトリは完成済みのSDKではなく、ゲーム制作とエンジン研究を並行して進めている開発中のプロジェクトである。API、データ形式、内部構造は継続的に変更される可能性がある。
 
-### コアアーキテクチャ
+## 設計方針
 
-- **DI コンテナ** (`EngineContext`)：型をキーにしたサービス登録・取得、登録の逆順で `Shutdown`
-- **ECS**：`EntityRegistry`（ID 再利用つきエンティティ管理）/ `ComponentRegistry`（コンポーネント種別ごとに `SparseStorage` か `ArchetypeStorage` を選択可能）
-- **安全な参照**：`EntityRef` / `ComponentRef<T>` による生存チェック付きハンドル（マルチシーンでも `SceneContext` 単位で一意）
-- **システム管理**：`ISystem` ベースの `SystemRegistry`（`Initialize / Start / Update / FixedUpdate / Draw / Stop / Finalize` をまとめて呼び出し）
-- **シーン管理**：複数シーンの同時アクティブ化、YAML 保存/読込、Play/Stop 切り替え時の一時保存・復元（`TempSave` / `TempLoad`）
-- **Prefab システム**：階層構造・親子関係を保ったままの保存／インスタンス化
+<table>
+<tr>
+<td width="33%" valign="top">
 
-### レンダリング
+### 内部構造を把握できること
 
-- **Deferred + Forward ハイブリッドパイプライン**：GBuffer → ShadowMap → Lighting(Deferred) → Forward(半透明) → PostEffect → OverlayUI
-- **マテリアル**：`ShaderID` 切り替え式、HLSL ソースをランタイム自動生成・コンパイル・依存関係付きキャッシュ（`ReCompilePixelShaders`）
-- **シェーディングモデル**：PBR / Unlit / Toon / RimToon / PBRToon
-- **シャドウ**：CSM（カスケードシャドウマップ）、Point/Spot シャドウ、共有シャドウアトラス
-- **ポストエフェクト**：ノードグラフ（imnodes）+ トポロジカルソートで実行順を解決。Bloom、SSAO、SSR、被写界深度、各種ブラー、Kuwahara、Posterize、Mosaic、Glitch、色収差、アウトライン（法線/深度/ShaderID 3方式）、レンズフレア、ゴッドレイ、深度フォグ
-- **スキニングアニメーション**：GPU Compute Shader（CS）スキニング + CPU フォールバック、複数アニメーションのブレンド
-- **ビルボード／スプライト／パーティクル／地形／波メッシュ**の専用 Renderable
-- **環境マップ**：スカイスフィアからの自動反射マップ更新
+ゲームループ、ECS、Renderer、Editor、Resource、PhysicsまでをC++コードとして追跡し、必要に応じて変更できる構造を目指している。
 
-### 物理
+</td>
+<td width="33%" valign="top">
 
-- **PhysX 統合**：Box / Sphere / Capsule / Mesh / HeightMap コライダー、Static/Dynamic 剛体、トリガー、レイヤーマスク付きレイキャスト
+### ゲーム側の要求へ適応すること
 
-### スクリプティング
+汎用エンジンの制約へゲームを合わせるのではなく、ゲーム固有のAdapterやServiceを追加し、必要であればEngine内部の契約も拡張する。
 
-- **C++ カスタムスクリプト**：`BEGIN_REFLECT` / `REFLECT_FIELD` マクロでフィールドの YAML シリアライズとインスペクタ UI を自動生成
-- **C# DLL ホットリロード**：`ScriptSystem` が外部 DLL をロード／差し替え
+</td>
+<td width="33%" valign="top">
 
-### エディタ
+### 基盤と体験を同時に検証すること
 
-- ヒエラルキー（検索、ドラッグ&ドロップ、Prefab 表示）
-- インスペクタ（動的なコンポーネント追加/削除、フィールド編集）
-- アセットブラウザ（プレビューキャッシュ、D&D）
-- ビューウィンドウ（ImGuizmo によるギズモ操作、GBuffer ピッキングでオブジェクト選択）
-- Undo/Redo コマンドシステム（`CommandManager`）
-- パフォーマンスモニタ／デバッグログウィンドウ／システム設定 UI
+低レイヤー設計、並列実行、描画最適化だけでなく、カメラ、操作感、視認性、演出までを同一コードベース上で検証する。
 
-### AI 統合
+</td>
+</tr>
+</table>
 
-- ローカル LLM（llama.cpp）エージェント：非同期推論、KV キャッシュ差分更新、コンテキスト溢れ時の自動要約
+## 主な機能
 
-### オーディオ・入力
+| 領域 | 実装内容 |
+|---|---|
+| **Core / DI** | `EngineContext` によるService登録・取得・逆順Shutdown、複数Sceneの同時管理 |
+| **ECS** | 世代付きEntity、複数Storage戦略、安全な `EntityRef` / `ComponentRef<T>`、Query / View |
+| **Scheduler** | Phase / Priority / Access Hazardから依存を構築するSystemTask Scheduler、Job System、決定的な構造変更反映 |
+| **Rendering** | DirectX 11、Deferred + Forward、PBR / Toon、CSM・Point・Spot Shadow、RenderWorld、Post Effect Graph |
+| **Editor** | Hierarchy、Inspector、Asset Browser、Scene / Player View、Gizmo、Picking、Undo / Redo、Profiler |
+| **Physics** | NVIDIA PhysX、Box / Sphere / Capsule / Mesh / HeightMap、Trigger、Layer Mask、Raycast |
+| **Animation / VFX** | Compute Shader Skinning、Animation Blend、Particle、Effekseer、Terrain、Wave Mesh |
+| **Scripting** | C++ Reflection、YAML Serialization、Inspector自動生成、C# DLL Hot Reload |
+| **Local AI** | llama.cppを利用したEditor内ローカルLLM Agent、非同期推論、KV Cache、Context要約 |
+| **Platform** | Win32 Window、Keyboard / Mouse / XInput、XAudio2、複数Windowを想定したService構成 |
 
-- XAudio2 ベースの再生／ループ／音量制御
-- キーボード・マウス・ゲームパッド（XInput）、複数ウィンドウ対応の入力管理
-
----
-
-## クラス図
-
-### ECS コア
-
-```mermaid
-classDiagram
-    class EntityRegistry {
-        -Entity m_nextID
-        -vector~Entity~ m_recycledIDs
-        -unordered_set~Entity~ m_alive
-        +Create() Entity
-        +CreateID(Entity) Entity
-        +Destroy(Entity)
-        +IsAlive(Entity) bool
-    }
-    class ComponentRegistry {
-        -unordered_map~type_index,IComponentStorage~ m_storages
-        -unordered_map~Entity,ComponentMask~ m_entityMasks
-        +AddComponent~T~(Entity) T*
-        +GetComponent~T~(Entity) T*
-        +RemoveComponent~T~(Entity)
-        +QueryEntities~Components~() vector~Entity~
-    }
-    class IComponentStorage {
-        <<interface>>
-        +Remove(Entity)
-        +GetEntityList() vector~Entity~
-    }
-    class ArchetypeStorage~T~ {
-        -vector~T~ m_components
-        -unordered_map~Entity,size_t~ m_indexMap
-        +Add(Entity, T)
-        +Get(Entity) T*
-    }
-    class SparseStorage~T~ {
-        -unordered_map~Entity,T~ m_map
-        +Add(Entity, T)
-        +Get(Entity) T*
-    }
-    class IComponent {
-        <<interface>>
-        +encode() YAML::Node
-        +decode(SceneContext*, Node) bool
-        +inspector(SceneContext*)
-    }
-    class EntityRef {
-        -Entity m_entity
-        -SceneContext* m_context
-        +IsValid() bool
-        +Get() Entity
-    }
-    class ComponentRef~T~ {
-        -EntityRef m_entityRef
-        +Get() T*
-        +IsValid() bool
-    }
-
-    IComponentStorage <|.. ArchetypeStorage
-    IComponentStorage <|.. SparseStorage
-    ComponentRegistry o-- IComponentStorage
-    ComponentRegistry --> EntityRegistry
-    ArchetypeStorage --> IComponent
-    SparseStorage --> IComponent
-    ComponentRef --> EntityRef
-```
-
-### レンダーパイプライン
+## アーキテクチャ
 
 ```mermaid
-classDiagram
-    class IRenderPass {
-        <<interface>>
-        +Initialize(RenderSystem*, SceneManagerContext*)
-        +Execute(RenderPassContext&)
-        +Finalize()
-    }
-    class GBufferPass
-    class ShadowMapPass
-    class LightingPass
-    class ForwardPass
-    class PostEffectPass
-    class OverlayUIPass
-    class PhysXDebugPass
-    class PlayerPass
-    class EditorPass
+flowchart LR
+    Game[Game / Custom Scripts]
+    Context[EngineContext]
+    Scene[Scene + ECS World]
+    Scheduler[SystemTask Scheduler]
+    RenderWorld[RenderWorld Extraction]
+    Renderer[Render Pipeline]
+    RHI[RHI / Direct3D 11]
+    GPU[GPU]
 
-    IRenderPass <|.. GBufferPass
-    IRenderPass <|.. ShadowMapPass
-    IRenderPass <|.. LightingPass
-    IRenderPass <|.. ForwardPass
-    IRenderPass <|.. PostEffectPass
-    IRenderPass <|.. OverlayUIPass
-    IRenderPass <|.. PhysXDebugPass
-    IRenderPass <|.. PlayerPass
-    IRenderPass <|.. EditorPass
+    Input[Input]
+    Audio[Audio]
+    Physics[PhysX]
+    Resource[Resource Service]
+    Editor[Editor]
+    LLM[Local LLM Agent]
 
-    PlayerPass o-- GBufferPass
-    PlayerPass o-- ShadowMapPass
-    PlayerPass o-- LightingPass
-    PlayerPass o-- ForwardPass
-    PlayerPass o-- PostEffectPass
-    PlayerPass o-- OverlayUIPass
+    Game --> Context
+    Context --> Scene
+    Scene --> Scheduler
+    Scheduler --> RenderWorld
+    RenderWorld --> Renderer
+    Renderer --> RHI
+    RHI --> GPU
 
-    EditorPass o-- GBufferPass
-    EditorPass o-- ShadowMapPass
-    EditorPass o-- LightingPass
-    EditorPass o-- ForwardPass
-    EditorPass o-- PostEffectPass
-    EditorPass o-- OverlayUIPass
-    EditorPass o-- PhysXDebugPass
-
-    class IRenderable {
-        <<interface>>
-        +Execute(RenderPassContext&, SceneContext*, Entity&)
-    }
-    class RenderableModel
-    class RenderableMesh
-    class RenderableSprite
-    class RenderableBillBoard
-    class RenderableParticle
-    class RenderableTerrain
-    class RenderableWave
-    class RenderableEffect
-
-    IRenderable <|.. RenderableModel
-    IRenderable <|.. RenderableMesh
-    IRenderable <|.. RenderableSprite
-    IRenderable <|.. RenderableBillBoard
-    IRenderable <|.. RenderableParticle
-    IRenderable <|.. RenderableTerrain
-    IRenderable <|.. RenderableWave
-    IRenderable <|.. RenderableEffect
-
-    GBufferPass o-- IRenderable
-    ForwardPass o-- IRenderable
-    ShadowMapPass o-- IRenderable
+    Context --- Input
+    Context --- Audio
+    Context --- Physics
+    Context --- Resource
+    Context --- Editor
+    Context --- LLM
 ```
 
-### サービス／シーン階層
-
-```mermaid
-classDiagram
-    class EngineContext {
-        -unordered_map~type_index,shared_ptr~IService~~ m_Services
-        +Register~T~(shared_ptr~T~)
-        +Get~T~() shared_ptr~T~
-        +Shutdown()
-    }
-    class IService {
-        <<interface>>
-        +Shutdown()
-    }
-    class GraphicsContext
-    class SceneManager
-    class ResourceService
-    class InputService
-    class AudioContext
-    class EditorService
-    class LLAMAService
-    class WindowService
-    class ImGuiService
-
-    IService <|.. GraphicsContext
-    IService <|.. SceneManager
-    IService <|.. ResourceService
-    IService <|.. InputService
-    IService <|.. AudioContext
-    IService <|.. EditorService
-    IService <|.. LLAMAService
-    IService <|.. WindowService
-    IService <|.. ImGuiService
-    EngineContext o-- IService
-
-    class Scene {
-        -EntityRegistry m_entityRegistry
-        -ComponentRegistry m_componentRegistry
-        -PrefabSystem m_prefabSystem
-        +Save()
-        +LoadSceneFromYAML(string)
-    }
-    SceneManager o-- Scene
-    Scene o-- EntityRegistry
-    Scene o-- ComponentRegistry
-    Scene o-- PrefabSystem
-
-    class SystemRegistry {
-        -vector~ISystem~ m_systems
-        +RegisterSystem(ISystem)
-        +UpdateAll(float)
-    }
-    class ISystem {
-        <<interface>>
-        +Initialize()
-        +Update(float)
-        +Draw()
-    }
-    SystemRegistry o-- ISystem
-    ISystem <|.. RenderSystem
-    ISystem <|.. PhysicSystem
-    ISystem <|.. CustomScriptSystem
-    ISystem <|.. ScriptSystem
-    ISystem <|.. AudioSystem
-    ISystem <|.. TransformSystem
-    ISystem <|.. CameraSystem
-    SceneManager o-- SystemRegistry
-```
-
-### コンポーネント階層（抜粋）
-
-```mermaid
-classDiagram
-    class IComponent {
-        <<interface>>
-    }
-    IComponent <|-- TransformComponent
-    IComponent <|-- CameraComponent
-    IComponent <|-- ModelRendererComponent
-    IComponent <|-- MeshRendererComponent
-    IComponent <|-- MaterialComponent
-    IComponent <|-- LightComponent
-    IComponent <|-- ColliderComponent
-    IComponent <|-- AudioComponent
-    IComponent <|-- EffectComponent
-    IComponent <|-- ParticleComponent
-    IComponent <|-- TerrainComponent
-    IComponent <|-- WaveComponent
-    IComponent <|-- TextureComponent
-    IComponent <|-- SpriteRendererComponent
-    IComponent <|-- CustomScriptComponent
-    IComponent <|-- ScriptComponent
-    IComponent <|-- PrefabComponent
-    IComponent <|-- FollowComponent
-
-    class CustomScriptComponent {
-        <<abstract>>
-    }
-    CustomScriptComponent <|-- PlayerController
-    CustomScriptComponent <|-- CharacterController
-    CustomScriptComponent <|-- CameraController
-    CustomScriptComponent <|-- EnemyController
-    CustomScriptComponent <|-- BallController
-    CustomScriptComponent <|-- ScoreManager
-    CustomScriptComponent <|-- GameTimeManager
-```
-
----
-
-## 設計図
+### Frame pipeline
 
 ```text
-GameApplication
-├── Services
-│   ├── ConfigService （yaml-cpp） 【実装済み】
-│   ├── IconService （wincodec, commdlg） 【実装済み】
-│   └── ProgressStateService （shobjidl） 【実装済み】
-└── Engine
-    ├── Runtime
-    │   ├── TimeService （QueryPerformanceCounter） 【実装済み】
-    │   └── JobSystem （マルチスレッドタスク管理） 【未実装】
-    ├── Platform
-    │   ├── WindowSystem
-    │   │   ├── MainWindow （IWindow） 【実装済み】
-    │   │   └── SubWindow 【未実装】
-    │   ├── InputSystem 【実装済み】
-    │   ├── AudioSystem （XAudio2） 【実装済み】
-    │   └── NetworkSystem （ASIO, Winsock2） 【未実装】
-    ├── Graphics
-    │   ├── GraphicsContext （DirectX 11 デバイス・コンテキスト） 【実装済み】
-    │   ├── RenderEffectSystem （Effekseer） 【実装済み】
-    │   └── RenderPipeline
-    │       ├── MainRenderer （MainWindow用 DirectX11 SwapChain） 【実装済み】
-    │       └── SubRenderer （SubWindow用 DirectX11 SwapChain） 【未実装】
-    ├── Resources
-    │   └── ResourceService （ローダー管理・依存解決） 【実装済み】
-    │       ├── TextureData 【実装済み】
-    │       ├── ModelData （Assimp使用） 【実装済み】
-    │       ├── VertexShaderData 【実装済み】
-    │       ├── PixelShaderData 【実装済み】
-    │       ├── AudioData 【実装済み】
-    │       └── EffectData 【実装済み】
-    ├── DebugTools
-    │   ├── DebugSystem 【実装済み】
-    │   └── ImGuiService（Dear ImGui） 【実装済み】
-    │       └── 【Depends On】 → GraphicsContext
-    ├── Scene
-    │   ├── SceneManagerContext 【実装済み】
-    │   └── SceneManager
-    │       ├── SystemRegistry 【実装済み】
-    │       │   ├── TransformSystem 【実装済み】
-    │       │   ├── CameraSystem 【実装済み】
-    │       │   ├── RenderSystem 【実装済み】
-    │       │   ├── AudioSystem 【実装済み】
-    │       │   ├── ParticleSystem 【実装済み】
-    │       │   ├── EffectSystem 【実装済み】
-    │       │   ├── TerrainSystem 【実装済み】
-    │       │   ├── PhysicSystem 【実装済み】
-    │       │   ├── CSharpScriptSystem 【実装済み】
-    │       │   ├── CustomScriptSystem 【実装済み】
-    │       │   └── WaveSystem 【実装済み】
-    │       └── Active Scenes 【実装済み】
-    │           ├── EntityRegistry 【実装済み】
-    │           └── ComponentRegistry 【実装済み】
-    │               ├── NameComponent 【実装済み】
-    │               ├── TransformComponent 【実装済み】
-    │               ├── ColliderComponent 【実装済み】
-    │               ├── AudioComponent 【実装済み】
-    │               ├── RenderLayerComponent 【実装済み】
-    │               ├── OrderInLayerComponent 【実装済み】
-    │               ├── MaterialComponent 【実装済み】
-    │               ├── TextureComponent 【実装済み】
-    │               ├── BumpMapComponent 【実装済み】
-    │               ├── LightComponent 【実装済み】
-    │               ├── MeshRendererComponent 【実装済み】
-    │               ├── ModelRendererComponent 【実装済み】
-    │               ├── BillBoardRendererComponent 【実装済み】
-    │               ├── SpriteRendererComponent 【実装済み】
-    │               ├── TerrainComponent 【実装済み】
-    │               ├── WaveComponent 【実装済み】
-    │               ├── OutlineComponent 【未実装】
-    │               ├── ParticleComponent 【実装済み】
-    │               ├── EffectComponent 【実装済み】
-    │               ├── CameraComponent 【実装済み】
-    │               ├── CustomScriptComponent 【実装済み】
-    │               └── CSharpScriptComponent 【実装済み】
-    │                   └── CustomScript
-    │                       ├── SetScene 【実装済み】
-    │                       ├── ScoreManager 【実装済み】
-    │                       ├── ScoreSprite 【実装済み】
-    │                       ├── PlayerController 【実装済み】
-    │                       ├── GameTimeManager 【実装済み】
-    │                       ├── TimerSprite 【実装済み】
-    │                       ├── CameraController 【実装済み】
-    │                       ├── BallController 【実装済み】
-    │                       ├── EnemyController 【実装済み】
-    │                       ├── FadeInSprite 【実装済み】
-    │                       ├── FadeOutSprite 【実装済み】
-    │                       ├── FadeSetScene 【実装済み】
-    │                       └── GN31 【実装済み】
-    ├── Scripting（将来導入） 【未実装】
-    └── EditorExtension（将来導入） 【未実装】
+ECS World
+  -> SystemTask Schedule
+  -> RenderWorld Extraction
+  -> GBuffer
+  -> Shadow Map
+  -> Deferred Lighting
+  -> Forward / Transparency
+  -> Post Effect Graph
+  -> Overlay UI
+  -> Editor / Player View
 ```
+
+設計上の主要な境界は、ECS WorldをRendererから直接参照させず、CPU側で抽出したRenderWorldを介して描画情報を受け渡す点にある。Systemは処理単位となるTaskを生成し、SchedulerがRead / Write Accessから実行依存を構築する。
+
+詳細な移行契約と進捗は [`Docs/ECS_Scheduler_Migration_Plan.md`](Docs/ECS_Scheduler_Migration_Plan.md) を参照。
+
+## Rendering highlights
+
+<table>
+<tr>
+<td width="50%" valign="top">
+
+### Hybrid rendering
+
+- Deferred + Forward pipeline
+- Material別Shader切り替え
+- PBR / Unlit / Toon / Rim Toon / PBR Toon
+- Cascaded / Point / Spot shadow
+- GPU skinning + CPU fallback
+- Static batching / Culling / Render packet
+
+</td>
+<td width="50%" valign="top">
+
+### Post effect graph
+
+- Bloom / SSAO / SSR / Depth of Field
+- Blur / Kuwahara / Posterize / Mosaic
+- Glitch / Chromatic Aberration
+- Normal / Depth / Shader ID outline
+- Lens flare / God ray / Depth fog
+- imnodes + Topological sort
+
+</td>
+</tr>
+</table>
+
+## Editor highlights
+
+- Hierarchy検索、Drag & Drop、Prefab表示
+- Component追加・削除とReflection Inspector
+- Asset Preview CacheとAsset Browser
+- ImGuizmoによるTransform操作
+- GBuffer PickingによるScene選択
+- Play / Stop時の一時保存・復元
+- Undo / Redo Command System
+- Schedule / Render / Performance可視化
+- Editor内ローカルLLM Agent
+
+## 開発中のゲームプロジェクト
+
+エンジン機能は抽象テストだけでなく、異なるゲームジャンルへ実際に適用して検証している。
+
+| Project | 検証している領域 | Development |
+|---|---|---|
+| **3D Platformer Tech Demo** | Character Controller、PhysX、Camera Zone、Checkpoint、Boss、演出 | [PR #47](https://github.com/tetoyama/GameEngine/pull/47) |
+| **Mini-game Collection** | Multi-scene、短時間ゲームループ、CPU、Runtime UI、共通Presentation | [PR #48](https://github.com/tetoyama/GameEngine/pull/48) |
+| **ElemenTactics** | Hidden information、決定的ルール、AI、LLM Action Adapter | [PR #50](https://github.com/tetoyama/GameEngine/pull/50) |
+| **AgentOS** | ローカルLLM、複数Agent、Context管理、Editor統合UI | [`llm-agent`](https://github.com/tetoyama/GameEngine/tree/llm-agent) |
+
+## ビルド
+
+### Requirements
+
+- Windows 10 / 11
+- Visual Studio 2022
+- MSVC v143 toolset
+- Windows SDK 10.0
+- x64 configuration
+- C++20
+- Shader Model 5.0
+
+### Steps
+
+```powershell
+git clone https://github.com/tetoyama/GameEngine.git
+cd GameEngine
+start GameEngine.sln
+```
+
+Visual Studioで `Debug | x64` または `Release | x64` を選択し、`GameEngine` をビルドする。
+
+> [!NOTE]
+> 現在はWindows / DirectX 11を実動Backendとしている。上位描画層をNative API型から分離し、Direct3D 12 / Vulkanへ展開できるMulti-Backend RHIを段階的に構築中である。
+
+## Repository layout
+
+```text
+GameEngine/
+├─ Asset/                      Scene, Prefab, Shader, Model, Texture, Audio
+├─ Script/                     Game-side scripts and experiments
+├─ Source/GameApplication/
+│  ├─ Engine/                  ECS, Scheduler, Renderer, Editor, Scene
+│  ├─ Service/                 Engine-wide services
+│  └─ Backends/                DirectX 11, PhysX, Assimp, llama.cpp, etc.
+├─ Docs/                       Design contracts, migration plans, audits
+├─ Tests/                      Structural and runtime smoke tests
+├─ GameEngine.sln
+└─ GameEngine.vcxproj
+```
+
+## Roadmap
+
+現在の中心課題は次の通り。
+
+1. ECS / Scheduler契約の強制と安全な並列実行
+2. ECS WorldとRenderWorldの分離完了
+3. Direct3D 11 Rendererの安定化とGPUボトルネック削減
+4. Multi-Backend RHIの段階的実装
+5. Editorの制作効率・可観測性・堅牢性向上
+6. ローカルLLM AgentをチャットUIからタスク実行基盤へ発展
+7. 複数ジャンルの実ゲームによるEngine API検証
+
+進行中の詳細は以下に集約している。
+
+- [ECS / Scheduler / RHI Migration Plan](Docs/ECS_Scheduler_Migration_Plan.md)
+- [GPU Pixel Cost Optimization](Docs/Step19A_GPU_Pixel_Cost_Optimization.md)
+- [Documentation index](Docs/)
+
+## Third-party libraries
+
+<details>
+<summary>主な依存ライブラリとライセンスを表示</summary>
+
+| Library | Purpose | License |
+|---|---|---|
+| [Dear ImGui](https://github.com/ocornut/imgui) | Editor UI | MIT |
+| [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) | 3D Gizmo | MIT |
+| [imnodes](https://github.com/Nelarius/imnodes) | Post Effect Node Graph | MIT |
+| [yaml-cpp](https://github.com/jbeder/yaml-cpp) | YAML Serialization | MIT |
+| [Assimp](https://github.com/assimp/assimp) | Model Import | BSD 3-Clause |
+| [Effekseer](https://github.com/effekseer/Effekseer) | Effect Rendering | MIT |
+| [NVIDIA PhysX](https://github.com/NVIDIA-Omniverse/PhysX) | Physics | BSD 3-Clause |
+| [llama.cpp](https://github.com/ggml-org/llama.cpp) | Local LLM Inference | MIT |
+| [DirectXTex](https://github.com/microsoft/DirectXTex) | Texture Processing | MIT |
+| DirectXMath / Windows SDK APIs | Math, Graphics, Audio, Input, Platform | Windows SDK terms |
+
+詳細な帰属情報と運用方針は [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) を参照。
+
+</details>
+
+## ライセンス
+
+本プロジェクトで独自に作成したソースコードおよび関連ドキュメントは、特に明記されていない限り [Apache License 2.0](LICENSE) の下で提供される。
+
+Apache License 2.0は、商用・非商用を問わず、利用、複製、改変、派生物の作成、公開、再配布、サブライセンスおよび販売を許可する。改変したコードや、このエンジンを使用したゲームについて、ソースコードの公開は要求しない。
+
+再配布時は、Apache License 2.0に従い、ライセンス全文の提供、適用される著作権・特許・帰属表示の保持、改変したファイルへの変更通知、および [`NOTICE`](NOTICE) に含まれる帰属表示の引き継ぎが必要となる。
+
+ゲーム内、README、スタッフロールなどで目立つクレジットを表示することは必須ではないが、以下の形式による表記を歓迎する。
+
+> Uses GameEngine by Tetora Yamazaki (tetoyama)
+
+第三者ライブラリ、同梱された外部ソースコード、モデル、テクスチャ、音声、フォントその他の外部素材には、それぞれの権利者が定めるライセンスが適用される。これらは本プロジェクトのApache License 2.0によって再ライセンスされない。詳細は [`THIRD_PARTY_NOTICES.md`](THIRD_PARTY_NOTICES.md) を参照。
 
 ---
 
-## サードパーティライブラリ・ライセンス
-
-| ライブラリ | 用途 | ライセンス | リポジトリ |
-|---|---|---|---|
-| [Dear ImGui](https://github.com/ocornut/imgui) | エディタ UI 全般 | MIT | ocornut/imgui |
-| [ImGuizmo](https://github.com/CedricGuillemet/ImGuizmo) | シーンビューの 3D ギズモ操作 | MIT | CedricGuillemet/ImGuizmo |
-| [imnodes](https://github.com/Nelarius/imnodes)（Nelarius 版） | ポストエフェクトのノードグラフエディタ | MIT | Nelarius/imnodes |
-| [yaml-cpp](https://github.com/jbeder/yaml-cpp) | シーン/コンポーネントの YAML シリアライズ | MIT | jbeder/yaml-cpp |
-| [Assimp](https://github.com/assimp/assimp)（Open Asset Import Library） | 3D モデル（FBX/OBJ 等）インポート | BSD 3-Clause | assimp/assimp |
-| [Effekseer](https://github.com/effekseer/Effekseer) / EffekseerRendererDX11 | パーティクルエフェクト再生・描画 | MIT | effekseer/Effekseer |
-| [NVIDIA PhysX](https://github.com/NVIDIA-Omniverse/PhysX) | 物理シミュレーション・コライダー・レイキャスト | BSD 3-Clause | NVIDIA-Omniverse/PhysX |
-| [llama.cpp](https://github.com/ggml-org/llama.cpp) | ローカル LLM 推論（エディタ内 AI アシスタント） | MIT | ggml-org/llama.cpp |
-| [DirectXTex](https://github.com/microsoft/DirectXTex) | DDS 等テクスチャの読み込み・処理 | MIT | microsoft/DirectXTex |
-| DirectXMath | ベクトル・行列演算 | MIT | Windows SDK 同梱 |
-| DirectX 11 / D3DCompiler / Direct2D / DirectWrite / DirectInput / XAudio2 / XInput | グラフィックス・テキスト描画・音声・入力の基盤 API | Windows SDK ライセンス（プロプライエタリ、再頒布は SDK 使用許諾契約に準拠） | Windows SDK 同梱 |
+<p align="center">
+  <sub>Designed and developed by <a href="https://github.com/tetoyama">tetoyama</a>.</sub>
+</p>
