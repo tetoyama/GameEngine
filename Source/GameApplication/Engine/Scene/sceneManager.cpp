@@ -5,6 +5,8 @@
 // =======================================================================
 #include <memory>
 #include <algorithm>
+#include <exception>
+#include <filesystem>
 
 #include "buildSetting.h"
 #include "gameApplication.h"
@@ -472,47 +474,161 @@ void SceneManager::TempLoad() {
 	if(m_SceneContext.debug){
 		m_SceneContext.debug->LOG_TRACE("シーンの一時復元を開始します");
 	}
-	// アクティブシーンを破棄
-	for (auto& [name, scene] : m_activeScenes) {
-		if (scene) {
-			scene->Shutdown();
-			scene.reset();
-		}
-	}
-	m_activeScenes.clear();
 
-	// YAMLファイル読み込み
+	const auto logRestoreError = [this](const std::string& message){
+		if(m_SceneContext.debug){
+			m_SceneContext.debug->LOG_ERROR(message.c_str());
+		}
+	};
+
+	// Manifestの読み込みに失敗しても、現在のSceneを破棄しない。
+	const std::string manifestPath =
+		std::string(TEMP_SAVE_PATH) + "TempSave.yaml";
 	YAML::Node data;
 	try {
-		data = YAML::LoadFile(std::string(TEMP_SAVE_PATH) + "TempSave.yaml");
-	}
-	catch (const YAML::BadFile& e) {
-		m_SceneContext.debug->LOG_ERROR((std::string("TempSave.yaml が見つかりません") + e.what()).c_str());
+		data = YAML::LoadFile(manifestPath);
+	}catch(const YAML::Exception& exception){
+		logRestoreError(
+			"TempSave manifestの読み込みに失敗しました: " +
+			std::string(exception.what())
+		);
+		return;
+	}catch(const std::exception& exception){
+		logRestoreError(
+			"TempSave manifestの復元準備に失敗しました: " +
+			std::string(exception.what())
+		);
 		return;
 	}
 
-	// シーンの再ロード
-	if (data["Scenes"]) {
-		for (const auto& sceneNode : data["Scenes"]) {
-			std::string name = sceneNode["Name"].as<std::string>();
-			std::string path = sceneNode["Path"].as<std::string>();
-
-			// Sceneの生成・ロード
-			auto newScene = std::make_shared<Scene>();
-
-			newScene->ScenePath = (std::string(TEMP_SAVE_PATH) + "Temp_" + name + ".yaml");
-
-			newScene->Initialize(&m_SceneContext);
-
-			newScene->SceneName = name;
-
-			newScene->ScenePath = path;
-
-			m_activeScenes[name] = newScene;
+	YAML::Node sceneNodes;
+	try {
+		sceneNodes = data["Scenes"];
+		if(!sceneNodes || !sceneNodes.IsSequence()){
+			logRestoreError(
+				"TempSave manifestのScenesが存在しないかSequenceではありません"
+			);
+			return;
 		}
+	}catch(const YAML::Exception& exception){
+		logRestoreError(
+			"TempSave manifestのScenes解析に失敗しました: " +
+			std::string(exception.what())
+		);
+		return;
 	}
 
-	m_SceneContext.resource->ClearAllUnused();
+	// 旧Sceneを保持したまま、復元先Sceneを全件構築する。
+	// 途中で失敗した場合、stagedScenesの破棄時にSceneのLifecycleGuardが
+	// 部分初期化済みRegistry / ContextをShutdownし、現在Sceneは維持される。
+	std::unordered_map<std::string, std::shared_ptr<Scene>> stagedScenes;
+	stagedScenes.reserve(sceneNodes.size());
+
+	try {
+		for(const auto& sceneNode : sceneNodes){
+			if(!sceneNode.IsMap()){
+				logRestoreError(
+					"TempSave manifestにMapではないScene Entryがあります"
+				);
+				return;
+			}
+
+			const std::string name =
+				sceneNode["Name"].as<std::string>();
+			const std::string path =
+				sceneNode["Path"].as<std::string>();
+			if(name.empty()){
+				logRestoreError(
+					"TempSave manifestに空のScene名があります"
+				);
+				return;
+			}
+			if(stagedScenes.contains(name)){
+				logRestoreError(
+					"TempSave manifestに重複Scene名があります: " + name
+				);
+				return;
+			}
+
+			const std::string tempScenePath =
+				std::string(TEMP_SAVE_PATH) + "Temp_" + name + ".yaml";
+			if(!std::filesystem::exists(tempScenePath)){
+				logRestoreError(
+					"一時Sceneファイルが存在しません: " + tempScenePath
+				);
+				return;
+			}
+
+			// Initialize後に空Sceneへ差し替わることを防ぐため、Root構造を
+			// 先に検証する。Component decode自体の例外はInitializeから捕捉する。
+			YAML::Node tempSceneRoot = YAML::LoadFile(tempScenePath);
+			YAML::Node entities = tempSceneRoot["Entities"];
+			if(!entities || !entities.IsSequence()){
+				logRestoreError(
+					"一時SceneのEntitiesが存在しないかSequenceではありません: " +
+					tempScenePath
+				);
+				return;
+			}
+
+			auto newScene = std::make_shared<Scene>();
+			newScene->ScenePath = tempScenePath;
+			newScene->Initialize(&m_SceneContext);
+			newScene->SceneName = name;
+			newScene->ScenePath = path;
+			stagedScenes.emplace(name, std::move(newScene));
+		}
+	}catch(const YAML::Exception& exception){
+		logRestoreError(
+			"一時Scene YAMLの復元に失敗しました: " +
+			std::string(exception.what())
+		);
+		return;
+	}catch(const std::exception& exception){
+		logRestoreError(
+			"一時Sceneの初期化に失敗しました: " +
+			std::string(exception.what())
+		);
+		return;
+	}catch(...){
+		logRestoreError(
+			"一時Sceneの初期化中に不明な例外が発生しました"
+		);
+		return;
+	}
+
+	// すべての復元先Sceneが構築できた後だけAtomicに所有Mapを交換する。
+	// swap後、stagedScenesは旧Sceneを保持するため、active Sceneが空になる
+	// 中間状態を作らずに旧SceneをShutdownできる。
+	if(m_SceneContext.editor){
+		m_SceneContext.editor->commandManager.Clear();
+	}
+	m_activeScenes.swap(stagedScenes);
+
+	for(auto& [name, oldScene] : stagedScenes){
+		if(!oldScene){
+			continue;
+		}
+		try {
+			oldScene->Shutdown();
+		}catch(const std::exception& exception){
+			logRestoreError(
+				"旧Sceneの終了処理に失敗しました[" + name + "]: " +
+				std::string(exception.what())
+			);
+		}catch(...){
+			logRestoreError(
+				"旧Sceneの終了処理中に不明な例外が発生しました[" +
+				name + "]"
+			);
+		}
+		oldScene.reset();
+	}
+	stagedScenes.clear();
+
+	if(m_SceneContext.resource){
+		m_SceneContext.resource->ClearAllUnused();
+	}
 	if(m_SceneContext.debug){
 		m_SceneContext.debug->LOG_TRACE("シーンの一時復元が完了しました");
 	}

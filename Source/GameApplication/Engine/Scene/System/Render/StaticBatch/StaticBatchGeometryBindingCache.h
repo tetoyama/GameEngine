@@ -30,6 +30,7 @@ struct StaticBatchGeometryBindingCacheTelemetry {
 	std::size_t importFailureCount = 0;
 	std::size_t sourceConflictCount = 0;
 	std::size_t releaseFailureCount = 0;
+	std::size_t abandonCount = 0;
 };
 
 class StaticBatchGeometryBindingCache {
@@ -177,6 +178,17 @@ public:
 		return releasedAll && m_entries.empty();
 	}
 
+	void Abandon() noexcept {
+		m_resolvedGroups.clear();
+		for(Entry& entry : m_entries){
+			if(entry.binding){
+				entry.binding->Abandon();
+			}
+		}
+		m_abandonCount += m_entries.size();
+		m_entries.clear();
+	}
+
 	std::span<const StaticBatchResolvedGeometryGroup> ResolvedGroups() const noexcept {
 		return m_resolvedGroups;
 	}
@@ -212,7 +224,8 @@ public:
 			m_rejectedGroupCount,
 			m_importFailureCount,
 			m_sourceConflictCount,
-			m_releaseFailureCount
+			m_releaseFailureCount,
+			m_abandonCount
 		};
 	}
 
@@ -227,6 +240,7 @@ public:
 		m_importFailureCount = 0;
 		m_sourceConflictCount = 0;
 		m_releaseFailureCount = 0;
+		m_abandonCount = 0;
 		m_rejectReasonCounts.fill(0);
 	}
 
@@ -315,4 +329,5 @@ private:
 	std::size_t m_importFailureCount = 0;
 	std::size_t m_sourceConflictCount = 0;
 	std::size_t m_releaseFailureCount = 0;
+	std::size_t m_abandonCount = 0;
 };

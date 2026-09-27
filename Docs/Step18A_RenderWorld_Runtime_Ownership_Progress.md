@@ -2,7 +2,7 @@
 
 ## 状態
 
-**実装中 — RenderWorld基盤、Camera / ModelRendererのNative描画資源分離、Model CPU Geometry SourceからStatic Batch RHI Geometryを直接生成する経路、Render Packet Extraction Task分離まで完了。CI・追加実機確認待ち。**
+**実装中 — RenderWorld基盤、Camera / ModelRendererのNative描画資源分離、Model CPU Geometry SourceからStatic Batchと通常RenderableのRHI Geometryを生成する経路、Render Packet Extraction Task分離まで完了。CI・追加実機確認待ち。**
 
 親計画:
 
@@ -121,7 +121,7 @@ RHI Geometry生成:
 - CPU dataが存在しないSourceに限り、従来のD3D11 Native Importを互換Fallbackとして使用できる
 - Static BatchのModel Provider / Runtime StorageからはNative Import経路へ入らない
 
-このため、Static Batch Model Geometryについては`ModelData`のLegacy Native Vertex / Index BufferをBootstrapする依存を撤去済み。通常`RenderableModel`は引き続きLegacy Native Bufferを使用するため、その撤去は別工程とする。
+このため、Static Batch Model Geometryについては`ModelData`のLegacy Native Vertex / Index BufferをBootstrapする依存を撤去済み。
 
 ### 5. Model CPU Geometry Source
 
@@ -144,7 +144,7 @@ ModelData::MeshGeometry[SubMesh]
 - `MeshGeometry.size()`とAssimp SubMesh数が一致しないModelはStatic Geometry Keyを生成しない
 - Native Bufferが存在しなくてもCPU SnapshotだけでGeometry Keyを決定できる
 
-この段階では通常描画互換のNative Buffer生成・破棄はまだ`modelLoader.h / ModelData::Release`に残る。次工程で通常Renderableも共有RHI Geometry Runtimeへ接続する。
+通常描画互換のNative Buffer生成・破棄はまだ`modelLoader.h / ModelData::Release`に残るが、Active通常描画は共有RHI Geometryを優先する。Legacy BufferはRHI Runtime生成失敗時のFallbackとしてのみ残す。
 
 ### 6. Render Packet Extraction Task
 
@@ -174,6 +174,41 @@ RenderSystem.Packet.Build
 
 巨大な旧実装は挙動保持のため`RenderSystemLegacyImplementation.inl`へ隔離した。旧Build / Submit / RegisterTasksはActive Taskから呼ばれない。Legacy Facadeと隔離実装の物理削除は次工程で行う。
 
+### 7. 通常Renderable共有RHI Geometry Runtime
+
+`ModelGeometryRuntimeStorage`を追加し、通常`RenderableModel`を`ModelData::MeshGeometry`から生成した共有RHI Bufferへ接続した。
+
+同期経路:
+
+```text
+RenderSystem.Packet.Build
+    -> RenderSystem.ModelGeometry.Synchronize
+    -> ModelGeometryRuntimeStorage::Synchronize
+    -> IRHIDevice::CreateBuffer
+    -> RenderSystem.Command.Submit
+```
+
+所有単位:
+
+```text
+ModelData identity -> SubMesh[] -> Vertex Buffer + Index Buffer
+```
+
+契約:
+
+- Model単位で全SubMeshのVertex / Index Bufferをトランザクション生成する
+- Bufferは`ResourceUsage::Immutable`で生成する
+- 同一ModelDataを参照するEntity間でGeometry Runtimeを共有する
+- 同一Generation内の重複Packetは一度だけ同期する
+- 次Generationで再利用されたModelは既存Handleを維持する
+- 未使用ModelはGeneration末にVertex / Index Bufferを破棄する
+- Static Modelは共有RHI Vertex / Index Bufferを使用する
+- Animated ModelはEntity単位Dynamic Vertex Bufferと共有RHI Index Bufferを組み合わせる
+- `D3D11RHIDevice::NativeBuffer`はRHI所有権を移さない非所有Interopとしてのみ公開する
+- 通常Renderableは共有RHI Geometryを優先し、Legacy Native Bufferは生成失敗時Fallbackに限定する
+- `RenderSystem::Stop()`で共有Geometry RuntimeをResetする
+- Synchronize TaskはModel、Packet Buffer、Geometry Storage、Graphics ContextのAccessを宣言する
+
 ## 回帰テスト
 
 追加済み:
@@ -182,6 +217,7 @@ RenderSystem.Packet.Build
 - `RenderWorld Extraction Smoke Test`
 - `Camera Post Effect Runtime Smoke Test`
 - `Model Renderer GPU Runtime Smoke Test`
+- `Model Geometry Runtime Storage Smoke Test`
 - `Static Batch Model Runtime Boundary Smoke Test`
 - `D3D11 Static Batch Interop Smoke`
 
@@ -211,6 +247,11 @@ RenderSystem.Packet.Build
 - 空WorkerのPublishでRenderWorld Generation / Ready状態が更新されること
 - Active Build / Submit経路がRenderWorld APIへ直接接続されること
 - ComponentRegistry直接走査が隔離済みLegacy実装だけに残ること
+- 共有Model Geometry Runtimeの生成、再利用、世代解放
+- RHI Buffer HandleからD3D11 Bufferへの非所有Interop
+- 通常Renderableが共有RHI Vertex / Index Bufferを優先すること
+- Animated ModelがDynamic Vertex + Shared Indexを使用すること
+- Model Geometry Synchronize TaskのAccess集合と実行順序
 
 ## Step 18-A残作業
 
@@ -221,7 +262,8 @@ RenderSystem.Packet.Build
 - [x] Model共有GeometryのBackend非依存CPU Sourceを抽出
 - [x] Static Batch RHI GeometryをCPU Sourceから直接生成
 - [x] Static BatchのLegacy Native Geometry Bootstrapを撤去
-- [ ] 通常Renderableを共有RHI Geometry Runtimeへ接続
+- [x] 通常Renderableを共有RHI Geometry Runtimeへ接続
+- [ ] 通常RenderableのLegacy Native Geometry Fallbackを撤去
 - [ ] `ModelData`のLegacy Native Geometry生成・破棄を撤去
 - [ ] Native API型をRenderSystem公開境界から段階的に撤去
 - [ ] RenderWorldからRHI Commandを生成する境界を追加
@@ -234,8 +276,8 @@ RenderSystem.Packet.Build
 ## 次の実装単位
 
 1. 隔離済み旧Build / Submit / RegisterTasksとRenderWorld互換Facadeを削除
-2. 通常Renderableを共有RHI Geometry Runtimeへ接続
-3. `ModelData`のLegacy Native Geometryを撤去
+2. 通常RenderableのLegacy Native Geometry Fallbackを撤去
+3. `ModelData`のLegacy Native Geometry生成・破棄を撤去
 4. Render PacketのComponent Pointer依存をSnapshot / Handleへ縮小
 5. RHI Command生成境界へ接続
 

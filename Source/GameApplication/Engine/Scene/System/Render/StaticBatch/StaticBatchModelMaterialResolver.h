@@ -5,6 +5,7 @@
 #include <span>
 
 #include "Backends/Assimp/material.h"
+#include "System/Render/Model/ModelMaterialLegacyD3D11Bridge.h"
 #include "System/Render/RenderSystem/RenderPacket/RenderPacketModelSubMeshSelection.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchPacketCache.h"
 #include "System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
@@ -89,7 +90,9 @@ inline StaticBatchModelMaterialResolveResult Resolve(
 			StaticBatchModelMaterialRejectReason::MissingModelRenderer;
 		return result;
 	}
-	const std::shared_ptr<ModelData>& model = renderer->model;
+	const std::shared_ptr<ModelData> model = packet.modelResource
+		? packet.modelResource
+		: renderer->model;
 	if(!model || !model->AiScene){
 		result.rejectReason =
 			StaticBatchModelMaterialRejectReason::MissingModelResource;
@@ -119,80 +122,108 @@ inline StaticBatchModelMaterialResolveResult Resolve(
 			StaticBatchModelMaterialRejectReason::MissingSubMesh;
 		return result;
 	}
-	if(!model->AiScene->mMaterials ||
-		mesh->mMaterialIndex >= model->AiScene->mNumMaterials){
-		result.rejectReason =
-			StaticBatchModelMaterialRejectReason::InvalidMaterialIndex;
-		return result;
-	}
-	const aiMaterial* sourceMaterial =
-		model->AiScene->mMaterials[mesh->mMaterialIndex];
-	if(!sourceMaterial){
-		result.rejectReason =
-			StaticBatchModelMaterialRejectReason::MissingMaterial;
-		return result;
-	}
 
-	const MaterialComponent* materialComponent = packet.bindings.material;
 	const bool hasOverrideTexture =
 		packet.bindings.texture &&
 		packet.bindings.texture->m_TextureData;
 	if(!hasOverrideTexture){
-		aiColor4D color;
-		if(sourceMaterial->Get(
-			AI_MATKEY_COLOR_DIFFUSE,
-			color
-		) == AI_SUCCESS){
-			result.state.material.BaseColor = float4(
-				color.r,
-				color.g,
-				color.b,
-				color.a
-			);
-			if(materialComponent){
-				result.state.material.BaseColor.x *=
-					materialComponent->Material.BaseColor.x;
-				result.state.material.BaseColor.y *=
-					materialComponent->Material.BaseColor.y;
-				result.state.material.BaseColor.z *=
-					materialComponent->Material.BaseColor.z;
-				result.state.material.BaseColor.w *=
-					materialComponent->Material.BaseColor.w;
-			}
-		}
+		if(const MaterialDescriptor* descriptor =
+			packet.modelMaterial.GetDescriptor()){
+			const ModelMaterialLegacyD3D11Binding binding =
+				ModelMaterialLegacyD3D11Bridge::Resolve(
+					*model,
+					*descriptor
+				);
+			result.state.material = binding.material;
+			result.state.shaderID = binding.shaderID;
 
-		aiString textureName;
-		if(sourceMaterial->GetTexture(
-			aiTextureType_DIFFUSE,
-			0,
-			&textureName
-		) == AI_SUCCESS && textureName.length > 0){
-			const auto diffuseIt =
-				model->m_Texture.find(textureName.C_Str());
-			if(diffuseIt != model->m_Texture.end()){
-				if(!diffuseIt->second){
+			if(binding.baseColor.runtimeEntryFound){
+				if(!binding.baseColor.texture){
 					result.rejectReason =
 						StaticBatchModelMaterialRejectReason::MissingModelDiffuseTexture;
 					return result;
 				}
-				result.state.diffuseTexture = diffuseIt->second;
-				result.state.material.MaterialFlags |=
-					MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+				result.state.diffuseTexture = binding.baseColor.texture;
 			}
-		}
-
-		aiString normalName;
-		if(sourceMaterial->GetTexture(
-			aiTextureType_NORMALS,
-			0,
-			&normalName
-		) == AI_SUCCESS && normalName.length > 0){
-			const auto normalIt = model->m_Texture.find(normalName.C_Str());
-			if(normalIt != model->m_Texture.end() &&
+			if(binding.normal.runtimeEntryFound &&
 				policy.rejectNormalMapReference){
 				result.rejectReason =
 					StaticBatchModelMaterialRejectReason::NormalMapUnsupported;
 				return result;
+			}
+		}else{
+			// Snapshot未生成の移行経路だけ従来Assimp解釈を残す。
+			if(!model->AiScene->mMaterials ||
+				mesh->mMaterialIndex >= model->AiScene->mNumMaterials){
+				result.rejectReason =
+					StaticBatchModelMaterialRejectReason::InvalidMaterialIndex;
+				return result;
+			}
+			const aiMaterial* sourceMaterial =
+				model->AiScene->mMaterials[mesh->mMaterialIndex];
+			if(!sourceMaterial){
+				result.rejectReason =
+					StaticBatchModelMaterialRejectReason::MissingMaterial;
+				return result;
+			}
+
+			const MaterialComponent* materialComponent = packet.bindings.material;
+			aiColor4D color;
+			if(sourceMaterial->Get(
+				AI_MATKEY_COLOR_DIFFUSE,
+				color
+			) == AI_SUCCESS){
+				result.state.material.BaseColor = float4(
+					color.r,
+					color.g,
+					color.b,
+					color.a
+				);
+				if(materialComponent){
+					result.state.material.BaseColor.x *=
+						materialComponent->Material.BaseColor.x;
+					result.state.material.BaseColor.y *=
+						materialComponent->Material.BaseColor.y;
+					result.state.material.BaseColor.z *=
+						materialComponent->Material.BaseColor.z;
+					result.state.material.BaseColor.w *=
+						materialComponent->Material.BaseColor.w;
+				}
+			}
+
+			aiString textureName;
+			if(sourceMaterial->GetTexture(
+				aiTextureType_DIFFUSE,
+				0,
+				&textureName
+			) == AI_SUCCESS && textureName.length > 0){
+				const auto diffuseIt =
+					model->m_Texture.find(textureName.C_Str());
+				if(diffuseIt != model->m_Texture.end()){
+					if(!diffuseIt->second){
+						result.rejectReason =
+							StaticBatchModelMaterialRejectReason::MissingModelDiffuseTexture;
+						return result;
+					}
+					result.state.diffuseTexture = diffuseIt->second;
+					result.state.material.MaterialFlags |=
+						MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
+				}
+			}
+
+			aiString normalName;
+			if(sourceMaterial->GetTexture(
+				aiTextureType_NORMALS,
+				0,
+				&normalName
+			) == AI_SUCCESS && normalName.length > 0){
+				const auto normalIt = model->m_Texture.find(normalName.C_Str());
+				if(normalIt != model->m_Texture.end() &&
+					policy.rejectNormalMapReference){
+					result.rejectReason =
+						StaticBatchModelMaterialRejectReason::NormalMapUnsupported;
+					return result;
+				}
 			}
 		}
 	}

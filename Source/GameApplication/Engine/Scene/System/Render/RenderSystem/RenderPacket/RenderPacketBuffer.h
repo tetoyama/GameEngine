@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cstddef>
 #include <cstdint>
+#include <limits>
 #include <span>
 #include <utility>
 #include <vector>
@@ -15,6 +16,7 @@
 #include "Scene/scene.h"
 #include "Scene/Registry/componentRegistry.h"
 #include "Scene/Component/EntityStateComponents.h"
+#include "System/Render/Model/ModelMaterialResolver.h"
 
 class RenderPacketWorkerBuffer {
 public:
@@ -231,16 +233,19 @@ private:
 	) noexcept {
 		if(packet.kind != RenderPacketKind::Model ||
 			!packet.TargetsAllSubMeshes() ||
-			!packet.bindings.modelRenderer){
+			!packet.modelResource){
 			return 0;
 		}
-		const std::shared_ptr<ModelData>& model =
-			packet.bindings.modelRenderer->model;
-		if(!model || !model->AiScene || !model->AiScene->mMeshes ||
-			model->AiScene->mNumMeshes == 0){
+		packet.modelResource->EnsureMaterialDefinitionsNormalized();
+		const std::size_t meshCount =
+			packet.modelResource->ResolvedSubMeshCount();
+		if(meshCount == 0 ||
+			meshCount > static_cast<std::size_t>(
+				(std::numeric_limits<std::uint32_t>::max)()
+			)){
 			return 0;
 		}
-		return model->AiScene->mNumMeshes;
+		return static_cast<std::uint32_t>(meshCount);
 	}
 
 	static size_t PublishedPacketMultiplicity(
@@ -252,6 +257,37 @@ private:
 			: size_t{1};
 	}
 
+	static void ApplyResolvedMaterial(
+		RenderPacket& packet,
+		ModelMaterialResolveResult resolved
+	){
+		packet.modelMaterial.ownedDescriptor =
+			std::move(resolved.ownedDescriptor);
+		packet.modelMaterial.descriptor =
+			packet.modelMaterial.ownedDescriptor
+				? packet.modelMaterial.ownedDescriptor.get()
+				: resolved.descriptor;
+		packet.modelMaterial.source = resolved.source;
+		packet.modelMaterial.issue = resolved.issue;
+		packet.modelMaterial.fallbackIssue = resolved.fallbackIssue;
+		packet.modelMaterial.importedMaterialID = resolved.importedMaterialID;
+		packet.modelMaterial.customMaterialID = resolved.customMaterialID;
+		packet.modelMaterial.usedFallback = resolved.usedFallback;
+
+		if(const MaterialDescriptor* descriptor =
+			packet.modelMaterial.GetDescriptor()){
+			packet.materialKey = static_cast<std::uint32_t>(
+				(std::max)(0, descriptor->shaderID)
+			);
+			packet.sortKey = MakeRenderPacketSortKey(
+				packet.layer,
+				packet.kind,
+				packet.materialKey,
+				packet.orderInLayer
+			);
+		}
+	}
+
 	void AppendPublishedPacket(const RenderPacket& packet){
 		const std::uint32_t subMeshCount = ResolvedModelSubMeshCount(packet);
 		if(subMeshCount == 0){
@@ -259,11 +295,53 @@ private:
 			return;
 		}
 
-		for(std::uint32_t subMeshIndex = 0;
-			subMeshIndex < subMeshCount;
-			++subMeshIndex){
+		ModelData& model = *packet.modelResource;
+		const bool hasNormalizedDefinitions = !model.SubMeshes.empty();
+		for(std::uint32_t sectionIndex = 0;
+			sectionIndex < subMeshCount;
+			++sectionIndex){
 			RenderPacket scopedPacket = packet;
-			scopedPacket.subMeshIndex = subMeshIndex;
+			if(!hasNormalizedDefinitions){
+				scopedPacket.subMeshIndex = sectionIndex;
+				scopedPacket.subMeshID = sectionIndex + 1u;
+				m_packets.push_back(std::move(scopedPacket));
+				continue;
+			}
+
+			const ModelSubMeshDefinition& definition =
+				model.SubMeshes[sectionIndex];
+			if(definition.geometryIndex == InvalidModelSourceIndex ||
+				definition.geometryIndex >= model.MeshGeometry.size()){
+				continue;
+			}
+			const ModelRendererComponent* renderer =
+				packet.bindings.modelRenderer;
+			const ModelSubMeshRenderState* renderState =
+				ModelMaterialResolver::FindRenderState(
+					renderer,
+					definition.id
+				);
+			if(renderState && !renderState->visible){
+				continue;
+			}
+
+			scopedPacket.subMeshIndex = definition.geometryIndex;
+			scopedPacket.subMeshID = definition.id;
+			if(renderState && !renderState->castShadow){
+				scopedPacket.passMask = RemoveRenderPacketPass(
+					scopedPacket.passMask,
+					RenderPacketPassMask::Shadow
+				);
+			}
+			ApplyResolvedMaterial(
+				scopedPacket,
+				ModelMaterialResolver::Resolve(
+					model,
+					&definition,
+					renderState,
+					packet.bindings.material
+				)
+			);
 			m_packets.push_back(std::move(scopedPacket));
 		}
 	}

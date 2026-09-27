@@ -129,6 +129,7 @@ public:
 			static_cast<std::uint32_t>(geometry.indices.size());
 		result.source.indexFormat = RHI::IndexFormat::UInt32;
 		result.source.geometryResourceKey = expectedGeometryResourceKey;
+		result.source.sourceRevision = model->GetGeometryRevision();
 		result.status = result.source.IsValid()
 			? StaticBatchModelGeometrySourceStatus::None
 			: StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;

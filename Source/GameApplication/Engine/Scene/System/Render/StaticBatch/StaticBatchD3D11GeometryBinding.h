@@ -61,6 +61,7 @@ public:
 		m_indexCount = source.indexCount;
 		m_indexFormat = source.indexFormat;
 		m_geometryResourceKey = source.geometryResourceKey;
+		m_sourceRevision = source.sourceRevision;
 		return true;
 	}
 
@@ -106,8 +107,24 @@ public:
 			m_indexCount = 0;
 			m_indexFormat = RHI::IndexFormat::UInt32;
 			m_geometryResourceKey = 0;
+			m_sourceRevision = 0;
 		}
 		return released && !IsAllocated();
+	}
+
+	// Device側Resource Poolが先に破棄された場合の非Destroy経路。
+	void Abandon() noexcept {
+		m_vertexBuffer = {};
+		m_indexBuffer = {};
+		m_nativeVertexBuffer = nullptr;
+		m_nativeIndexBuffer = nullptr;
+		m_createdFromCpuData = false;
+		m_vertexStride = 0;
+		m_vertexCount = 0;
+		m_indexCount = 0;
+		m_indexFormat = RHI::IndexFormat::UInt32;
+		m_geometryResourceKey = 0;
+		m_sourceRevision = 0;
 	}
 
 	bool IsReady() const noexcept {
@@ -135,7 +152,8 @@ public:
 			source.vertexCount != m_vertexCount ||
 			source.indexCount != m_indexCount ||
 			source.indexFormat != m_indexFormat ||
-			source.geometryResourceKey != m_geometryResourceKey){
+			source.geometryResourceKey != m_geometryResourceKey ||
+			source.sourceRevision != m_sourceRevision){
 			return false;
 		}
 		if(source.HasCpuData()){
@@ -154,6 +172,9 @@ public:
 	RHI::IndexFormat IndexFormat() const noexcept { return m_indexFormat; }
 	std::uint64_t GeometryResourceKey() const noexcept {
 		return m_geometryResourceKey;
+	}
+	std::uint64_t SourceRevision() const noexcept {
+		return m_sourceRevision;
 	}
 	bool WasCreatedFromCpuData() const noexcept {
 		return m_createdFromCpuData;
@@ -236,4 +257,5 @@ private:
 	std::uint32_t m_indexCount = 0;
 	RHI::IndexFormat m_indexFormat = RHI::IndexFormat::UInt32;
 	std::uint64_t m_geometryResourceKey = 0;
+	std::uint64_t m_sourceRevision = 0;
 };

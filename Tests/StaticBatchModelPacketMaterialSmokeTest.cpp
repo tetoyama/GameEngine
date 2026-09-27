@@ -1,4 +1,5 @@
 #include <cassert>
+#include <memory>
 
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchModelMaterialResolver.h"
 
@@ -94,5 +95,42 @@ int main(){
 		result ==
 		StaticBatchModelMaterialRejectReason::MissingOverrideDiffuseTexture
 	);
+
+	// Snapshot path uses MaterialAlphaMode rather than legacy BaseColor alpha.
+	// Blend may have alpha=1 when opacity comes from a texture, while Masked may
+	// legitimately carry alpha<1 and still remain in the GBuffer path.
+	RenderPacket packet;
+	packet.kind = RenderPacketKind::Model;
+	packet.layer = RenderLayer::Opaque3D;
+	packet.passMask = RenderPacketPassMask::Shadow |
+		RenderPacketPassMask::GBuffer;
+	packet.materialKey = 2;
+
+	MaterialDescriptor descriptor;
+	descriptor.shaderID = 2;
+	descriptor.renderState.alphaMode = MaterialAlphaMode::Blend;
+	descriptor.parameters.baseColor[3] = 1.0f;
+	packet.modelMaterial.ownedDescriptor =
+		std::make_shared<MaterialDescriptor>(descriptor);
+	packet.modelMaterial.descriptor =
+		packet.modelMaterial.ownedDescriptor.get();
+
+	result = StaticBatchModelPacketMaterial::Resolve(packet, state, true);
+	assert(
+		result ==
+		StaticBatchModelMaterialRejectReason::ExcludedByGBufferAlphaRule
+	);
+	result = StaticBatchModelPacketMaterial::Resolve(packet, state, false);
+	assert(result == StaticBatchModelMaterialRejectReason::None);
+
+	descriptor.renderState.alphaMode = MaterialAlphaMode::Masked;
+	descriptor.parameters.baseColor[3] = 0.25f;
+	packet.modelMaterial.ownedDescriptor =
+		std::make_shared<MaterialDescriptor>(descriptor);
+	packet.modelMaterial.descriptor =
+		packet.modelMaterial.ownedDescriptor.get();
+	result = StaticBatchModelPacketMaterial::Resolve(packet, state, true);
+	assert(result == StaticBatchModelMaterialRejectReason::None);
+	assert(state.material.BaseColor.w == 0.25f);
 	return 0;
 }

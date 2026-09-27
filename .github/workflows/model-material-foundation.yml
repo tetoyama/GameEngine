@@ -1,0 +1,135 @@
+name: Model Material Foundation Smoke Test
+
+on:
+  pull_request:
+    branches: [master]
+    paths:
+      - "Source/GameApplication/Engine/Resources/Data/modelMaterialTypes.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelMaterialYamlSerialization.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelAssimpMaterialPropertyNormalization.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelData.h"
+      - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/CustomMaterialCollection.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/MaterialComponentOperations.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/MaterialDescriptorInspector.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererInspector.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererInspectorCommon.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererInspectorMotion.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererSubMeshInspector.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererRuntime.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererSerialization.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelSubMeshStateSynchronization.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialResolver.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialLegacyD3D11Bridge.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialPassRouting.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelMaterialResolver.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelPacketMaterial.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/Forward/ForwardPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
+      - "Tests/CustomMaterialCollectionSmokeTest.cpp"
+      - "Tests/ModelMaterialFoundationSmokeTest.cpp"
+      - "Tests/ModelMaterialInspectorHeaderSmokeTest.cpp"
+      - "Tests/ModelMaterialPassRoutingSmokeTest.cpp"
+      - "Tests/ModelSubMeshStateSynchronizationSmokeTest.cpp"
+      - "Tests/ModelMaterialSerializationSourceContractSmokeTest.cpp"
+      - "Tests/StaticBatchResourceKeySmokeTest.cpp"
+      - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
+      - "Docs/Step18I_Model_Material_Import_Foundation_Plan.md"
+      - "Docs/Step18I_Model_Material_Import_Foundation_Progress.md"
+      - ".github/workflows/model-material-foundation.yml"
+  push:
+    branches: [refactor/ecs-scheduler-foundation]
+    paths:
+      - "Source/GameApplication/Engine/Resources/Data/modelMaterialTypes.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelMaterialYamlSerialization.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelAssimpMaterialPropertyNormalization.h"
+      - "Source/GameApplication/Engine/Resources/Data/modelData.h"
+      - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/materialComponent.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/CustomMaterialCollection.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/MaterialComponentOperations.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/MaterialDescriptorInspector.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererInspector.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererInspectorCommon.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererInspectorMotion.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererSubMeshInspector.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererRuntime.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererSerialization.h"
+      - "Source/GameApplication/Engine/Scene/Component/Operations/ModelSubMeshStateSynchronization.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialResolver.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialLegacyD3D11Bridge.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/ModelMaterialPassRouting.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelMaterialResolver.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelPacketMaterial.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPass/Forward/ForwardPass.cpp"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacket.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/RenderPacketBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchResourceKey.h"
+      - "Tests/CustomMaterialCollectionSmokeTest.cpp"
+      - "Tests/ModelMaterialFoundationSmokeTest.cpp"
+      - "Tests/ModelMaterialInspectorHeaderSmokeTest.cpp"
+      - "Tests/ModelMaterialPassRoutingSmokeTest.cpp"
+      - "Tests/ModelSubMeshStateSynchronizationSmokeTest.cpp"
+      - "Tests/ModelMaterialSerializationSourceContractSmokeTest.cpp"
+      - "Tests/StaticBatchResourceKeySmokeTest.cpp"
+      - "Tests/RenderPacketModelSubMeshExpansionSmokeTest.cpp"
+      - "Docs/Step18I_Model_Material_Import_Foundation_Plan.md"
+      - "Docs/Step18I_Model_Material_Import_Foundation_Progress.md"
+      - ".github/workflows/model-material-foundation.yml"
+  workflow_dispatch:
+
+concurrency:
+  group: model-material-foundation-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  contract:
+    runs-on: windows-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - source: Tests/CustomMaterialCollectionSmokeTest.cpp
+            output: custom-material-collection-test.exe
+          - source: Tests/ModelMaterialFoundationSmokeTest.cpp
+            output: model-material-foundation-test.exe
+          - source: Tests/ModelMaterialInspectorHeaderSmokeTest.cpp
+            output: model-material-inspector-header-test.exe
+          - source: Tests/ModelMaterialPassRoutingSmokeTest.cpp
+            output: model-material-pass-routing-test.exe
+          - source: Tests/ModelSubMeshStateSynchronizationSmokeTest.cpp
+            output: model-submesh-state-synchronization-test.exe
+          - source: Tests/ModelMaterialSerializationSourceContractSmokeTest.cpp
+            output: model-material-serialization-source-contract-test.exe
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run model material contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          ${{ matrix.source }}
+          /Fe:${{ matrix.output }}
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          /NODEFAULTLIB:DirectXTex_Debug.lib
+          && ${{ matrix.output }}

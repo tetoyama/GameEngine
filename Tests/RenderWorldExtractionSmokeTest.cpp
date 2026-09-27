@@ -1,4 +1,5 @@
 #include <array>
+#include <atomic>
 #include <cassert>
 #include <fstream>
 #include <iterator>
@@ -7,6 +8,8 @@
 
 #include "Engine/Scene/System/Render/RenderSystem/RenderWorld/RenderWorldExtraction.h"
 #include "Engine/Scene/System/Render/RenderSystem/RenderWorld/RenderWorldExtractionTaskRegistrar.h"
+
+std::atomic<ComponentTypeID> ComponentType::s_nextID{0};
 
 namespace {
 

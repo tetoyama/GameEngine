@@ -133,6 +133,7 @@
 // ShadowMapPassはCSMを複数GPU Entryへ展開する。
 #define LIGHT_TYPE_DIRECTIONAL_CSM  (4)
 
+// GPU/HLSLの最大容量。LightComponentが実際の生成数を1～4から選択する。
 #define DIRECTIONAL_CSM_CASCADE_COUNT   (4)
 
 // MaterialFlags 用のビットマスク

@@ -4,26 +4,64 @@ on:
   pull_request:
     branches: [master]
     paths:
+      - "Source/GameApplication/Engine/Resources/Data/modelData.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererRuntime.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/ModelRendererGpuRuntimeStorage.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTaskRegistrar.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTasks.inl"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/**"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchD3D11GeometryBinding.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchD3D11GeometrySource.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometryRuntimeStorage.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchPipelineResources.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchShadowPipelineResources.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchUploadSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
+      - "Source/GameApplication/Service/Graphics/RHI/RHIInterfaces.h"
+      - "Source/GameApplication/Service/Graphics/RHI/RHIService.h"
+      - "Source/GameApplication/Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
       - "Tests/ModelRendererGpuRuntimeStorageSmokeTest.cpp"
+      - "Tests/ModelGeometryRuntimeStorageSmokeTest.cpp"
+      - "Tests/StaticBatchGeometryRevisionSmokeTest.cpp"
+      - "Tests/StaticBatchRhiOwnershipContractSmokeTest.cpp"
+      - "Docs/RHI_Device_Ownership_And_Model_Geometry_Revision_Contract.md"
       - ".github/workflows/model-renderer-gpu-runtime.yml"
   push:
     branches: [refactor/ecs-scheduler-foundation]
     paths:
+      - "Source/GameApplication/Engine/Resources/Data/modelData.h"
       - "Source/GameApplication/Engine/Scene/Component/modelRendererComponent.h"
       - "Source/GameApplication/Engine/Scene/Component/Operations/ModelRendererRuntime.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/ModelRendererGpuRuntimeStorage.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTaskRegistrar.h"
       - "Source/GameApplication/Engine/Scene/System/Render/Animation/RenderSystemAnimationTasks.inl"
+      - "Source/GameApplication/Engine/Scene/System/Render/Model/**"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchD3D11GeometryBinding.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchD3D11GeometrySource.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometryRuntimeStorage.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchModelGeometrySourceProvider.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchPipelineResources.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchShadowPipelineResources.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/StaticBatch/StaticBatchUploadSystem.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/RenderPacket/StaticBatchGpuInstanceBuffer.h"
+      - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.cpp"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/renderSystem.h"
       - "Source/GameApplication/Engine/Scene/System/Render/RenderSystem/Renderable/Model/RenderableModel.cpp"
+      - "Source/GameApplication/Service/Graphics/RHI/RHIInterfaces.h"
+      - "Source/GameApplication/Service/Graphics/RHI/RHIService.h"
+      - "Source/GameApplication/Service/Graphics/RHI/D3D11/D3D11RHIDevice.h"
       - "Tests/ModelRendererGpuRuntimeStorageSmokeTest.cpp"
+      - "Tests/ModelGeometryRuntimeStorageSmokeTest.cpp"
+      - "Tests/StaticBatchGeometryRevisionSmokeTest.cpp"
+      - "Tests/StaticBatchRhiOwnershipContractSmokeTest.cpp"
+      - "Docs/RHI_Device_Ownership_And_Model_Geometry_Revision_Contract.md"
       - ".github/workflows/model-renderer-gpu-runtime.yml"
   workflow_dispatch:
 
@@ -35,7 +73,7 @@ permissions:
   contents: read
 
 jobs:
-  smoke:
+  dynamic-runtime:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
@@ -44,7 +82,7 @@ jobs:
       - uses: ilammy/msvc-dev-cmd@v1
         with:
           arch: x64
-      - name: Compile and run model renderer GPU runtime contract
+      - name: Compile and run entity dynamic GPU runtime contract
         shell: cmd
         run: >-
           cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
@@ -60,3 +98,76 @@ jobs:
           /Fe:model-renderer-gpu-runtime-test.exe
           /link /NODEFAULTLIB:yaml-cppd.lib
           && model-renderer-gpu-runtime-test.exe
+
+  shared-geometry-runtime:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run shared model geometry runtime contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/ModelGeometryRuntimeStorageSmokeTest.cpp
+          d3d11.lib dxgi.lib
+          /Fe:model-geometry-runtime-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          /NODEFAULTLIB:DirectXTex_Debug.lib
+          && model-geometry-runtime-test.exe
+
+  static-batch-geometry-revision:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run static batch geometry revision contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          /D_CRT_SECURE_NO_WARNINGS
+          /wd4100 /wd4201 /wd4458 /wd4471 /MTd
+          /I Source
+          /I Source/GameApplication
+          /I Source/GameApplication/Backends
+          /I Source/GameApplication/Engine
+          /I Source/GameApplication/Engine/Scene
+          /I Source/GameApplication/Service
+          Tests/StaticBatchGeometryRevisionSmokeTest.cpp
+          d3d11.lib dxgi.lib
+          /Fe:static-batch-geometry-revision-test.exe
+          /link /NODEFAULTLIB:yaml-cppd.lib
+          /NODEFAULTLIB:DirectXTex_Debug.lib
+          && static-batch-geometry-revision-test.exe
+
+  static-batch-rhi-ownership:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+      - name: Compile and run static batch RHI ownership contract
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX
+          Tests/StaticBatchRhiOwnershipContractSmokeTest.cpp
+          /Fe:static-batch-rhi-ownership-test.exe
+          && static-batch-rhi-ownership-test.exe

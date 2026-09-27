@@ -138,11 +138,17 @@ public:
 			released = device.DestroyBuffer(m_buffer);
 		}
 		if(released){
-			m_buffer = {};
-			m_instanceCapacity = 0;
-			InvalidateUploadState();
+			Abandon();
 		}
 		return released;
+	}
+
+	// Device Resource Poolの破棄後、またはOwnership Epoch変更時に使用する。
+	// Native Destroyを行わずHandle記録だけを無効化する。
+	void Abandon() noexcept {
+		m_buffer = {};
+		m_instanceCapacity = 0;
+		InvalidateUploadState();
 	}
 
 	RHI::BufferHandle Buffer() const noexcept { return m_buffer; }

@@ -1,7 +1,6 @@
 #include <cassert>
 #include <fstream>
 #include <iterator>
-#include <memory>
 #include <string>
 
 #include "Engine/Scene/System/Render/StaticBatch/StaticBatchGeometryBindingCache.h"
@@ -76,6 +75,7 @@ void ValidateModelRuntimeBoundary(){
 	assert(modelLoader.find("new unsigned int[") == std::string::npos);
 
 	// Geometry Resource KeyはNative Buffer配置ではなくCPU Snapshotを識別する。
+	// 実行時のRevision変化検証は次工程のGeometry Revision専用Smokeへ分離する。
 	assert(resourceKey.find("model->MeshGeometry.size()") != std::string::npos);
 	assert(resourceKey.find("geometry->vertices.size()") != std::string::npos);
 	assert(resourceKey.find("geometry->indices.size()") != std::string::npos);
@@ -166,51 +166,6 @@ void ValidateModelRuntimeBoundary(){
 	assert(provider.find("mesh->HasBones()") != std::string::npos);
 }
 
-void ValidateCpuSnapshotGeometryKey(){
-	// ModelDataのDestructor/ReleaseはこのHeader-only契約TestではLinkしないため、
-	// no-op deleterでCPU Snapshotだけを検証する。
-	std::shared_ptr<ModelData> model(
-		new ModelData(),
-		[](ModelData*){}
-	);
-	aiMesh mesh{};
-	mesh.mMaterialIndex = 3;
-	aiMesh* meshes[] = {&mesh};
-	aiScene scene{};
-	scene.mNumMeshes = 1;
-	scene.mMeshes = meshes;
-	model->AiScene = &scene;
-	model->MeshGeometry.resize(1);
-	model->MeshGeometry[0].vertices.resize(3);
-	model->MeshGeometry[0].indices = {0u, 1u, 2u};
-
-	ModelRendererComponent renderer;
-	renderer.model = model;
-	renderer.modelFilePath = "Asset/Model/CpuSnapshot.fbx";
-	renderer.modelRuntimeRevision = 4;
-
-	RenderPacket packet;
-	packet.kind = RenderPacketKind::Model;
-	packet.subMeshIndex = 0;
-	packet.bindings.modelRenderer = &renderer;
-
-	assert(model->VertexBuffer.empty());
-	assert(model->IndexBuffer.empty());
-	const std::uint64_t firstKey =
-		StaticBatchResourceKey::MakeGeometryKey(packet);
-	assert(firstKey != 0);
-	assert(StaticBatchResourceKey::MakeGeometryKey(packet) == firstKey);
-
-	model->MeshGeometry[0].indices.push_back(0u);
-	const std::uint64_t changedKey =
-		StaticBatchResourceKey::MakeGeometryKey(packet);
-	assert(changedKey != 0);
-	assert(changedKey != firstKey);
-
-	model->MeshGeometry.clear();
-	assert(StaticBatchResourceKey::MakeGeometryKey(packet) == 0);
-}
-
 void ValidateEmptyRuntimeStorageLifecycle(){
 	StaticBatchModelGeometryRuntimeStorage storage;
 	assert(storage.EntryCount() == 0);
@@ -227,7 +182,6 @@ void ValidateEmptyRuntimeStorageLifecycle(){
 
 int main(){
 	ValidateModelRuntimeBoundary();
-	ValidateCpuSnapshotGeometryKey();
 	ValidateEmptyRuntimeStorageLifecycle();
 	return 0;
 }

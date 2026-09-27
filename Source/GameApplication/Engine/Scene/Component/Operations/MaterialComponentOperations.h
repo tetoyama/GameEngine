@@ -9,34 +9,88 @@
 
 #include <algorithm>
 #include <cfloat>
+#include <span>
 #include <string>
 #include <vector>
 
 #include "Backends/ImGuiFunc.h"
 #include "Backends/YAMLConverters.h"
+#include "MaterialDescriptorInspector.h"
+#include "Resources/Data/modelMaterialYamlSerialization.h"
 #include "Scene/Registry/systemRegistry.h"
 #include "Scene/System/Render/RenderSystem/ShaderMaterialProvider.h"
 #include "Scene/scene.h"
 
 namespace MaterialComponentOperations {
 
+inline YAML::Node OptionalChild(
+	const YAML::Node& node,
+	const char* key
+) noexcept {
+	try{
+		if(!node.IsMap()) return YAML::Node{};
+		const YAML::Node child = node[key];
+		if(child.IsDefined()) return child;
+	}catch(const YAML::Exception&){
+	}
+	return YAML::Node{};
+}
+
+template<class T>
+inline bool TryDecodeValue(
+	const YAML::Node& node,
+	const char* key,
+	T& output
+) noexcept {
+	try{
+		if(!node.IsMap()) return false;
+		const YAML::Node child = node[key];
+		if(!child.IsDefined() || child.IsNull()) return false;
+		output = child.as<T>();
+		return true;
+	}catch(const YAML::Exception&){
+		return false;
+	}
+}
+
 inline YAML::Node Encode(const MaterialComponent& component){
 	YAML::Node node;
+	// Legacy single-material fields remain for backward compatibility.
 	node["ShaderID"] = component.ShaderID;
 	node["Material"] = component.Material;
+	node["MaterialSchemaVersion"] =
+		ModelMaterialYamlSerialization::SchemaVersion;
+
+	const YAML::Node materials =
+		ModelMaterialYamlSerialization::EncodeCustomMaterials(
+			component.materials
+		);
+	if(materials.size() != 0){
+		node["Materials"] = materials;
+	}
 	return node;
 }
 
 inline bool Decode(MaterialComponent& component, const YAML::Node& node){
-	if(!node.IsMap()){
+	try{
+		if(!node.IsMap()){
+			return false;
+		}
+	}catch(const YAML::Exception&){
 		return false;
 	}
-	if(node["ShaderID"]){
-		component.ShaderID = node["ShaderID"].as<int>();
-	}
-	if(node["Material"]){
-		component.Material = node["Material"].as<MATERIAL>();
-	}
+
+	TryDecodeValue(node, "ShaderID", component.ShaderID);
+	TryDecodeValue(node, "Material", component.Material);
+
+	// 旧Scene / Play開始前のTemp SceneにはMaterials Nodeが存在しない。
+	// yaml-cppのconst operator[]は欠落KeyにInvalidNodeを返すため、
+	// 安全なNull Nodeへ変換して空Collectionとして復元する。
+	ModelMaterialYamlSerialization::DecodeCustomMaterials(
+		OptionalChild(node, "Materials"),
+		component.materials
+	);
+	component.SanitizeMaterials();
 	component.ShaderID = (std::max)(component.ShaderID, 0);
 	return true;
 }
@@ -58,20 +112,20 @@ inline void Inspect(MaterialComponent& component, SceneContext* context){
 		context && context->system
 			? context->system->GetSystem<IShaderMaterialProvider>()
 			: nullptr;
+	std::span<const ShaderMaterial> shaderMaterials;
+	if(shaderProvider){
+		shaderMaterials = shaderProvider->GetShaderMaterials();
+	}
 
 	std::vector<std::string> shaderNames;
 	std::vector<const char*> shaderNamePointers;
-	if(shaderProvider){
-		const std::span<const ShaderMaterial> shaderMaterials =
-			shaderProvider->GetShaderMaterials();
-		shaderNames.reserve(shaderMaterials.size());
-		for(const ShaderMaterial& material : shaderMaterials){
-			shaderNames.push_back(material.entryPoint);
-		}
-		shaderNamePointers.reserve(shaderNames.size());
-		for(const std::string& name : shaderNames){
-			shaderNamePointers.push_back(name.c_str());
-		}
+	shaderNames.reserve(shaderMaterials.size());
+	for(const ShaderMaterial& material : shaderMaterials){
+		shaderNames.push_back(material.entryPoint);
+	}
+	shaderNamePointers.reserve(shaderNames.size());
+	for(const std::string& name : shaderNames){
+		shaderNamePointers.push_back(name.c_str());
 	}
 
 	if(ImGui::BeginTable(
@@ -160,6 +214,12 @@ inline void Inspect(MaterialComponent& component, SceneContext* context){
 
 		ImGui::EndTable();
 	}
+
+	ImGui::Separator();
+	MaterialDescriptorInspector::DrawCustomMaterials(
+		component.materials,
+		shaderMaterials
+	);
 
 	ImGui::PopStyleVar();
 	ImGui::PopID();

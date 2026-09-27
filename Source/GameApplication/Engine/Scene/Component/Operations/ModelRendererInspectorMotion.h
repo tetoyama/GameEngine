@@ -1,6 +1,8 @@
 #pragma once
 
 #include "ModelRendererInspectorAnimation.h"
+#include "Scene/Component/materialComponent.h"
+#include "Scene/Registry/componentRegistry.h"
 
 namespace ModelRendererInspector {
 
@@ -23,6 +25,24 @@ inline float GetAnimationDuration(
 		return 0.0f;
 	}
 	return static_cast<float>(duration);
+}
+
+inline MaterialComponent* FindSiblingMaterialComponent(
+	ModelRendererComponent& component,
+	SceneContext* context
+){
+	if(!context || !context->component){
+		return nullptr;
+	}
+
+	const auto renderers =
+		context->component->GetAllBaseComponents<ModelRendererComponent>();
+	for(const auto& [entity, candidate] : renderers){
+		if(candidate == &component){
+			return context->component->GetComponent<MaterialComponent>(entity);
+		}
+	}
+	return nullptr;
 }
 
 inline void DrawMotionBlend(ModelRendererComponent& component){
@@ -113,6 +133,15 @@ inline void Inspect(
 	ImGui::PushID(&component);
 	DrawModelPath(component, context);
 	if(component.model){
+		MaterialComponent* materialComponent =
+			FindSiblingMaterialComponent(component, context);
+		ImGui::Separator();
+		ModelRendererSubMeshInspector::Draw(
+			component.subMeshes,
+			*component.model,
+			materialComponent
+		);
+		ImGui::Separator();
 		DrawAnimationList(component);
 		ImGui::Separator();
 		DrawMotionBlend(component);

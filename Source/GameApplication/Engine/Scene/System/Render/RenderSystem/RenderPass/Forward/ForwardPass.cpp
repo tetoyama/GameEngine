@@ -17,6 +17,7 @@
 #include "../ShadowMap/ShadowMapPass.h"
 
 #include "scene.h"
+#include "System/Render/Model/ModelMaterialPassRouting.h"
 #include "System/Render/RenderSystem/Renderable/IRenderable.h"
 #include "System/Render/RenderSystem/RenderTarget/renderTarget.h"
 #include "Component/transformComponent.h"
@@ -173,38 +174,18 @@ void ForwardPass::Execute(const RenderPassContext& ctx){
 			if(!packetIsCurrent(packet)) continue;
 			if(!m_renderSystem->ShouldRenderPacket(ctx, packet)) continue;
 
-			const float alpha = packet.bindings.material
-				? packet.bindings.material->Material.BaseColor.w
-				: 1.0f;
-			const bool materialNeedsAlphaBlend = alpha < 0.999f;
+			const ModelMaterialPassRoutingDecision routing =
+				ModelMaterialPassRouting::Resolve(packet);
+			if(!routing.submitForward) continue;
 
-			RenderLayer effectiveLayer = packet.layer;
-			bool useForward =
-				HasRenderPacketPass(packet.passMask, RenderPacketPassMask::Forward);
-
-			// Opaque指定でもMaterial Alphaが1未満なら、Deferredではなく
-			// Forwardの距離Sort付き半透明経路として扱う。
-			if(materialNeedsAlphaBlend &&
-			   packet.kind != RenderPacketKind::Sprite &&
-			   (packet.layer == RenderLayer::Opaque3D ||
-			    packet.layer == RenderLayer::Background2D)){
-				effectiveLayer = RenderLayer::SortTransparent3D;
-				useForward = HasRenderPacketPass(
-					RenderPacketPassesForKind(packet.kind),
-					RenderPacketPassMask::Forward
-				);
-			}
-
-			if(!useForward) continue;
-
-			const int layerIndex = static_cast<int>(effectiveLayer);
+			const int layerIndex = static_cast<int>(routing.effectiveLayer);
 			if(static_cast<unsigned>(layerIndex) >=
 			   static_cast<unsigned>(RenderLayer::MaxRenderLayer)){
 				continue;
 			}
 			if(!ctx.renderLayerVisibility[layerIndex]) continue;
 
-			if(effectiveLayer != RenderLayer::SortTransparent3D){
+			if(!routing.sortBackToFront){
 				drawPacket(packet);
 				continue;
 			}

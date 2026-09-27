@@ -1,4 +1,4 @@
-#include <array>
+#include <atomic>
 #include <cassert>
 #include <fstream>
 #include <iterator>
@@ -7,6 +7,8 @@
 #include <type_traits>
 
 #include "Engine/Scene/System/Render/RenderSystem/RenderWorld/RenderWorld.h"
+
+std::atomic<ComponentTypeID> ComponentType::s_nextID{0};
 
 namespace {
 
@@ -93,8 +95,7 @@ int main(){
 	assert(world.Visibility().FrameSerial() == 42);
 	assert(!world.IsReady());
 
-	const std::array<RenderPacketWorkerBuffer, 0> noWorkers{};
-	world.Publish(std::span<const RenderPacketWorkerBuffer>(noWorkers));
+	world.Publish(std::span<const RenderPacketWorkerBuffer>{});
 	assert(world.IsReady());
 	assert(world.Packets().Size() == 0);
 	assert(world.StaticBatchCandidates().Candidates().empty());

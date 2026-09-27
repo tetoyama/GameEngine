@@ -17,6 +17,7 @@ struct StaticBatchModelGeometryRuntimeStorageTelemetry {
 	std::size_t importCount = 0;
 	std::size_t reuseCount = 0;
 	std::size_t replacementCount = 0;
+	std::size_t geometryRevisionReplacementCount = 0;
 	std::size_t releaseCount = 0;
 	std::size_t rejectedSourceCount = 0;
 };
@@ -97,8 +98,13 @@ public:
 		}
 
 		if(entryIt != m_entries.end()){
+			const bool geometryRevisionChanged =
+				entryIt->geometryRevision != replacement.geometryRevision;
 			*entryIt = std::move(replacement);
 			++m_replacementCount;
+			if(geometryRevisionChanged){
+				++m_geometryRevisionReplacementCount;
+			}
 		}else{
 			m_entries.push_back(std::move(replacement));
 			entryIt = std::prev(m_entries.end());
@@ -140,6 +146,7 @@ public:
 			m_importCount,
 			m_reuseCount,
 			m_replacementCount,
+			m_geometryRevisionReplacementCount,
 			m_releaseCount,
 			m_rejectedSourceCount
 		};
@@ -151,6 +158,7 @@ public:
 		m_importCount = 0;
 		m_reuseCount = 0;
 		m_replacementCount = 0;
+		m_geometryRevisionReplacementCount = 0;
 		m_releaseCount = 0;
 		m_rejectedSourceCount = 0;
 	}
@@ -160,6 +168,7 @@ private:
 		std::uint64_t geometryResourceKey = 0;
 		std::weak_ptr<ModelData> modelIdentity;
 		std::uint64_t modelRuntimeRevision = 0;
+		std::uint64_t geometryRevision = 0;
 		std::uint32_t subMeshIndex = RenderPacketAllSubMeshes;
 		bool targetsAllSubMeshes = true;
 		std::vector<std::byte> vertexData;
@@ -178,6 +187,12 @@ private:
 				return false;
 			}
 
+			const std::uint64_t sourceGeometryRevision =
+				renderer.model->GetGeometryRevision();
+			if(source.sourceRevision != sourceGeometryRevision){
+				return false;
+			}
+
 			std::vector<std::byte> newVertexData(
 				source.vertexData.begin(),
 				source.vertexData.end()
@@ -188,9 +203,15 @@ private:
 			);
 			if(newVertexData.empty() || newIndexData.empty()) return false;
 
+			// Snapshot複製中にReimportされた場合、異なるRevisionの内容を公開しない。
+			if(renderer.model->GetGeometryRevision() != sourceGeometryRevision){
+				return false;
+			}
+
 			geometryResourceKey = source.geometryResourceKey;
 			modelIdentity = renderer.model;
 			modelRuntimeRevision = renderer.modelRuntimeRevision;
+			geometryRevision = sourceGeometryRevision;
 			subMeshIndex = packet.subMeshIndex;
 			targetsAllSubMeshes = packet.TargetsAllSubMeshes();
 			vertexData = std::move(newVertexData);
@@ -209,6 +230,7 @@ private:
 			const std::shared_ptr<ModelData> model = modelIdentity.lock();
 			return model && model == renderer.model &&
 				modelRuntimeRevision == renderer.modelRuntimeRevision &&
+				geometryRevision == renderer.model->GetGeometryRevision() &&
 				subMeshIndex == packet.subMeshIndex &&
 				targetsAllSubMeshes == packet.TargetsAllSubMeshes() &&
 				!vertexData.empty() && !indexData.empty();
@@ -223,6 +245,7 @@ private:
 			result.source.indexCount = indexCount;
 			result.source.indexFormat = indexFormat;
 			result.source.geometryResourceKey = geometryResourceKey;
+			result.source.sourceRevision = geometryRevision;
 			result.status = result.source.IsValid()
 				? StaticBatchModelGeometrySourceStatus::None
 				: StaticBatchModelGeometrySourceStatus::InvalidGeometryCount;
@@ -260,6 +283,7 @@ private:
 	std::size_t m_importCount = 0;
 	std::size_t m_reuseCount = 0;
 	std::size_t m_replacementCount = 0;
+	std::size_t m_geometryRevisionReplacementCount = 0;
 	std::size_t m_releaseCount = 0;
 	std::size_t m_rejectedSourceCount = 0;
 };
