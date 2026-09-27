@@ -1,8 +1,9 @@
 # レンダラ第1版 完成計画 — RenderGraphと遮蔽シルエット
 
 作成日: 2026-09-07  
-状態: 計画作成済み・実装未着手  
-調査基準: `agent/csm-unity-inspector` / `1d1aeefdc22950292e2158737f18ffa7613ddd88`
+状態: Active design proposal — `develop` 上で実装状況を再判定して着手  
+現在基準: `develop`  
+過去調査基準: `agent/csm-unity-inspector` / `1d1aeefdc22950292e2158737f18ffa7613ddd88`
 
 ## 1. 今回の完成地点
 
@@ -26,14 +27,14 @@
 
 参照:
 
-- [RenderPipeline Graph Architecture](RenderPipeline_Graph_Architecture.md)
-- [RenderPipeline Graph Integration Plan](RenderPipeline_Graph_Integration_Plan.md)
-- [Execution Order Amendment](RenderPipeline_Graph_Execution_Order_Amendment.md)
-- [Resource / DLL Contract](RenderPipeline_Graph_Resource_And_DLL_HotReload_Contract.md)
-- [RenderWorld / Runtime Ownership Progress](Step18A_RenderWorld_Runtime_Ownership_Progress.md)
-- [Model Material Foundation Progress](Step18I_Model_Material_Import_Foundation_Progress.md)
-- [CSM現在仕様](Step19A10_CSM_Common_Max_Depth_Experiment.md)
-- [長期ビジョン](Project_Vision_Robocraft_Roadmap.md)
+- [RenderPipeline Graph Architecture](../Architecture/RenderPipelineGraph_Design.md)
+- [RenderPipeline Graph Integration Plan](../Archive/Rendering/RenderPipelineGraph/RenderPipeline_Graph_Integration_Plan.md)
+- [Execution Order Amendment](../Archive/Rendering/RenderPipelineGraph/RenderPipeline_Graph_Execution_Order_Amendment.md)
+- [Resource / DLL Contract](../Archive/Rendering/RenderPipelineGraph/RenderPipeline_Graph_Resource_And_DLL_HotReload_Contract.md)
+- [RenderWorld / Runtime Ownership Progress](../Archive/Steps/Step18A_RenderWorld_Runtime_Ownership_Progress.md)
+- [Model Material Foundation Progress](../Archive/Steps/Step18I_Model_Material_Import_Foundation_Progress.md)
+- [CSM現在仕様](../Archive/Steps/Step19A10_CSM_Common_Max_Depth_Experiment.md)
+- [長期ビジョン](../Project_Vision_Robocraft_Roadmap.md)
 
 高水準RenderPipelineGraphと既存の低水準RHI::RenderGraphを維持し、依存解析や資源寿命を二重実装しない。最小PipelineInstanceは既存PostProcessの移行より前に導入する。
 
