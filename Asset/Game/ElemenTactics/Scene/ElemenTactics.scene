@@ -1,0 +1,59 @@
+Storage:
+  ExpectedEntities: 512
+  ExpectedTransformCount: 512
+  TransformPreallocatedPages: 2
+Entities:
+  - Entity: 1
+    Components:
+      - Component: NameComponent
+        Name: ElemenTactics Runtime Controller
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 0
+          z: 0
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: ElemenTactics::ElemenTacticsGameController
+        ScriptName: ElemenTacticsGameController
+        InitialScreen: Title
+      - Component: ElemenTactics::ElemenTacticsKeyboardNavigator
+        ScriptName: ElemenTacticsKeyboardNavigator
+      - Component: ElemenTactics::ElemenTacticsTabletopPresentation
+        ScriptName: ElemenTacticsTabletopPresentation
+  - Entity: 2
+    Components:
+      - Component: NameComponent
+        Name: ElemenTactics Table Camera
+      - Component: TransformComponent
+        Position:
+          x: 0
+          y: 10.5
+          z: -10.5
+        Rotation:
+          - 0
+          - 0
+          - 0
+          - 1
+        Scale:
+          x: 1
+          y: 1
+          z: 1
+        Parent: 0
+      - Component: CameraComponent
+        isLock: true
+        Target:
+          x: 0
+          y: 0.15
+          z: 0
+        NearClip: 0.1
+        FarClip: 100
+        FOV: 0.72

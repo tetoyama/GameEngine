@@ -5,10 +5,9 @@
 // =======================================================================
 #pragma once
 
-// 既定で読み込む初期シーン。
-// この値はgame/platformer-tech-demoブランチ専用であり、
-// refactor/ecs-scheduler-foundation側の既定Sceneは変更しない。
-#define DEFAULT_SCENE "Asset\\Game\\Platformer\\Scene\\PlatformerTechDemo.scene"
+// 既定で読み込む初期シーン
+// Release起動時のフォールバック。Editorでは開いているSceneをPlayする。
+#define DEFAULT_SCENE "Asset/Game/ElemenTactics/Scene/ElemenTactics.scene"
 
 // アセット・設定ファイルの共通パス
 #define ASSET_PATH "Asset/"
@@ -27,15 +26,15 @@
 // 固定更新の基準となる目標 FPS
 #define TARGET_FPS (60)
 
-#ifdef _DEBUG 
+#ifdef _DEBUG
 
+// Debugは通常のEditor経路を使う。
+// Engine起動後にElemenTactics.sceneを開き、PlayしたScene自身をゲーム入口とする。
 #define _DEBUG_BUILD
-//#define _RELEASE_BUILD
 #define _EDITOR
 
 #else
 
-//#define _DEBUG_BUILD
 #define _RELEASE_BUILD
 #define _EDITOR
 

@@ -23,6 +23,7 @@ class ImGuiService;
 class ConfigService;
 class EditorService;
 class SystemRegistry;
+class LLAMAService;
 
 struct SceneContext;
 class SceneManager;
@@ -44,6 +45,7 @@ struct SceneManagerContext {
 	ImGuiService*    imgui     = nullptr;
 	ConfigService*   config    = nullptr;
 	EditorService*   editor    = nullptr;
+	LLAMAService*    llama     = nullptr;
 	HWND             hwnd      = nullptr;
 };
 
@@ -92,34 +94,6 @@ public:
 	void AddScene(std::shared_ptr<Scene> scene);
 	void LoadScene(std::shared_ptr<Scene> scene);
 	void DeferredLoadScene(std::shared_ptr<Scene> scene);
-
-	// ECS schedule中はScene::InitializeによるStorage登録を行えない。
-	// AdditiveなファイルSceneはここへ予約し、Engineの次フレーム境界で処理する。
-	bool QueueAdditiveSceneLoadFromFilePath(const std::string& filePath) {
-		if(filePath.empty()){
-			return false;
-		}
-		for(const std::string& pendingPath : m_pendingAdditiveScenePaths){
-			if(pendingPath == filePath){
-				return true;
-			}
-		}
-		m_pendingAdditiveScenePaths.push_back(filePath);
-		return true;
-	}
-
-	void ProcessQueuedAdditiveSceneLoads() {
-		if(m_pendingAdditiveScenePaths.empty()){
-			return;
-		}
-
-		std::vector<std::string> pendingPaths;
-		pendingPaths.swap(m_pendingAdditiveScenePaths);
-		for(const std::string& filePath : pendingPaths){
-			LoadFromFilePath(filePath);
-		}
-	}
-
 	void SaveScenes();
 
 	const std::unordered_map<std::string, std::shared_ptr<Scene>>& GetActiveScenes() const{
@@ -146,5 +120,4 @@ private:
 
 	bool m_NeedSceneChange = false;
 	std::shared_ptr<Scene> m_NextScene;
-	std::vector<std::string> m_pendingAdditiveScenePaths;
 };

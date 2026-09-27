@@ -18,6 +18,7 @@
 #include "Scene/Registry/componentRegistry.h"
 
 #include "Scene/Component/2DspriteRendererComponent.h"
+#include "Scene/Component/RuntimeTextComponent.h"
 #include "Scene/Component/meshRendererComponent.h"
 #include "Scene/Component/transformComponent.h"
 #include "Scene/Component/textureComponent.h"
@@ -83,6 +84,17 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket&
 		return;
 	}
 
+	TextureComponent* pTexture = packet.bindings.texture;
+	if(pTexture && !pTexture->m_TextureData && sceneContext->component){
+		// RuntimeText entities are created through the command buffer after the
+		// Early rasterization task has already run. Drawing their texture-less
+		// sprite in that frame produced an opaque white quad. Keep the entity
+		// invisible until RuntimeTextSystem assigns the generated texture.
+		if(sceneContext->component->GetComponent<RuntimeTextComponent>(packet.entity)){
+			return;
+		}
+	}
+
 	const Vector2 viewportSize = ctx.screenSize;
 	TransformComponent newTransform = transform->CalculateRectTransform(viewportSize, *spriteRenderer, *transform);
 
@@ -100,7 +112,6 @@ void RenderableSprite::Execute(const RenderPassContext& ctx, const RenderPacket&
 	uv.UVStart = float2(0.0f, 0.0f);
 	uv.UVEnd = float2(1.0f, 1.0f);
 
-	TextureComponent* pTexture = packet.bindings.texture;
 	if(pTexture){
 		if(pTexture->m_TextureData){
 			material.MaterialFlags |= MATERIAL_FLAG_USE_DIFFUSE_TEXTURE;
