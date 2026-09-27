@@ -1,6 +1,8 @@
 # =======================================================================
 #
-# AgentOS Core テスト用 Makefile（Linux / g++）
+# AgentOS tests
+#
+# Automatic CI runs CORE_TESTS. FULL_TESTS remain available manually.
 #
 # =======================================================================
 
@@ -8,10 +10,6 @@ CXX      ?= g++
 CC       ?= gcc
 CXXFLAGS ?= -std=c++20 -Wall -Wextra -Werror -O1
 INCLUDES  = -I Source/GameApplication -I Source/GameApplication/Backends/llama/vendor
-
-# ヘッダ依存の自動追跡。
-# これが無いとヘッダだけを変更した際にオブジェクトが再ビルドされず、
-# 古いレイアウトのまま混ざってクラッシュする（実際に踏んだ）。
 DEPFLAGS  = -MMD -MP
 
 BUILD_DIR = build/agentos_tests
@@ -23,51 +21,64 @@ CORE_OBJS := $(patsubst %.cpp,$(OBJ_DIR)/%.o,$(CORE_SRCS))
 SQLITE_SRC = Source/GameApplication/Backends/sqlite/sqlite3.c
 SQLITE_OBJ = $(BUILD_DIR)/sqlite3.o
 
-TESTS = AgentOSCommandPipelineSmokeTest \
-        AgentOSAuditSinkDedupSmokeTest \
-        AgentOSTaskStoreSmokeTest \
-        AgentOSEvidenceLogicSmokeTest \
-        AgentOSExecutionControlSmokeTest \
-        AgentOSConversationMemorySmokeTest \
-        AgentOSContextIsolationSmokeTest \
-        AgentOSRepairExecutionSmokeTest \
-        AgentOSSceneSnapshotFastPathSmokeTest \
-        AgentOSComponentQueryRoutingSmokeTest \
-        AgentOSGoalGateSmokeTest \
-        AgentOSConversationHistoryToolSmokeTest \
-        AgentOSRespondToolSmokeTest \
-        AgentOSMemoryAndRetrySmokeTest \
-        AgentOSFuzzyMatchSmokeTest \
-        AgentOSAmbiguityAndSynthesisSafetySmokeTest \
-        AgentOSStructuredConversationContextSmokeTest \
-        AgentOSCodeIndexSmokeTest \
-        AgentOSCodeSearchSmokeTest \
-        AgentOSCodeIndexServiceSmokeTest \
-        AgentOSCodeInvestigationRoutingSmokeTest \
-        AgentOSToolCatalogPromptSmokeTest \
-        AgentOSEvidencePromptCompressionSmokeTest \
-        AgentOSTaskRetirementSmokeTest \
-        AgentOSRepairHygieneSmokeTest \
-        AgentOSUtf8SafetySmokeTest \
-        AgentOSRecursiveFlowControlSmokeTest \
-        AgentOSRecursiveFlowEndToEndSmokeTest \
-        AgentOSVerticalSliceSmokeTest
+CORE_TESTS = AgentOSCommandPipelineSmokeTest \
+             AgentOSEvidenceLogicSmokeTest \
+             AgentOSConversationMemorySmokeTest \
+             AgentOSContextIsolationSmokeTest \
+             AgentOSRepairExecutionSmokeTest \
+             AgentOSCodeInvestigationRoutingSmokeTest \
+             AgentOSRecursiveFlowEndToEndSmokeTest \
+             AgentOSVerticalSliceSmokeTest
 
-# ---------------------------------
-# コード索引CLI（オフライン索引構築ツール）
-# allには含めない。CI時間を増やさず、必要なときだけ `make codeindex` で建てる。
-# ---------------------------------
+FULL_TESTS = AgentOSCommandPipelineSmokeTest \
+             AgentOSAuditSinkDedupSmokeTest \
+             AgentOSTaskStoreSmokeTest \
+             AgentOSEvidenceLogicSmokeTest \
+             AgentOSExecutionControlSmokeTest \
+             AgentOSConversationMemorySmokeTest \
+             AgentOSContextIsolationSmokeTest \
+             AgentOSRepairExecutionSmokeTest \
+             AgentOSSceneSnapshotFastPathSmokeTest \
+             AgentOSComponentQueryRoutingSmokeTest \
+             AgentOSGoalGateSmokeTest \
+             AgentOSConversationHistoryToolSmokeTest \
+             AgentOSRespondToolSmokeTest \
+             AgentOSMemoryAndRetrySmokeTest \
+             AgentOSFuzzyMatchSmokeTest \
+             AgentOSAmbiguityAndSynthesisSafetySmokeTest \
+             AgentOSStructuredConversationContextSmokeTest \
+             AgentOSCodeIndexSmokeTest \
+             AgentOSCodeSearchSmokeTest \
+             AgentOSCodeIndexServiceSmokeTest \
+             AgentOSCodeInvestigationRoutingSmokeTest \
+             AgentOSToolCatalogPromptSmokeTest \
+             AgentOSEvidencePromptCompressionSmokeTest \
+             AgentOSTaskRetirementSmokeTest \
+             AgentOSRepairHygieneSmokeTest \
+             AgentOSUtf8SafetySmokeTest \
+             AgentOSRecursiveFlowControlSmokeTest \
+             AgentOSRecursiveFlowEndToEndSmokeTest \
+             AgentOSVerticalSliceSmokeTest
+
+ALL_TESTS = $(sort $(FULL_TESTS))
+
 CODEINDEX_SRC = Source/GameApplication/AgentOS/Tools/CodeIndexCli.cpp
 CODEINDEX_OBJ = $(OBJ_DIR)/$(CODEINDEX_SRC:.cpp=.o)
 CODEINDEX_BIN = $(BUILD_DIR)/codeindex
 
-.PHONY: all build run clean codeindex $(addprefix run-,$(TESTS))
+.PHONY: all core full build-core build-full clean codeindex \
+        $(addprefix run-,$(ALL_TESTS))
 
-all: build run
-	@echo "==== AgentOS: ALL TESTS PASSED ===="
+all: core
 
-build: $(addprefix $(BUILD_DIR)/,$(TESTS))
-run: $(addprefix run-,$(TESTS))
+core: build-core $(addprefix run-,$(CORE_TESTS))
+	@echo "==== AgentOS: CORE TESTS PASSED ===="
+
+full: build-full $(addprefix run-,$(FULL_TESTS))
+	@echo "==== AgentOS: FULL TESTS PASSED ===="
+
+build-core: $(addprefix $(BUILD_DIR)/,$(CORE_TESTS))
+build-full: $(addprefix $(BUILD_DIR)/,$(FULL_TESTS))
 
 $(SQLITE_OBJ): $(SQLITE_SRC)
 	@mkdir -p $(BUILD_DIR)
@@ -81,9 +92,8 @@ $(OBJ_DIR)/Tests/%.o: Tests/%.cpp
 	@mkdir -p $(dir $@)
 	$(CXX) $(CXXFLAGS) $(DEPFLAGS) $(INCLUDES) -c $< -o $@
 
-# 生成された .d を取り込む（初回は存在しないので - を付ける）
 -include $(CORE_OBJS:.o=.d)
--include $(addprefix $(OBJ_DIR)/Tests/,$(addsuffix .d,$(TESTS)))
+-include $(addprefix $(OBJ_DIR)/Tests/,$(addsuffix .d,$(ALL_TESTS)))
 -include $(CODEINDEX_OBJ:.o=.d)
 
 $(BUILD_DIR)/%: $(OBJ_DIR)/Tests/%.o $(CORE_OBJS) $(SQLITE_OBJ)

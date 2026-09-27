@@ -2,39 +2,56 @@ name: AgentOS Core Tests
 
 on:
   push:
-    branches:
-      - llm-agent
+    branches: [develop]
     paths:
       - "Source/GameApplication/AgentOS/Core/**"
       - "Tests/AgentOS*"
       - "Tests/AgentOS/**"
       - ".github/workflows/agentos-core-tests.yml"
   pull_request:
+    branches: [develop]
     paths:
       - "Source/GameApplication/AgentOS/Core/**"
       - "Tests/AgentOS*"
       - "Tests/AgentOS/**"
       - ".github/workflows/agentos-core-tests.yml"
   workflow_dispatch:
+    inputs:
+      suite:
+        description: Test suite
+        required: true
+        default: full
+        type: choice
+        options:
+          - core
+          - full
+
+permissions:
+  contents: read
 
 jobs:
-  core-tests:
+  tests:
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 20
+
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Build and run AgentOS core tests
+      - name: Build and run AgentOS tests
         shell: bash
         run: |
           set -o pipefail
-          make -f Tests/AgentOS/Makefile -j2 2>&1 | tee agentos-core-tests.log
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ inputs.suite }}" = "full" ]; then
+            make -f Tests/AgentOS/Makefile -j2 full 2>&1 | tee agentos-tests.log
+          else
+            make -f Tests/AgentOS/Makefile -j2 core 2>&1 | tee agentos-tests.log
+          fi
 
       - name: Upload AgentOS test log
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: agentos-core-test-log
-          path: agentos-core-tests.log
+          name: agentos-test-log
+          path: agentos-tests.log
           if-no-files-found: error

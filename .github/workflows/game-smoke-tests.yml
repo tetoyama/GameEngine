@@ -1,0 +1,59 @@
+name: Game Rules Smoke
+
+on:
+  push:
+    branches: [develop]
+    paths:
+      - "Source/GameApplication/Game/ElemenTactics/**"
+      - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Tests/ElemenTacticsRulesSmokeTest.cpp"
+      - "Tests/MiniGameRulesSmokeTest.cpp"
+      - ".github/workflows/game-smoke-tests.yml"
+  pull_request:
+    branches: [develop]
+    paths:
+      - "Source/GameApplication/Game/ElemenTactics/**"
+      - "Source/GameApplication/Game/MiniGameCollection/**"
+      - "Tests/ElemenTacticsRulesSmokeTest.cpp"
+      - "Tests/MiniGameRulesSmokeTest.cpp"
+      - ".github/workflows/game-smoke-tests.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  rules:
+    runs-on: windows-2022
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+
+      - uses: ilammy/msvc-dev-cmd@v1
+        with:
+          arch: x64
+
+      - name: ElemenTactics rules
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source\GameApplication
+          Source\GameApplication\Game\ElemenTactics\Rules\ElemenTacticsRules.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\ElemenTacticsAi.cpp
+          Source\GameApplication\Game\ElemenTactics\AI\LlmDecisionAdapter.cpp
+          Tests\ElemenTacticsRulesSmokeTest.cpp
+          /Fe:elementactics-rules.exe
+          && elementactics-rules.exe
+
+      - name: MiniGameCollection rules
+        shell: cmd
+        run: >-
+          cl /nologo /utf-8 /std:c++20 /EHsc /W4 /WX /MTd
+          /I Source
+          /I Source\GameApplication
+          Tests\MiniGameRulesSmokeTest.cpp
+          /Fe:minigame-rules.exe
+          && minigame-rules.exe
