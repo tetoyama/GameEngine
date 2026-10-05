@@ -3,6 +3,8 @@ cbuffer Frame : register(b0, space1)
     row_major float4x4 frame_viewProjection : packoffset(c0);
     row_major float4x4 frame_lightViewProjection : packoffset(c4);
     float4 frame_lightDirection : packoffset(c8);
+    float4 frame_lightColor : packoffset(c9);
+    float4 frame_ambientColor : packoffset(c10);
 };
 
 
@@ -17,6 +19,11 @@ static float3 worldNormal;
 static float3 normal;
 static float4 albedo;
 static float4 color;
+static float2 uv;
+static float2 texcoord;
+static float4 uvTransform;
+static float unlit;
+static float4 shading;
 
 struct SPIRV_Cross_Input
 {
@@ -27,6 +34,9 @@ struct SPIRV_Cross_Input
     float4 world2 : TEXCOORD4;
     float4 world3 : TEXCOORD5;
     float4 color : TEXCOORD6;
+    float2 texcoord : TEXCOORD7;
+    float4 uvTransform : TEXCOORD8;
+    float4 shading : TEXCOORD9;
 };
 
 struct SPIRV_Cross_Output
@@ -34,6 +44,8 @@ struct SPIRV_Cross_Output
     float3 worldPosition : TEXCOORD0;
     float3 worldNormal : TEXCOORD1;
     float4 albedo : TEXCOORD2;
+    float2 uv : TEXCOORD3;
+    float unlit : TEXCOORD4;
     float4 gl_Position : SV_Position;
 };
 
@@ -77,6 +89,8 @@ void vert_main()
     worldPosition = p.xyz;
     worldNormal = mul(normal, transpose(spvInverse(float3x3(world[0].xyz, world[1].xyz, world[2].xyz))));
     albedo = color;
+    uv = (texcoord * uvTransform.xy) + uvTransform.zw;
+    unlit = shading.x;
     gl_Position = mul(p, frame_viewProjection);
 }
 
@@ -89,11 +103,16 @@ SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
     position = stage_input.position;
     normal = stage_input.normal;
     color = stage_input.color;
+    texcoord = stage_input.texcoord;
+    uvTransform = stage_input.uvTransform;
+    shading = stage_input.shading;
     vert_main();
     SPIRV_Cross_Output stage_output;
     stage_output.gl_Position = gl_Position;
     stage_output.worldPosition = worldPosition;
     stage_output.worldNormal = worldNormal;
     stage_output.albedo = albedo;
+    stage_output.uv = uv;
+    stage_output.unlit = unlit;
     return stage_output;
 }

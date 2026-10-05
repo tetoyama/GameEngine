@@ -8,6 +8,8 @@ struct Frame
     float4x4 viewProjection;
     float4x4 lightViewProjection;
     float4 lightDirection;
+    float4 lightColor;
+    float4 ambientColor;
 };
 
 struct main0_out

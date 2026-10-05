@@ -79,7 +79,7 @@ ModelGeometryRuntimeMesh Cube(FrameRenderer& renderer) {
     for(auto n:normals) {
         auto u=std::abs(n[1])>.5f?Vec3{1,0,0}:Normalize(Cross({0,1,0},n)); auto v=Cross(n,u); uint32_t base=static_cast<uint32_t>(vertices.size());
         for(auto xy:std::array<std::array<float,2>,4>{{{-1,-1},{1,-1},{1,1},{-1,1}}}) {
-            Vec3 p{}; for(int a=0;a<3;++a) p[a]=n[a]+xy[0]*u[a]+xy[1]*v[a]; vertices.push_back({p,n});
+            Vec3 p{}; for(int a=0;a<3;++a) p[a]=n[a]+xy[0]*u[a]+xy[1]*v[a]; vertices.push_back({p,n,{(xy[0]+1)*.5f,(xy[1]+1)*.5f}});
         }
         for(auto i:{0u,1u,2u,0u,2u,3u}) indices.push_back(base+i);
     }
@@ -162,11 +162,27 @@ int main(int argc,char** argv) {
             auto original=scene.draws; scene.draws.clear(); renderer.Render(scene,false); RHI::TextureReadback empty; if(!renderer.Capture(empty) || !Different(image,empty)) throw std::runtime_error("Geometry does not affect output");
             scene.draws=original; for(auto& draw:scene.draws) draw.castsShadow=false; renderer.Render(scene,false); RHI::TextureReadback noShadow; if(!renderer.Capture(noShadow) || !Different(image,noShadow)) throw std::runtime_error("Shadow participation does not affect output");
             scene.draws=original; scene.draws.back().instance.color={1,0,1,1}; renderer.Render(scene,false); RHI::TextureReadback changed; if(!renderer.Capture(changed) || !Different(image,changed)) throw std::runtime_error("Material changes do not reach GPU");
+            RHI::TextureDesc td; td.width=td.height=2; td.initialState=RHI::ResourceState::ShaderResource;
+            const std::array<uint8_t,16> pixels{255,0,0,255, 0,255,0,255, 0,0,255,255, 255,255,255,255};
+            const auto texture=device->CreateTexture(td,std::as_bytes(std::span(pixels)),8);
+            if(!texture) throw std::runtime_error("Validation texture upload failed");
+            RHI::TextureViewDesc vd; vd.texture=texture; const auto view=device->CreateTextureView(vd);
+            if(!view) throw std::runtime_error("Validation texture view failed");
+            scene.draws=original; for(auto& draw:scene.draws) draw.albedoTexture=view;
+            renderer.Render(scene,false); RHI::TextureReadback textured;
+            if(!renderer.Capture(textured) || !Different(image,textured)) throw std::runtime_error("Albedo texture does not affect output");
+            for(auto& draw:scene.draws) draw.instance.uvTransform={0,0,.25f,.25f};
+            renderer.Render(scene,false); RHI::TextureReadback sliced;
+            if(!renderer.Capture(sliced) || !Different(textured,sliced)) throw std::runtime_error("UV transform does not affect output");
+            for(auto& draw:scene.draws) draw.instance.shading[0]=1;
+            renderer.Render(scene,false); RHI::TextureReadback unlit;
+            if(!renderer.Capture(unlit) || !Different(sliced,unlit)) throw std::runtime_error("Unlit material does not affect output");
+            scene.draws=original; device->DestroyTextureView(view); device->DestroyTexture(texture);
             renderer.Resize(321,213); update(angle); renderer.Render(scene,false); RHI::TextureReadback resized;
             if(!renderer.Capture(resized) || resized.width!=321 || resized.height!=213) throw std::runtime_error("Resize/readback dimension mismatch");
             renderer.Resize(options.width,options.height); update(angle); renderer.Render(scene,!options.offscreen,false);
             if(!renderer.Capture(image)) throw std::runtime_error("Post-resize capture failed"); CheckImage(image);
-            std::cout<<"validation=passed frame-reuse, geometry, shadows, materials, resize, readback\n";
+            std::cout<<"validation=passed frame-reuse, geometry, shadows, materials, textures, UV, unlit, resize, readback\n";
         }
         if(!options.capture.empty()) Save(image,options.capture);
         const auto& stats=renderer.Statistics(); auto elapsed=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();

@@ -20,7 +20,7 @@ std::vector<std::byte> ReadFile(const std::filesystem::path& path) {
     if(!file.read(reinterpret_cast<char*>(result.data()),size)) throw std::runtime_error("Failed shader read"); return result;
 }
 struct Target { TextureHandle texture; TextureViewHandle render,sample; };
-struct Batch { ModelGeometryRuntimeMesh mesh; uint32_t first,count; bool shadow; };
+struct Batch { ModelGeometryRuntimeMesh mesh; uint32_t first,count; bool shadow; TextureViewHandle albedoTexture; };
 }
 struct FrameRenderer::Impl {
     IRHIDevice& device;
@@ -33,7 +33,8 @@ struct FrameRenderer::Impl {
     PipelineStateDesc geometryDescription,shadowDescription;
     uint32_t width=0,height=0,instanceCapacity=0;
     BufferHandle frameBuffer,instanceBuffer;
-    SamplerHandle sampler,shadowSampler;
+    SamplerHandle sampler,shadowSampler,materialSampler;
+    Target white;
     Target albedo,normal,position,depth,shadow,hdr,output;
     PipelineStateHandle geometryPipeline,shadowPipeline,lightingPipeline,tonePipeline,presentPipeline;
     Format presentFormat=Format::Unknown;
@@ -51,6 +52,8 @@ struct FrameRenderer::Impl {
         for(auto s:shaders) device.DestroyShader(s);
         if(sampler) device.DestroySampler(sampler);
         if(shadowSampler) device.DestroySampler(shadowSampler);
+        if(materialSampler) device.DestroySampler(materialSampler);
+        DestroyTarget(white);
         if(frameBuffer) device.DestroyBuffer(frameBuffer);
         if(instanceBuffer) device.DestroyBuffer(instanceBuffer);
         if(frameFence) device.DestroyFence(frameFence->GetHandle());
@@ -85,20 +88,31 @@ struct FrameRenderer::Impl {
         SamplerDesc sd; sd.minFilter=sd.magFilter=FilterMode::Nearest; sd.addressU=sd.addressV=sd.addressW=SamplerAddressMode::ClampToEdge;
         sampler=device.CreateSampler(sd); Require(bool(sampler),"Sampler creation failed");
         sd.comparisonEnable=true; shadowSampler=device.CreateSampler(sd); Require(bool(shadowSampler),"Shadow sampler creation failed");
-        auto vertex=Shader("geometry.vert",ShaderStage::Vertex,0,1),pixel=Shader("geometry.frag",ShaderStage::Pixel);
+        sd.comparisonEnable=false; sd.minFilter=sd.magFilter=FilterMode::Linear;
+        sd.addressU=sd.addressV=sd.addressW=SamplerAddressMode::Repeat;
+        materialSampler=device.CreateSampler(sd); Require(bool(materialSampler),"Material sampler creation failed");
+        TextureDesc whiteDesc; whiteDesc.width=whiteDesc.height=1; whiteDesc.bindFlags=TextureBindFlags::ShaderResource;
+        whiteDesc.initialState=ResourceState::ShaderResource;
+        const std::array<std::byte,4> whitePixel{std::byte{255},std::byte{255},std::byte{255},std::byte{255}};
+        white.texture=device.CreateTexture(whiteDesc,whitePixel,4); Require(bool(white.texture),"Default albedo creation failed");
+        TextureViewDesc whiteView; whiteView.texture=white.texture;
+        white.sample=device.CreateTextureView(whiteView); Require(bool(white.sample),"Default albedo view creation failed");
+        auto vertex=Shader("geometry.vert",ShaderStage::Vertex,0,1),pixel=Shader("geometry.frag",ShaderStage::Pixel,1);
         PipelineStateDesc geo; geo.vertexShader=vertex; geo.pixelShader=pixel; geo.rasterizer.cullMode=CullMode::None;
         geo.renderTargets.colorAttachmentCount=3; geo.renderTargets.colorFormats[0]=Format::RGBA8_UNorm;
         geo.renderTargets.colorFormats[1]=geo.renderTargets.colorFormats[2]=Format::RGBA16_Float;
         geo.renderTargets.depthStencilFormat=Format::D32_Float;
         geo.inputLayout={{"TEXCOORD",0,Format::RGB32_Float,0,0,false,0,0},{"TEXCOORD",1,Format::RGB32_Float,0,12,false,0,1}};
         for(uint32_t i=0;i<5;++i) geo.inputLayout.push_back({"TEXCOORD",i+2,Format::RGBA32_Float,1,i*16,true,1,i+2});
+        geo.inputLayout.push_back({"TEXCOORD",7,Format::RG32_Float,0,offsetof(Vertex,uv),false,0,7});
+        for(uint32_t i=0;i<2;++i) geo.inputLayout.push_back({"TEXCOORD",8+i,Format::RGBA32_Float,1,80+i*16,true,1,8+i});
         geo.vertexBuffers={{0,sizeof(Vertex),false},{1,sizeof(Instance),true}};
         geometryPipeline=Pipeline(geo);
         auto shadowDesc=geo; shadowDesc.vertexShader=Shader("shadow.vert",ShaderStage::Vertex,0,1);
         shadowDesc.pixelShader=Shader("shadow.frag",ShaderStage::Pixel); shadowDesc.renderTargets.colorAttachmentCount=0;
         // Explicit locations preserve the shader ABI even with unused attributes.
-        shadowDesc.inputLayout.erase(shadowDesc.inputLayout.begin()+1);
-        shadowDesc.inputLayout.pop_back(); shadowPipeline=Pipeline(shadowDesc);
+        std::erase_if(shadowDesc.inputLayout,[](const auto& item){return item.location!=0 && (item.location<2 || item.location>5);});
+        shadowPipeline=Pipeline(shadowDesc);
         geometryDescription=geo; shadowDescription=shadowDesc;
         geometryPipelines.emplace(static_cast<uint32_t>(sizeof(Vertex)),std::pair(geometryPipeline,shadowPipeline));
         fullscreen=Shader("fullscreen.vert",ShaderStage::Vertex);
@@ -142,6 +156,10 @@ struct FrameRenderer::Impl {
             const auto& mesh=batch.mesh;
             auto pipeline=geometryPipelines.at(mesh.vertexStride);
             Require(list.SetPipelineState(shadows?pipeline.second:pipeline.first),"Geometry pipeline binding failed");
+            if(!shadows) {
+                const auto texture=batch.albedoTexture?batch.albedoTexture:white.sample;
+                Require(list.SetTextureView(ShaderStage::Pixel,0,texture) && list.SetSampler(ShaderStage::Pixel,0,materialSampler),"Material texture binding failed");
+            }
             Require(list.SetVertexBuffer(0,mesh.vertexBuffer,mesh.vertexStride),"Mesh vertex binding failed");
             Require(list.SetVertexBuffer(1,instanceBuffer,sizeof(Instance),batch.first*sizeof(Instance)),"Instance binding failed");
             Require(list.SetIndexBuffer(mesh.indexBuffer,mesh.indexFormat),"Mesh index binding failed");
@@ -176,16 +194,21 @@ struct FrameRenderer::Impl {
             if(!geometryPipelines.contains(d.mesh.vertexStride)) {
                 auto geo=geometryDescription,shade=shadowDescription;
                 geo.vertexBuffers[0].stride=shade.vertexBuffers[0].stride=d.mesh.vertexStride;
+                // Existing VERTEX_3D: position / normal / tangent / color / UV.
+                // Generated diagnostic Vertex has UV immediately after normal.
+                if(d.mesh.vertexStride==60) {
+                    for(auto& item:geo.inputLayout) if(item.location==7) item.alignedByteOffset=52;
+                } else Require(d.mesh.vertexStride==sizeof(Vertex),"Unsupported vertex UV layout");
                 geometryPipelines.emplace(d.mesh.vertexStride,std::pair(Pipeline(geo),Pipeline(shade)));
             }
             for(float v:d.instance.world) Require(std::isfinite(v),"Nonfinite instance matrix");
         }
-        auto key=[](const DrawItem& d){ return std::tuple(d.mesh.vertexBuffer.index,d.mesh.vertexBuffer.generation,d.mesh.indexBuffer.index,d.mesh.indexBuffer.generation,d.mesh.vertexStride,d.mesh.indexFormat,d.mesh.indexCount,d.castsShadow); };
+        auto key=[](const DrawItem& d){ return std::tuple(d.mesh.vertexBuffer.index,d.mesh.vertexBuffer.generation,d.mesh.indexBuffer.index,d.mesh.indexBuffer.generation,d.mesh.vertexStride,d.mesh.indexFormat,d.mesh.indexCount,d.castsShadow,d.albedoTexture.index,d.albedoTexture.generation); };
         std::stable_sort(draws.begin(),draws.end(),[&](const auto& a,const auto& b){ return key(a)<key(b); });
         std::vector<Instance> instances; std::vector<Batch> batches; instances.reserve(draws.size());
         for(const auto& d:draws) {
-            if(batches.empty() || key(DrawItem{batches.back().mesh,{},batches.back().shadow})!=key(d))
-                batches.push_back({d.mesh,static_cast<uint32_t>(instances.size()),0,d.castsShadow});
+            if(batches.empty() || key(DrawItem{batches.back().mesh,{},batches.back().shadow,batches.back().albedoTexture})!=key(d))
+                batches.push_back({d.mesh,static_cast<uint32_t>(instances.size()),0,d.castsShadow,d.albedoTexture});
             ++batches.back().count; instances.push_back(d.instance);
         }
         if(instances.size()>instanceCapacity) {
@@ -203,6 +226,16 @@ struct FrameRenderer::Impl {
         auto ga=graph.ImportTexture(albedo.texture,initial,"Albedo"),gn=graph.ImportTexture(normal.texture,initial,"Normal"),gp=graph.ImportTexture(position.texture,initial,"Position");
         auto gs=graph.ImportTexture(shadow.texture,initial,"Shadow"),gd=graph.ImportTexture(depth.texture,targetsInitialized?ResourceState::DepthWrite:ResourceState::Common,"Depth");
         auto gh=graph.ImportTexture(hdr.texture,initial,"HDR"),go=graph.ImportTexture(output.texture,initial,"Output");
+        std::vector<RenderGraphResource> materialTextures;
+        std::vector<TextureHandle> importedTextures;
+        for(const auto& batch:batches) {
+            auto* view=device.GetTextureViewDesc(batch.albedoTexture?batch.albedoTexture:white.sample);
+            Require(view!=nullptr,"Invalid material texture view");
+            if(std::find(importedTextures.begin(),importedTextures.end(),view->texture)==importedTextures.end()) {
+                importedTextures.push_back(view->texture);
+                materialTextures.push_back(graph.ImportTexture(view->texture,ResourceState::ShaderResource,"Material albedo"));
+            }
+        }
         graph.AddPass("Frame upload",[](auto&){},[&](auto& list){
             Require(list.UpdateBuffer(frameBuffer,std::as_bytes(std::span(&scene.frame,1))),"Frame uniform upload failed");
             if(!instances.empty()) Require(list.UpdateBuffer(instanceBuffer,Bytes(std::span<const Instance>(instances))),"Instance upload failed");
@@ -212,7 +245,7 @@ struct FrameRenderer::Impl {
             pass.depthAttachment.depthLoadOperation=LoadOperation::Clear; pass.depthAttachment.stencilLoadOperation=LoadOperation::Discard;
             Require(list.BeginRenderPass(pass),"Shadow pass failed"); Geometry(list,batches,true); list.EndRenderPass(); ++statistics.passes;
         });
-        graph.AddPass("GBuffer",[&](auto& b){b.Write(ga,ResourceState::RenderTarget);b.Write(gn,ResourceState::RenderTarget);b.Write(gp,ResourceState::RenderTarget);b.Write(gd,ResourceState::DepthWrite);},[&](auto& list){
+        graph.AddPass("GBuffer",[&](auto& b){b.Write(ga,ResourceState::RenderTarget);b.Write(gn,ResourceState::RenderTarget);b.Write(gp,ResourceState::RenderTarget);b.Write(gd,ResourceState::DepthWrite);for(auto texture:materialTextures) b.Read(texture);},[&](auto& list){
             RenderPassDesc pass;
             for(auto* target:{&albedo,&normal,&position}) pass.colorAttachments.push_back({target->render,LoadOperation::Clear,StoreOperation::Store,{0,0,0,0}});
             pass.hasDepthAttachment=true; pass.depthAttachment.view=depth.render; pass.depthAttachment.depthLoadOperation=LoadOperation::Clear; pass.depthAttachment.stencilLoadOperation=LoadOperation::Discard;

@@ -13,6 +13,7 @@
 
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <filesystem>
 #include <queue>
 #include <thread>
@@ -50,6 +51,9 @@
 #include "Resources/Data/vertexShaderData.h"
 #include "Resources/Data/pixelShaderData.h"
 #include "Resources/Data/textureData.h"
+
+static_assert(sizeof(VERTEX_3D) == 60 && offsetof(VERTEX_3D, TexCoord) == 52,
+	"Update the portable vertex input layout when the existing model vertex ABI changes");
 
 #include "Scene.h"
 #include "SceneManager.h"
@@ -176,18 +180,44 @@ ID3D11ShaderResourceView* RenderSystem::RenderPortableView(const RenderPassConte
 		std::copy_n(&matrix._11, 16, frame.viewProjection.begin());
 		frame.lightViewProjection = Rendering::Multiply(Rendering::Orthographic(80,80,0.1f,200),
 			Rendering::LookAt({-30,50,-30},{0,0,0}));
-		frame.lightDirection = {-0.4575f,0.7625f,-0.4575f,0};
+		frame.lightDirection = {0.4575f,-0.7625f,0.4575f,0};
+		frame.lightColor = {0,0,0,0}; frame.ambientColor = {0,0,0,0};
+		// Reuse the Scene's existing light and transform contract. This stage
+		// supports one directional light with one shadow map, not a second
+		// independently configured lighting service.
+		std::vector<std::shared_ptr<Scene>> scenes;
+		for(const auto& [name,scene]:m_context->sceneManager->GetActiveScenes()) if(scene) scenes.push_back(scene);
+		std::sort(scenes.begin(),scenes.end(),[](const auto& a,const auto& b){return a->GetSceneContext()->contextID<b->GetSceneContext()->contextID;});
+		bool lightFound=false;
+		for(const auto& scene:scenes){
+			auto* components=scene->GetSceneContext()->component;
+			auto lights=components->FindEntitiesWithComponent<LightComponent>();
+			std::sort(lights.begin(),lights.end());
+			for(Entity entity:lights){
+				const auto* light=components->GetComponent<LightComponent>(entity);
+				const auto* transform=components->GetComponent<TransformComponent>(entity);
+				if(!light || !transform || !light->light.Enable ||
+					(light->light.LightType!=LIGHT_TYPE_DIRECTIONAL && light->light.LightType!=LIGHT_TYPE_DIRECTIONAL_CSM)) continue;
+				const auto front=transform->front();
+				const auto direction=Rendering::Normalize({front.x,front.y,front.z});
+				frame.lightDirection={direction[0],direction[1],direction[2],0};
+				frame.lightColor={light->light.Diffuse.x,light->light.Diffuse.y,light->light.Diffuse.z,light->light.CastShadow?1.f:0.f};
+				frame.ambientColor={light->light.Ambient.x,light->light.Ambient.y,light->light.Ambient.z,0};
+				const Rendering::Vec3 center{context.CameraPosition.x,context.CameraPosition.y,context.CameraPosition.z};
+				const float size=(std::max)(50.f,light->light.Param.x/10.f);
+				const Rendering::Vec3 eye{center[0]-direction[0]*size,center[1]-direction[1]*size,center[2]-direction[2]*size};
+				const Rendering::Vec3 up=std::abs(direction[1])>.99f?Rendering::Vec3{0,0,1}:Rendering::Vec3{0,1,0};
+				frame.lightViewProjection=Rendering::Multiply(Rendering::Orthographic(size,size,.1f,size*2),Rendering::LookAt(eye,center,up));
+				lightFound=true; break;
+			}
+			if(lightFound) break;
+		}
 		std::vector<RenderPacket> visible;
-		size_t unsupportedTextureOverrides = 0;
 		for(const auto& packet : m_renderWorld.Packets().Packets()){
 			const auto layer = static_cast<size_t>(packet.layer);
 			if(layer < static_cast<size_t>(RenderLayer::MaxRenderLayer) &&
 				context.renderLayerVisibility[layer] && ShouldRenderPacket(context, packet)){
-				// Entity texture overrides live outside the imported material
-				// descriptor; count them rather than rendering an untextured substitute.
-				if(packet.bindings.texture && packet.bindings.texture->m_TextureData){
-					++unsupportedTextureOverrides;
-				}else visible.push_back(packet);
+				visible.push_back(packet);
 			}
 		}
 		auto conversion = Rendering::ConvertRenderPackets(visible, frame, m_renderWorld.Generation(),
@@ -201,10 +231,33 @@ ID3D11ShaderResourceView* RenderSystem::RenderPortableView(const RenderPassConte
 						if(const auto* mesh = runtime->Mesh(index)) meshes.push_back(*mesh);
 				}
 				return meshes;
+			},[this,service](const RenderPacket& packet, Rendering::DrawItem& draw){
+				const auto* material=packet.modelMaterial.GetDescriptor();
+				if(material && material->shaderID!=0 && material->shaderID!=1) return false;
+				if(material) draw.instance.shading[0]=material->shaderID==0?1.f:0.f;
+				std::shared_ptr<TextureData> texture;
+				if(packet.bindings.texture && packet.bindings.texture->m_TextureData){
+					texture=packet.bindings.texture->m_TextureData;
+					const auto uv=packet.bindings.texture->ResolveUVMatrixBuffer();
+					draw.instance.uvTransform={uv.UVEnd.x-uv.UVStart.x,uv.UVEnd.y-uv.UVStart.y,uv.UVStart.x,uv.UVStart.y};
+				}
+				if(material && !texture) for(const auto& binding:material->textures){
+					if(binding.semantic!=MaterialTextureSemantic::BaseColor || binding.uvChannel!=0 || binding.uvRotation!=0) return false;
+					if(!texture){
+						texture=m_context->resource->Load<TextureData>(binding.assetPath);
+						draw.instance.uvTransform={binding.uvScale[0],binding.uvScale[1],binding.uvOffset[0],binding.uvOffset[1]};
+						if(!texture) return false;
+					}
+				}
+				if(texture){
+					draw.albedoTexture=texture->EnsureRHI(*service->GetDevice(),m_context->graphics->GetDevice(),m_context->graphics->GetDeviceContext());
+					if(!draw.albedoTexture) return false;
+				}
+				return true;
 			});
 		m_portableViewStatus = std::string(ToEngineConfigBackendName(service->GetSelectedBackend())) +
 			" scene / DX11 editor UI; compatibility readback. Draws: " + std::to_string(conversion.scene.draws.size()) + "; unsupported: " +
-			std::to_string(conversion.unsupportedPackets + unsupportedTextureOverrides) + "; unresolved/animated: " + std::to_string(conversion.unresolvedMeshes);
+			std::to_string(conversion.unsupportedPackets) + "; unresolved/animated: " + std::to_string(conversion.unresolvedMeshes);
 		return viewport->Render(conversion.scene, static_cast<uint32_t>(context.screenSize.x), static_cast<uint32_t>(context.screenSize.y));
 	} catch(const std::exception& error){
 		const std::string status = std::string("Selected rendering API failed: ") + error.what();

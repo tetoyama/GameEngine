@@ -15,7 +15,9 @@ Save Project Settingsして再起動すると、Editor View / Player Viewのシ�
 
 EditorのImGui / Win32 / Direct2D表示はD3D11のまま。選択APIで描いた最終RGBA画像を読み戻し、
 D3D11表示Textureへ転送する移行用経路。同期Readbackの遅延があるため性能比較には使わない。
-対応範囲はTextureなしの不透明Static Model。描画数、未対応Packet数とAnimation / Geometry未解決数を
+対応範囲は不透明Static Model、BaseColor Texture、既存TextureComponentのUV変換、Unlitと単一Directional Light。
+モデルのPBR / Environment Mapを含む既存Shaderの完全な表現互換性は未達。
+描画数、未対応Packet数とAnimation / Geometry未解決数を
 Editor Viewに表示し、選択APIが失敗した時はD3D11へ暗黙に切り替えずエラーを表示する。
 Editor Viewの旧Object-ID GBufferによるClick選択は無効化し、Hierarchy選択 / Gizmo編集を使う。
 既存の全Pass・ゲーム内容の互換性が必要ならD3D11を選ぶ。
@@ -32,12 +34,18 @@ Editor Viewの旧Object-ID GBufferによるClick選択は無効化し、Hierarch
 `ConvertRenderPackets` のResolverは既存Runtimeの選択済みSubMeshを返す。
 Renderer側で別のModelData CacheやAsset Managerは作らない。
 
+Textureも既存ResourceService / TextureDataを再利用する。Windows Editorの移行用経路では、
+既に読み込まれた2D SRVを初回だけRGBA8へ読み戻して選択RHIへ転送し、GPU Handleを
+そのTextureDataが所有する。SRV置換 / Device置換時に再生成し、Device寿命はweak tokenで検査する。
+別のTexture Cache / Loaderは作らない。この読み込みBridge自体はWindows Editor専用で、
+API非依存FrameRendererにはTextureViewHandleを渡す。
+
 ## Implemented frame
 
 1. フレーム定数とインスタンスのUpload
 2. Directional shadow (D32 depth、比較Sampler、3x3 PCF)
 3. 3-target GBuffer (albedo / normal / world position) + depth
-4. Deferred directional lighting
+4. Deferred directional lighting / Unlit（SceneのDirectional Lightの向き・色・Ambient・Shadow有効性を利用）
 5. HDR tone mapping + gamma conversion
 6. Swapchain合成。最小化 / 非表示で取得画像がない場合は表示を省略
 
@@ -150,6 +158,7 @@ ctest --test-dir build-portable -C Debug --output-on-failure
 ```
 
 GPU検証は、画像の変化を使ってGeometry、Material、Shadow、Resize、同一Frameの再利用を検査する。
+Texture、UV変換、Unlit切り替えも実際のGPU画像の変化で検査する。
 Compute書き込み / 非整列Texture幅のReadback、Shader破棄後のPipeline利用、
 Submit後のCommand wrapper破棄、Fence / Device寿命、古いHandleと異なるThreadの拒否も検査する。
 
@@ -165,9 +174,18 @@ macOS-14 Runnerでビルド / 共通処理テスト / 梱包が成功。
 
 ## Current limits
 
+2026-10-06に同じ `_scene.scene` Snapshot、Camera、1280×720、Stopped / dt=0でEditor Viewを比較した。
+D3D12とVulkanはRGB全Pixelが一致し、各APIの1 Frame目と3 Frame目も一致した。
+D3D11との平均絶対RGB差は40.94 / 255で、一致していない。
+Texture / UV / Unlit / 既存Directional Lightの接続により床と空のTextureが表示されるが、
+既存PBR / Environment Map / CSM / Post Effectとの差が残る。未対応Materialも14 Packet残る。
+この比較はMac上で既存Sceneを描いた結果ではない。
+
 - 既存Editor / Win32 Engine entry / Direct2D runtime text / PhysX / EffekseerのMac移植は完了していない
-- 共通FrameRendererはOpaque Model Geometryとbase colorを扱う。Texture Material、Skinning、
+- 共通FrameRendererはOpaque Model Geometry、base colorとBaseColor Texture、UV変換、Unlitを扱う。
+  Normal / Metallic / Roughness等のTexture、PBR / Environment Map、Skinning、Billboard、
   Terrain / Wave / Particle、Transparency、既存CSM / Local Light / Post Effect Nodeの全機能は未移行
+- SceneのDirectional Lightを1つ使用する。Directional CSMも照明方向は利用するがShadow Mapは1枚で、Cascade設定の移植は未完了
 - 未対応Packet / Materialは変換結果の件数で明示し、別の描画で代用しない
 - SDL GPUの単一ordered queueを使う。Async Compute / 複数Native Queue / GPU Timeline同期は広告しない
 - Graphics Storage Texture、Textureの一部範囲SRV、MSAA、Mip生成は現在拒否する

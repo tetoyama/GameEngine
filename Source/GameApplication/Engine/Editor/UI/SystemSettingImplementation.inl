@@ -38,8 +38,8 @@ struct BackendOption {
 
 constexpr std::array<BackendOption, 4> kBackendOptions = {{
 	{RHI::BackendType::Direct3D11, "Direct3D 11", true, nullptr},
-	{RHI::BackendType::Direct3D12, "Direct3D 12 (Experimental)", true, "Opaque static models; compatibility readback to the DX11 editor UI."},
-	{RHI::BackendType::Vulkan, "Vulkan (Experimental)", true, "Opaque static models; compatibility readback to the DX11 editor UI."},
+	{RHI::BackendType::Direct3D12, "Direct3D 12 (Experimental)", true, "Opaque static models with base color textures; compatibility readback to the DX11 editor UI."},
+	{RHI::BackendType::Vulkan, "Vulkan (Experimental)", true, "Opaque static models with base color textures; compatibility readback to the DX11 editor UI."},
 	{RHI::BackendType::Null, "Null (Test)", false, "Null backend is for RHI tests only."}
 }};
 
@@ -166,7 +166,7 @@ inline void DrawRenderingSettings(
 	}
 	ImGui::TextDisabled("API: save and restart. Frame latency: applied immediately to the editor shell.");
 	if(config.engineConfig.graphics.backend != RHI::BackendType::Direct3D11)
-		ImGui::TextWrapped("Experimental scene rendering: opaque static models without textures. Animated models, terrain, effects and other legacy passes are not yet supported. Editor UI uses DX11; image readback adds latency.");
+		ImGui::TextWrapped("Experimental scene rendering: opaque static models, base color textures, UV transforms, unlit and one directional light. PBR/environment maps, animation, terrain, billboards, effects and other legacy passes are not yet supported. Editor UI uses DX11; image readback adds latency.");
 }
 
 inline void DrawApplicationSettings(

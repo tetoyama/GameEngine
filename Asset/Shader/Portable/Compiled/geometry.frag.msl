@@ -15,13 +15,15 @@ struct main0_in
     float3 worldPosition [[user(locn0)]];
     float3 worldNormal [[user(locn1)]];
     float4 albedo [[user(locn2)]];
+    float2 uv [[user(locn3)]];
+    float unlit [[user(locn4)]];
 };
 
-fragment main0_out main0(main0_in in [[stage_in]])
+fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> baseColorTexture [[texture(0)]], sampler baseColorTextureSmplr [[sampler(0)]])
 {
     main0_out out = {};
-    out.outAlbedo = in.albedo;
-    out.outNormal = float4(fast::normalize(in.worldNormal), 1.0);
+    out.outAlbedo = in.albedo * baseColorTexture.sample(baseColorTextureSmplr, in.uv);
+    out.outNormal = float4(fast::normalize(in.worldNormal), in.unlit);
     out.outPosition = float4(in.worldPosition, 1.0);
     return out;
 }

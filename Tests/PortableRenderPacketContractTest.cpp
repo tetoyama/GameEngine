@@ -17,6 +17,19 @@ int main() {
         p.kind=RenderPacketKind::Particle;
         auto skipped=ConvertRenderPackets(std::span(&p,1),frame,43,[](const auto&){return std::vector<ModelGeometryRuntimeMesh>{{{7,1},{8,1},24,3,3}};});
         if(skipped.unsupportedPackets!=1 || !skipped.scene.draws.empty()) return 3;
+        p.kind=RenderPacketKind::Model; p.layer=RenderLayer::Background2D;
+        material=std::make_shared<MaterialDescriptor>(); material->textures.push_back({});
+        p.modelMaterial.ownedDescriptor=material;
+        auto mesh=[](const auto&){return std::vector<ModelGeometryRuntimeMesh>{{{7,1},{8,1},32,3,3}};};
+        auto unsupported=ConvertRenderPackets(std::span(&p,1),frame,44,mesh);
+        if(unsupported.unsupportedPackets!=1 || !unsupported.scene.draws.empty()) return 5;
+        auto textured=ConvertRenderPackets(std::span(&p,1),frame,45,mesh,[](const auto&,DrawItem& draw){
+            draw.albedoTexture={11,2}; draw.instance.uvTransform={2,3,.25f,.5f}; draw.instance.shading[0]=1; return true;
+        });
+        if(textured.scene.draws.size()!=1 || textured.unsupportedPackets ||
+            textured.scene.draws[0].albedoTexture!=RHI::TextureViewHandle{11,2} ||
+            textured.scene.draws[0].instance.uvTransform!=std::array<float,4>{2,3,.25f,.5f} ||
+            textured.scene.draws[0].instance.shading[0]!=1) return 6;
         std::cout<<"Render packet ownership and matrix ABI passed\n";
         return 0;
     } catch(const std::exception& e) { std::cerr<<e.what()<<'\n'; return 4; }

@@ -6,15 +6,22 @@ layout(location=3) in vec4 world1;
 layout(location=4) in vec4 world2;
 layout(location=5) in vec4 world3;
 layout(location=6) in vec4 color;
-layout(set=1,binding=0,std140) uniform Frame { mat4 viewProjection; mat4 lightViewProjection; vec4 lightDirection; } frame;
+layout(location=7) in vec2 texcoord;
+layout(location=8) in vec4 uvTransform;
+layout(location=9) in vec4 shading;
+layout(set=1,binding=0,std140) uniform Frame { mat4 viewProjection; mat4 lightViewProjection; vec4 lightDirection; vec4 lightColor; vec4 ambientColor; } frame;
 layout(location=0) out vec3 worldPosition;
 layout(location=1) out vec3 worldNormal;
 layout(location=2) out vec4 albedo;
+layout(location=3) out vec2 uv;
+layout(location=4) out float unlit;
 void main() {
     mat4 world = mat4(world0,world1,world2,world3);
     vec4 p = world * vec4(position,1);
     worldPosition = p.xyz;
     worldNormal = transpose(inverse(mat3(world))) * normal;
     albedo = color;
+    uv = texcoord * uvTransform.xy + uvTransform.zw;
+    unlit = shading.x;
     gl_Position = frame.viewProjection * p;
 }

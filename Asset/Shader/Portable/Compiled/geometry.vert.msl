@@ -45,6 +45,8 @@ struct Frame
     float4x4 viewProjection;
     float4x4 lightViewProjection;
     float4 lightDirection;
+    float4 lightColor;
+    float4 ambientColor;
 };
 
 struct main0_out
@@ -52,6 +54,8 @@ struct main0_out
     float3 worldPosition [[user(locn0)]];
     float3 worldNormal [[user(locn1)]];
     float4 albedo [[user(locn2)]];
+    float2 uv [[user(locn3)]];
+    float unlit [[user(locn4)]];
     float4 gl_Position [[position]];
 };
 
@@ -64,6 +68,9 @@ struct main0_in
     float4 world2 [[attribute(4)]];
     float4 world3 [[attribute(5)]];
     float4 color [[attribute(6)]];
+    float2 texcoord [[attribute(7)]];
+    float4 uvTransform [[attribute(8)]];
+    float4 shading [[attribute(9)]];
 };
 
 vertex main0_out main0(main0_in in [[stage_in]], constant Frame& frame [[buffer(0)]])
@@ -74,6 +81,8 @@ vertex main0_out main0(main0_in in [[stage_in]], constant Frame& frame [[buffer(
     out.worldPosition = p.xyz;
     out.worldNormal = transpose(spvInverse3x3(float3x3(world[0].xyz, world[1].xyz, world[2].xyz))) * in.normal;
     out.albedo = in.color;
+    out.uv = (in.texcoord * in.uvTransform.xy) + in.uvTransform.zw;
+    out.unlit = in.shading.x;
     out.gl_Position = frame.viewProjection * p;
     return out;
 }

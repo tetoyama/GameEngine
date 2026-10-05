@@ -10,12 +10,14 @@ struct PacketConversion { RenderScene scene; size_t unsupportedPackets=0, unreso
 // existing ModelGeometryRuntimeMesh for each selected submesh; ModelData stays outside the
 // renderer. Unsupported packet kinds are reported, never silently substituted.
 using PacketMeshResolver=std::function<std::vector<ModelGeometryRuntimeMesh>(const RenderPacket&)>;
+using PacketMaterialResolver=std::function<bool(const RenderPacket&,DrawItem&)>;
 inline PacketConversion ConvertRenderPackets(std::span<const RenderPacket> packets,
-    const FrameUniforms& frame,uint64_t generation,const PacketMeshResolver& resolver) {
+    const FrameUniforms& frame,uint64_t generation,const PacketMeshResolver& resolver,
+    const PacketMaterialResolver& resolveMaterial={}) {
     if(!resolver) throw std::invalid_argument("Missing render packet mesh resolver");
     PacketConversion result; result.scene.frame=frame; result.scene.generation=generation;
     for(const auto& packet:packets) {
-        if(packet.kind!=RenderPacketKind::Model || packet.layer!=RenderLayer::Opaque3D ||
+        if(packet.kind!=RenderPacketKind::Model || (packet.layer!=RenderLayer::Opaque3D && packet.layer!=RenderLayer::Background2D) ||
            !HasRenderPacketPass(packet.passMask,RenderPacketPassMask::GBuffer)) { ++result.unsupportedPackets; continue; }
         auto meshes=resolver(packet); if(meshes.empty()) { ++result.unresolvedMeshes; continue; }
         Instance instance;
@@ -24,14 +26,16 @@ inline PacketConversion ConvertRenderPackets(std::span<const RenderPacket> packe
         // a second time or parent-world translation and rotation will break.
         std::copy_n(packet.transform.worldMatrix.values,16,instance.world.begin());
         if(const auto* material=packet.modelMaterial.GetDescriptor()) {
-            if(material->renderState.alphaMode!=MaterialAlphaMode::Opaque || !material->textures.empty()) {
+            if(material->renderState.alphaMode!=MaterialAlphaMode::Opaque || (!material->textures.empty() && !resolveMaterial)) {
                 ++result.unsupportedPackets; continue;
             }
             instance.color=material->parameters.baseColor;
         }
+        DrawItem draw{{},instance,HasRenderPacketPass(packet.passMask,RenderPacketPassMask::Shadow)};
+        if(resolveMaterial && !resolveMaterial(packet,draw)) { ++result.unsupportedPackets; continue; }
         for(auto mesh:meshes) {
             if(!mesh.IsReady()) { ++result.unresolvedMeshes; continue; }
-            result.scene.draws.push_back({mesh,instance,HasRenderPacketPass(packet.passMask,RenderPacketPassMask::Shadow)});
+            draw.mesh=mesh; result.scene.draws.push_back(draw);
         }
     }
     return result;

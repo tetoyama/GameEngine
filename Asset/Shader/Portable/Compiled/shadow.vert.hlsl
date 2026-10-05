@@ -3,6 +3,8 @@ cbuffer Frame : register(b0, space1)
     row_major float4x4 frame_viewProjection : packoffset(c0);
     row_major float4x4 frame_lightViewProjection : packoffset(c4);
     float4 frame_lightDirection : packoffset(c8);
+    float4 frame_lightColor : packoffset(c9);
+    float4 frame_ambientColor : packoffset(c10);
 };
 
 
