@@ -123,6 +123,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -195,9 +196,9 @@ Entities:
         LightType: 1
         CastShadow: 1
         Position:
-          x: 3.81661034
-          y: 160.178085
-          z: 2.519238
+          x: 10.6498241
+          y: 152.935944
+          z: -13.0758839
           w: 0
         Direction:
           x: -0.0696073472
@@ -229,17 +230,17 @@ Entities:
             - 0.556295395
             - -0
             - 0.830984652
-            - -4.21661091
+            - 4.94141102
           -
             - -0.828064203
             - 0.0837649107
             - 0.554340363
-            - -11.6534195
+            - 3.25656223
           -
             - -0.0696073472
             - -0.996485591
             - 0.0465980321
-            - 159.763443
+            - 153.749084
           -
             - 0
             - 0
@@ -266,6 +267,18 @@ Entities:
             - 0
             - 0
             - 1
+        CSM:
+          CascadeCount: 3
+          ShadowDistance: 0
+          SplitMode: 0
+          SplitLambda: 0.850000024
+          ManualSplitRatios:
+            x: 0.100000001
+            y: 0.300000012
+            z: 0.600000024
+            w: 1
+          XyMinScale: 0.5
+          XyScaleExponent: 1.5
   - Entity: 4
     Components:
       - Component: NameComponent
@@ -304,6 +317,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\Daylight.png
         UV_Slice_X: 1
@@ -500,6 +514,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -578,6 +593,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -656,6 +672,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -734,6 +751,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -812,6 +830,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -888,6 +907,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -982,6 +1002,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -1076,6 +1097,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -1175,6 +1197,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -1274,6 +1297,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -1373,6 +1397,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -1457,6 +1482,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -1541,6 +1567,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -1731,6 +1758,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -1813,6 +1841,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -1895,6 +1924,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -1977,6 +2007,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -2059,6 +2090,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -2141,6 +2173,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -2223,6 +2256,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -2305,6 +2339,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -2387,6 +2422,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -2469,6 +2505,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -2524,6 +2561,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: ModelRendererComponent
         FilePath: Asset\Model\bear.fbx
         isBlender: false
@@ -2568,6 +2606,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -2649,6 +2688,18 @@ Entities:
             - 0
             - 0
             - 0
+        CSM:
+          CascadeCount: 3
+          ShadowDistance: 0
+          SplitMode: 0
+          SplitLambda: 0.850000024
+          ManualSplitRatios:
+            x: 0.100000001
+            y: 0.300000012
+            z: 0.600000024
+            w: 1
+          XyMinScale: 0.5
+          XyScaleExponent: 1.5
       - Component: ModelRendererComponent
         FilePath: Asset\Model\ball.fbx
         isBlender: false
@@ -2693,6 +2744,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -2774,6 +2826,18 @@ Entities:
             - 0
             - 0
             - 0
+        CSM:
+          CascadeCount: 3
+          ShadowDistance: 0
+          SplitMode: 0
+          SplitLambda: 0.850000024
+          ManualSplitRatios:
+            x: 0.100000001
+            y: 0.300000012
+            z: 0.600000024
+            w: 1
+          XyMinScale: 0.5
+          XyScaleExponent: 1.5
       - Component: ModelRendererComponent
         FilePath: Asset\Model\ball.fbx
         isBlender: false
@@ -2818,6 +2882,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -2899,6 +2964,18 @@ Entities:
             - 0
             - 0
             - 0
+        CSM:
+          CascadeCount: 3
+          ShadowDistance: 0
+          SplitMode: 0
+          SplitLambda: 0.850000024
+          ManualSplitRatios:
+            x: 0.100000001
+            y: 0.300000012
+            z: 0.600000024
+            w: 1
+          XyMinScale: 0.5
+          XyScaleExponent: 1.5
       - Component: ModelRendererComponent
         FilePath: Asset\Model\ball.fbx
         isBlender: false
@@ -2976,6 +3053,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: TextureComponent
         FilePath: Asset\Texture\white.tga
         UV_Slice_X: 1
@@ -3309,6 +3387,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: ModelRendererComponent
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
@@ -3380,6 +3459,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: ModelRendererComponent
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
@@ -3451,6 +3531,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: ModelRendererComponent
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
@@ -3522,6 +3603,7 @@ Entities:
           UseDiffuseTexture: true
           UseNormalTexture: true
           UseEnvironmentMap: true
+        MaterialSchemaVersion: 1
       - Component: ModelRendererComponent
         FilePath: Asset/Model\Lowpoly_tree_sample.obj
         isBlender: false
