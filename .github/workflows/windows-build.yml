@@ -15,6 +15,11 @@ on:
         options:
           - Debug
           - Release
+      portable_gpu:
+        description: Run portable GPU validation on the macOS runner
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: windows-build-${{ github.ref }}
@@ -24,6 +29,34 @@ permissions:
   contents: read
 
 jobs:
+  portable-build:
+    name: Portable runtime (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [windows-2022, macos-14, ubuntu-24.04]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - name: Configure portable runtime
+        run: cmake -S . -B build-portable -DCMAKE_BUILD_TYPE=Release
+      - name: Build portable runtime
+        run: cmake --build build-portable --config Release --parallel 4
+      - name: Run portable core contracts
+        run: ctest --test-dir build-portable -C Release --output-on-failure
+      - name: Validate Metal renderer
+        if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.portable_gpu
+        run: ./build-portable/GameEnginePortable --backend metal --validate --offscreen --width 480 --height 320 --capture build-portable/metal.ppm
+      - name: Package portable runtime
+        run: cmake --install build-portable --config Release --prefix portable-runtime
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable-runtime-${{ runner.os }}
+          path: portable-runtime/
+
   build-x64:
     runs-on: windows-2022
     timeout-minutes: 45

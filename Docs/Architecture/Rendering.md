@@ -1,6 +1,6 @@
 # Rendering
 
-Status: **Canonical current architecture — 2026-09-27**
+Status: **Canonical current architecture — 2026-10-05**
 
 ## Frame path
 
@@ -73,12 +73,30 @@ StaticBatchは次の段階を持つ。
 
 `RenderHardwareInterfaceService` はBackend RegistryとDeviceを所有する。
 
-現在はD3D11 Backendが実用Backend。
+既存Editor / SceneManager経路はD3D11 Backendを利用する。
+移植用の共通描画経路にはD3D12 / Vulkan / Metal Backendを追加した。
+実行範囲と検証状況は [Portable rendering](Portable_Rendering.md) を参照。
 
 ServiceはDevice generation / lifetime tokenを持ち、
 GPU resource ownerが古いDeviceを誤って解放しないためのOwnership Epochを提供する。
 
 Backend抽象化は存在するが、Renderer全体からD3D11依存が完全に消えた状態ではない。
+
+### Portable frame path
+
+既存の `RenderHardwareInterfaceService`、`RenderPacket`、`ModelGeometryRuntimeMesh`、
+`RenderGraph` を利用する `FrameRenderer` が、API非依存の実行経路を持つ。
+
+```
+RenderPacket -> owning RenderScene snapshot
+  -> RenderGraph (Shadow / GBuffer / Lighting / Tone mapping)
+  -> RHI command list / queue / fence
+  -> D3D12 / Vulkan / Metal through SDL GPU
+```
+
+GeometryのResource Handleは既存Runtimeから直接受け取れる。
+ModelData単位の別Asset Managerや別Geometry Cacheは設けない。
+既存Editorの機能を一括で置き換える経路ではなく、既存RHI上で段階移行できる共通基盤。
 
 ## Shadow
 

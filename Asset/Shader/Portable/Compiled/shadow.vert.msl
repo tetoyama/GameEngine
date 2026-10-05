@@ -1,0 +1,32 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct Frame
+{
+    float4x4 viewProjection;
+    float4x4 lightViewProjection;
+    float4 lightDirection;
+};
+
+struct main0_out
+{
+    float4 gl_Position [[position]];
+};
+
+struct main0_in
+{
+    float3 position [[attribute(0)]];
+    float4 world0 [[attribute(2)]];
+    float4 world1 [[attribute(3)]];
+    float4 world2 [[attribute(4)]];
+    float4 world3 [[attribute(5)]];
+};
+
+vertex main0_out main0(main0_in in [[stage_in]], constant Frame& frame [[buffer(0)]])
+{
+    main0_out out = {};
+    out.gl_Position = (frame.lightViewProjection * float4x4(float4(in.world0), float4(in.world1), float4(in.world2), float4(in.world3))) * float4(in.position, 1.0);
+    return out;
+}

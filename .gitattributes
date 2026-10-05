@@ -3,6 +3,11 @@
 ###############################################################################
 * text=auto
 
+# Portable shader binaries and the unmodified upstream SDL license.
+Asset/Shader/Portable/Compiled/*.spv binary
+Asset/Shader/Portable/Compiled/*.dxil binary
+ThirdParty/SDL3-LICENSE.txt -text -whitespace
+
 ###############################################################################
 # Set default behavior for command prompt diff.
 #

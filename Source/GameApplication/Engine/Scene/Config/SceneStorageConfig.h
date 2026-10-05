@@ -10,18 +10,9 @@
 #include <cstdint>
 
 #include "Backends/yaml-cpp/yaml.h"
+#include "SceneStorageDefaults.h"
 
-struct SceneStorageConfig {
-	static constexpr uint32_t DirectPagedPageSize = 256;
-
-	static constexpr uint32_t DefaultExpectedEntityCount = 1024;
-	static constexpr uint32_t DefaultExpectedTransformCount = 768;
-	static constexpr uint32_t DefaultExpectedRenderableCount = 512;
-	static constexpr uint32_t DefaultExpectedCullingCount = 512;
-	static constexpr uint32_t DefaultExpectedStaticEntityCount = 256;
-	static constexpr uint32_t DefaultRenderPacketReserve = 512;
-	static constexpr uint32_t DefaultVisibleEntityReserve = 512;
-	static constexpr uint32_t DefaultStaticBatchReserve = 64;
+struct SceneStorageConfig : SceneStorageDefaults {
 
 	uint32_t expectedEntityCount = DefaultExpectedEntityCount;
 	uint32_t expectedTransformCount = DefaultExpectedTransformCount;

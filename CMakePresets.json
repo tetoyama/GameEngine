@@ -1,0 +1,13 @@
+{
+  "version": 5,
+  "configurePresets": [
+    {
+      "name": "portable",
+      "displayName": "Portable rendering runtime",
+      "binaryDir": "${sourceDir}/build-portable",
+      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "BUILD_TESTING": "ON" }
+    }
+  ],
+  "buildPresets": [{ "name": "portable", "configurePreset": "portable", "configuration": "Release" }],
+  "testPresets": [{ "name": "portable", "configurePreset": "portable", "configuration": "Release", "output": { "outputOnFailure": true } }]
+}

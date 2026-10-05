@@ -1,0 +1,23 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct main0_out
+{
+    float4 outColor [[color(0)]];
+};
+
+struct main0_in
+{
+    float2 uv [[user(locn0)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]], texture2d<float> sourceTexture [[texture(0)]], sampler sourceTextureSmplr [[sampler(0)]])
+{
+    main0_out out = {};
+    float3 hdr = fast::max(sourceTexture.sample(sourceTextureSmplr, in.uv).xyz, float3(0.0));
+    float3 mapped = fast::clamp((hdr * ((hdr * 2.5099999904632568359375) + float3(0.02999999932944774627685546875))) / ((hdr * ((hdr * 2.4300000667572021484375) + float3(0.589999973773956298828125))) + float3(0.14000000059604644775390625)), float3(0.0), float3(1.0));
+    out.outColor = float4(powr(mapped, float3(0.4545454680919647216796875)), 1.0);
+    return out;
+}

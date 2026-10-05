@@ -1,0 +1,27 @@
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+struct main0_out
+{
+    float4 outAlbedo [[color(0)]];
+    float4 outNormal [[color(1)]];
+    float4 outPosition [[color(2)]];
+};
+
+struct main0_in
+{
+    float3 worldPosition [[user(locn0)]];
+    float3 worldNormal [[user(locn1)]];
+    float4 albedo [[user(locn2)]];
+};
+
+fragment main0_out main0(main0_in in [[stage_in]])
+{
+    main0_out out = {};
+    out.outAlbedo = in.albedo;
+    out.outNormal = float4(fast::normalize(in.worldNormal), 1.0);
+    out.outPosition = float4(in.worldPosition, 1.0);
+    return out;
+}

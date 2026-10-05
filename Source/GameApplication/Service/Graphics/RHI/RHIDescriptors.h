@@ -23,7 +23,8 @@ enum class BackendType : uint8_t {
 	Null,
 	Direct3D11,
 	Direct3D12,
-	Vulkan
+	Vulkan,
+	Metal
 };
 
 enum class CommandQueueType : uint8_t {
@@ -330,6 +331,16 @@ struct ShaderDesc {
 	ShaderStage stage = ShaderStage::Vertex;
 	std::string entryPoint;
 	std::string debugName;
+	// Explicit shader metadata makes creation independent of D3D reflection.
+	enum class CodeFormat : uint8_t { BackendNative, DXBC, DXIL, SPIRV, MetalSource, MetalLibrary };
+	CodeFormat codeFormat = CodeFormat::BackendNative;
+	uint32_t sampledTextures = 0;
+	uint32_t storageTextures = 0;
+	uint32_t storageBuffers = 0;
+	uint32_t uniformBuffers = 0;
+	uint32_t writableStorageTextures = 0;
+	uint32_t writableStorageBuffers = 0;
+	std::array<uint32_t, 3> threadGroupSize{1, 1, 1};
 };
 
 struct InputElementDesc {
@@ -340,6 +351,14 @@ struct InputElementDesc {
 	uint32_t alignedByteOffset = 0;
 	bool perInstance = false;
 	uint32_t instanceStepRate = 0;
+	// Unspecified preserves the existing sequential input-layout convention.
+	uint32_t location = AllSubresources;
+};
+
+struct VertexBufferLayoutDesc {
+	uint32_t slot = 0;
+	uint32_t stride = 0;
+	bool perInstance = false;
 };
 
 struct RasterizerDesc {
@@ -392,6 +411,15 @@ struct PipelineStateDesc {
 	BlendDesc blend;
 	RenderTargetLayoutDesc renderTargets;
 	std::string debugName;
+	std::vector<VertexBufferLayoutDesc> vertexBuffers;
+};
+
+struct TextureReadback {
+	uint32_t width = 0;
+	uint32_t height = 0;
+	uint32_t rowPitch = 0;
+	Format format = Format::Unknown;
+	std::vector<std::byte> pixels;
 };
 
 struct SwapChainDesc {

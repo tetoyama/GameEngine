@@ -1,0 +1,131 @@
+# Portable rendering
+
+## Scope
+
+既存RHIにSDL GPU Backendを追加し、共通の描画処理をD3D12 / Vulkan / Metalで実行する。
+新しいEngine / Scene / Asset管理の抽象階層は追加しない。
+
+`GameEnginePortable` は既存EntityRegistry、JobSystem、RenderPacket、RHIService、RenderGraphを
+つないだ移植用ランタイム兼描画検証ホスト。既存Win32 Editorの全機能を含む実行ファイルではない。
+通常の `GameEngine.sln` のD3D11経路も保持する。
+
+## Reused boundaries
+
+- Backend登録とDevice所有: `RenderHardwareInterfaceService` / `BackendRegistry`
+- ECSからの抽出結果: 既存 `RenderPacket`。API専用型を含まない所有Snapshotへコピー
+- Geometry: 既存 `ModelGeometryRuntimeMesh` のVertex / Index Buffer Handleを直接利用
+- Pass依存と論理状態遷移: 既存 `RenderGraph`
+- GPU資源: 既存世代付きHandle / ResourcePool / Queue / Fence契約
+
+モデルのImport / ReimportとGeometry所有は `ModelGeometryRuntimeStorage` の責務を維持する。
+`ConvertRenderPackets` のResolverは既存Runtimeの選択済みSubMeshを返す。
+Renderer側で別のModelData CacheやAsset Managerは作らない。
+
+## Implemented frame
+
+1. フレーム定数とインスタンスのUpload
+2. Directional shadow (D32 depth、比較Sampler、3x3 PCF)
+3. 3-target GBuffer (albedo / normal / world position) + depth
+4. Deferred directional lighting
+5. HDR tone mapping + gamma conversion
+6. Swapchain合成。最小化 / 非表示で取得画像がない場合は表示を省略
+
+GPUへの定数PushはCommandごとの値を保存する。更新用Instance Bufferは3フレーム分を持ち、
+同じSlotを再利用する時だけFenceを待つ。Resize / Geometry破棄 / Capture時は必要な完了を待つ。
+
+DeviceはRendererより長く生存させる。資源作成・更新・Command記録はRender Threadで行う。
+CommandBufferは取得したThreadで記録・Submit・破棄する。
+
+Matrix契約はcolumn-major / column-vector、左手系、NDC depth [0,1]、Viewportは左上原点。
+DirectXのrow-major / row-vector Snapshotは同じ16floatをコピーして変換できる。
+法線はinverse-transposeで変換するため、非一様Scaleにも対応する。可逆なWorld Matrixを渡す。
+VulkanのAPI固有座標差はSDL GPUが処理する。
+
+## Build and run
+
+CMake 3.24以上とC++20コンパイラが必要。SDL3 3.4以上を `find_package` で利用し、
+未導入なら固定版3.4.18をSHA256検証付きで取得しStatic Linkする。
+macOSではXcode Command Line Toolsを利用する。
+
+```sh
+cmake --preset portable
+cmake --build --preset portable --parallel 4
+ctest --preset portable
+```
+
+Windowsでは `build-portable/Release/GameEnginePortable.exe`、macOS / Linuxでは
+`build-portable/GameEnginePortable` が生成される。
+
+```sh
+# Windows
+GameEnginePortable.exe --backend d3d12
+GameEnginePortable.exe --backend vulkan
+# macOS: Metalを既定選択
+./GameEnginePortable --backend metal
+# Linux
+./GameEnginePortable --backend vulkan
+```
+
+左右ArrowでCameraを回転し、Escapeで終了する。既定の診断Sceneは複数Blockで構成した機体。
+
+`--frames N`、`--width W --height H`、`--capture output.ppm` を診断に使える。
+Captureは実際の最終Render Textureから読み戻す。SDLのWindowサイズとGPU画像サイズは分け、
+High-DPI表示では取得した画像のPixel寸法を使う。
+
+## Shaders
+
+`Asset/Shader/Portable/` のGLSLを唯一の手書きSourceとする。
+glslcでSPIR-Vを生成し、SPIRV-CrossでHLSL / MSLへ変換し、DXCでDXILを生成する。
+生成物を同梱するため、通常ビルドやMac起動時にDXC / Vulkan SDKは不要。
+Metalでは同梱MSLをDevice作成時にCompileする。
+
+Shader Toolが検出される環境では次のTargetで全形式を更新できる。
+
+```sh
+cmake --build build-portable --target PortableShaders
+```
+
+GLSLのdescriptor set / bindingとSDLのstage別Binding規約を合わせる。
+MSLは `--msl-decoration-binding` で同じSlotを維持する。Resource数は `ShaderDesc` に明示する。
+Graphics uniform setはVertex=1、Fragment=3。Sampler setはVertex=0、Fragment=2。
+ComputeはReadonly=0、ReadWrite=1、Uniform=2。MetalのEntry Pointは `main0`。
+
+## Validation
+
+CPU契約は通常CTestで検証する。実GPU検証は明示的に有効化する。
+
+```sh
+cmake -S . -B build-portable -DGAMEENGINE_GPU_TESTS=ON
+cmake --build build-portable --config Debug --parallel 4
+ctest --test-dir build-portable -C Debug --output-on-failure
+```
+
+GPU検証は、画像の変化を使ってGeometry、Material、Shadow、Resize、同一Frameの再利用を検査する。
+Compute書き込み / 非整列Texture幅のReadback、Shader破棄後のPipeline利用、
+Submit後のCommand wrapper破棄、Fence / Device寿命、古いHandleと異なるThreadの拒否も検査する。
+
+WindowsでD3D12 / Vulkanの描画とCompute契約が通過。
+Window付き表示とOffscreen経路を検証し、同じSceneの画像差も比較する。
+Mac / Linuxビルドは既存Windows Build Workflow内のMatrixで確認する。
+Metal実機GPU検証はWorkflowの手動入力 `portable_gpu`、またはMacで上のGPU Testを実行する。
+Windowsでの成功をMetal実行の成功とは扱わない。
+
+## Current limits
+
+- 既存Editor / Win32 Engine entry / Direct2D runtime text / PhysX / EffekseerのMac移植は完了していない
+- 共通FrameRendererはOpaque Model Geometryとbase colorを扱う。Texture Material、Skinning、
+  Terrain / Wave / Particle、Transparency、既存CSM / Local Light / Post Effect Nodeの全機能は未移行
+- 未対応Packet / Materialは変換結果の件数で明示し、別の描画で代用しない
+- SDL GPUの単一ordered queueを使う。Async Compute / 複数Native Queue / GPU Timeline同期は広告しない
+- Graphics Storage Texture、Textureの一部範囲SRV、MSAA、Mip生成は現在拒否する
+- SDLの既定Adapterを使う。Native Adapterの独自列挙は追加しない
+- Swapchain画像はCommandBufferごとに明示取得し、Submit時にSDLがPresentする
+
+この段階で成立するのは「API非依存の描画と既存Coreを含むRuntimeを複数OSへBuildできる基盤」。
+既存Editor全体がMacで動くという意味ではない。
+
+## Dependency
+
+SDL3: https://github.com/libsdl-org/SDL (zlib license、`ThirdParty/SDL3-LICENSE.txt`)
+
+GPUの公式契約: https://wiki.libsdl.org/SDL3/CategoryGPU
