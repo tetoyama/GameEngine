@@ -49,18 +49,12 @@ jobs:
           show-progress: false
       - name: Install Linux window dependencies
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libxcursor-dev libxi-dev libxfixes-dev libxrandr-dev libxss-dev
-      - name: Configure portable runtime
-        run: cmake -S . -B build-portable -DCMAKE_BUILD_TYPE=Release
-      - name: Build portable runtime
-        run: cmake --build build-portable --config Release --parallel 4
-      - name: Run portable core contracts
-        run: ctest --test-dir build-portable -C Release --output-on-failure
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libxcursor-dev libxi-dev libxfixes-dev libxrandr-dev libxss-dev libxtst-dev libasound2-dev
+      - name: Build, test and package selected native target
+        run: cmake -DTARGET_PLATFORM=${{ runner.os }} -P cmake/BuildPortable.cmake
       - name: Validate Metal renderer
         if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.portable_gpu
-        run: ./build-portable/GameEnginePortable --backend metal --validate --offscreen --width 480 --height 320 --capture build-portable/metal.ppm
-      - name: Package portable runtime
-        run: cmake --install build-portable --config Release --prefix portable-runtime
+        run: ./portable-runtime/macOS/Release/bin/GameEnginePortable --backend metal --validate --offscreen --width 480 --height 320 --capture portable-runtime/macOS/Release/metal.ppm
       - uses: actions/upload-artifact@v4
         with:
           name: portable-runtime-${{ runner.os }}

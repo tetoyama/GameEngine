@@ -148,9 +148,11 @@ Submit後のCommand wrapper破棄、Fence / Device寿命、古いHandleと異な
 
 WindowsでD3D12 / Vulkanの描画とCompute契約が通過。
 Window付き表示とOffscreen経路を検証し、同じSceneの画像差も比較する。
-Mac / Linuxビルドは既存Windows Build Workflow内のMatrixで確認する。
-Metal実機GPU検証はWorkflowの手動入力 `portable_gpu`、またはMacで上のGPU Testを実行する。
-Windowsでの成功をMetal実行の成功とは扱わない。
+macOS-14 Runnerでビルド / 共通処理テスト / 梱包が成功。
+2026-10-05の[Metal実行検証](https://github.com/tetoyama/GameEngine/actions/runs/37298247754)で、
+共通描画・GPU読み戻し・Shadow / Geometry / Material変更・Resizeの検査が通過した。
+これはMac CI RunnerのOffscreen描画検証。物理Mac上のWindow表示や既存Editor全体の移植を確認した結果ではない。
+再検証はWorkflowの手動入力 `portable_gpu`、またはMacで上のGPU Testを実行する。
 
 ## Current limits
 
