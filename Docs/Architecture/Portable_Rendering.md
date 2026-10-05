@@ -9,6 +9,17 @@
 つないだ移植用ランタイム兼描画検証ホスト。既存Win32 Editorの全機能を含む実行ファイルではない。
 通常の `GameEngine.sln` のD3D11経路も保持する。
 
+既存Windows EditorのProject Settings → Application → Rendering APIからD3D12 / Vulkanを選択し、
+Save Project Settingsして再起動すると、Editor View / Player Viewのシーン描画に選択APIを使う。
+現在の実行APIと保存待ちの選択を別に表示する。MetalはmacOSランタイムで使う。
+
+EditorのImGui / Win32 / Direct2D表示はD3D11のまま。選択APIで描いた最終RGBA画像を読み戻し、
+D3D11表示Textureへ転送する移行用経路。同期Readbackの遅延があるため性能比較には使わない。
+対応範囲はTextureなしの不透明Static Model。未対応Packet数とAnimation / Geometry未解決数を
+Editor Viewに表示し、選択APIが失敗した時はD3D11へ暗黙に切り替えずエラーを表示する。
+Editor Viewの旧Object-ID GBufferによるClick選択は無効化し、Hierarchy選択 / Gizmo編集を使う。
+既存の全Pass・ゲーム内容の互換性が必要ならD3D11を選ぶ。
+
 ## Reused boundaries
 
 - Backend登録とDevice所有: `RenderHardwareInterfaceService` / `BackendRegistry`
@@ -47,11 +58,42 @@ CMake 3.24以上とC++20コンパイラが必要。SDL3 3.4以上を `find_packa
 未導入なら固定版3.4.18をSHA256検証付きで取得しStatic Linkする。
 macOSではXcode Command Line Toolsを利用する。
 
+Windows EditorのVisual Studioビルドは固定版SDL VC SDKをSHA256検証付きで取得し、
+SDL3.dllを実行ファイル横へコピーする。取得先は無視対象の `build-portable-dependencies`。
+
 ```sh
 cmake --preset portable
 cmake --build --preset portable --parallel 4
 ctest --preset portable
 ```
+
+### Windows / macOS build target
+
+Project Settings → BuildでWindows / macOSを選択できる。選択は既存EngineConfig.yamlの
+`Build.Target`に保存する。Windowsでは同じ画面のBuild package on this computerで
+別Processによるビルド・テスト・配布フォルダ生成を実行でき、ログは `Logs/Build/Windows.log`。
+CMakeがPATHにない場合は同画面で実行ファイルの場所を指定する。
+
+Native Host上の一括ビルド:
+
+```sh
+# Windows (Windows上)
+cmake -DTARGET_PLATFORM=Windows -P cmake/BuildPortable.cmake
+# macOS (Mac上)
+cmake -DTARGET_PLATFORM=macOS -P cmake/BuildPortable.cmake
+```
+
+成果物は `portable-runtime/<Windows|macOS>/Release/bin`。
+OSごとのConfigure / Build / Test Presetも `windows` / `macos` として用意する。
+Hostと対象OSが異なる場合は生成前に失敗させる。WindowsからMac用Binaryを直接生成する
+Cross Compile Toolchainを追加したという意味ではない。
+
+GitHub ActionsのWindows Buildを手動起動し、`target_platform`をWindows / macOS / Linux / allから
+選ぶと、対象OSのRunnerでビルドし `portable-runtime-<OS>` Artifactを生成する。
+macOS選択時に `portable_gpu=true` とするとMetal実行・GPU読み戻しも検証する。
+
+このビルド対象は移植用描画ランタイム。既存プロジェクトのScene / Script / PhysX / Assetを
+自動で梱包するゲームExporterや、Mac版Editorのビルドではない。
 
 Windowsでは `build-portable/Release/GameEnginePortable.exe`、macOS / Linuxでは
 `build-portable/GameEnginePortable` が生成される。

@@ -27,6 +27,7 @@
 #include "System/Render/RenderSystem/RenderPass/RenderPassContext.h"
 #include "System/Render/Animation/ModelRendererGpuRuntimeStorage.h"
 #include "System/Render/Model/ModelGeometryRuntimeStorage.h"
+#include "Service/Graphics/Portable/EditorGPUViewport.h"
 
 struct SceneManagerContext;
 struct PixelShaderData;
@@ -141,6 +142,7 @@ public:
 	// RenderPacketはComponentへの非所有Pointerを保持するため、
 	// SceneのTempLoad / Shutdown前に公開済みRenderWorldを必ず無効化する。
 	void Stop() override {
+		ResetPortableViews();
 		m_renderWorld.Reset();
 		m_modelRendererGpuRuntime.Reset();
 		m_modelGeometryRuntime.Reset();
@@ -158,6 +160,8 @@ public:
 	void BuildRenderPackets();
 	void SynchronizeModelGeometryRuntime();
 	void SubmitRenderPackets();
+	ID3D11ShaderResourceView* RenderPortableView(const RenderPassContext&, bool editorView);
+	const std::string& PortableViewStatus() const noexcept { return m_portableViewStatus; }
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
@@ -302,6 +306,7 @@ public:
 	std::vector<ShaderMaterial> ShaderMaterials;
 
 private:
+	void ResetPortableViews();
 	const CameraEntityData FindCameraEntity();
 	void UpdateSkyBoxEnvironmentMap();
 	void ControlButton();
@@ -346,6 +351,9 @@ private:
 	RenderWorldSubmissionCompatibility m_lastSubmittedPacketGeneration;
 
 	float lazyTimer = 0.0f;
+	std::unique_ptr<Rendering::EditorGPUViewport> m_portableEditorView;
+	std::unique_ptr<Rendering::EditorGPUViewport> m_portablePlayerView;
+	std::string m_portableViewStatus;
 };
 
 #include "../Animation/RenderSystemAnimationTasks.inl"

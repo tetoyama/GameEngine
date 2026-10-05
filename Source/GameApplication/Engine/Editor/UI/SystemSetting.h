@@ -13,6 +13,7 @@
 #include "Editor/editorService.h"
 #include "Editor/InterFace/IEditorUI.h"
 #include "Editor/UI/ScheduleProfilerView.h"
+#include "Editor/UI/PortableBuildJob.h"
 
 class SystemSetting : public IEditorUI {
 public:
@@ -30,4 +31,6 @@ private:
 	std::string m_lastScheduleExportPath;
 	std::string m_scheduleExportError;
 	double m_lastScheduleExportTime = -1000.0;
+	PortableBuildJob m_buildJob;
+	std::string m_cmakeExecutable = "cmake.exe";
 };

@@ -150,6 +150,7 @@ void RenderSystem::Initialize(){
 }
 
 void RenderSystem::Finalize(){
+	ResetPortableViews();
 
 	if(copyShader){
 		delete copyShader;

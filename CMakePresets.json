@@ -5,9 +5,81 @@
       "name": "portable",
       "displayName": "Portable rendering runtime",
       "binaryDir": "${sourceDir}/build-portable",
-      "cacheVariables": { "CMAKE_BUILD_TYPE": "Release", "BUILD_TESTING": "ON" }
+      "cacheVariables": {
+        "CMAKE_BUILD_TYPE": "Release",
+        "BUILD_TESTING": "ON"
+      }
+    },
+    {
+      "binaryDir": "${sourceDir}/build-portable-Windows",
+      "inherits": "portable",
+      "cacheVariables": {
+        "GAMEENGINE_TARGET_PLATFORM": "Windows"
+      },
+      "name": "windows",
+      "condition": {
+        "rhs": "Windows",
+        "lhs": "${hostSystemName}",
+        "type": "equals"
+      },
+      "displayName": "Windows runtime package"
+    },
+    {
+      "binaryDir": "${sourceDir}/build-portable-macOS",
+      "inherits": "portable",
+      "cacheVariables": {
+        "GAMEENGINE_TARGET_PLATFORM": "macOS"
+      },
+      "name": "macos",
+      "condition": {
+        "rhs": "Darwin",
+        "lhs": "${hostSystemName}",
+        "type": "equals"
+      },
+      "displayName": "macOS runtime package (Metal)"
     }
   ],
-  "buildPresets": [{ "name": "portable", "configurePreset": "portable", "configuration": "Release" }],
-  "testPresets": [{ "name": "portable", "configurePreset": "portable", "configuration": "Release", "output": { "outputOnFailure": true } }]
+  "buildPresets": [
+    {
+      "name": "portable",
+      "configurePreset": "portable",
+      "configuration": "Release"
+    },
+    {
+      "configuration": "Release",
+      "configurePreset": "windows",
+      "name": "windows"
+    },
+    {
+      "configuration": "Release",
+      "configurePreset": "macos",
+      "name": "macos"
+    }
+  ],
+  "testPresets": [
+    {
+      "name": "portable",
+      "configurePreset": "portable",
+      "configuration": "Release",
+      "output": {
+        "outputOnFailure": true
+      }
+    },
+    {
+      "output": {
+        "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "configurePreset": "windows",
+      "name": "windows"
+    },
+    {
+      "output": {
+        "outputOnFailure": true
+      },
+      "configuration": "Release",
+      "configurePreset": "macos",
+      "name": "macos"
+    }
+  ]
 }

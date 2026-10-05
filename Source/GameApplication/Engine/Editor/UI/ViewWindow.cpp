@@ -61,6 +61,9 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 
 	ImGuiWindowFlags toolbar_window_flags = 0;
 	ImGui::Begin("Editor View", showEditor, toolbar_window_flags);
+	if(graphicsContext->GetBackendType() != RHI::BackendType::Direct3D11){
+		ImGui::TextWrapped("%s", renderSystem->PortableViewStatus().c_str());
+	}
 
 	const MImGui::Theme& modernTheme = MImGui::GetTheme();
 	ImGui::PushStyleColor(ImGuiCol_ChildBg, modernTheme.panel);
@@ -304,7 +307,10 @@ void ViewWindow::EditorView(const EditorDrawContext ctx){
 		uv.x = (clickedMousePos.x - imagePos.x) / imageSize.x;
 		uv.y = (clickedMousePos.y - imagePos.y) / imageSize.y;
 
-		auto gBufferPass = renderSystem->m_EditorPass->gBufferPass;
+		// The portable path does not write legacy object-ID targets. Do not
+		// select entities from a stale DX11 GBuffer; hierarchy selection works.
+		auto gBufferPass = graphicsContext->GetBackendType() == RHI::BackendType::Direct3D11
+			? renderSystem->m_EditorPass->gBufferPass : nullptr;
 		if(gBufferPass){
 			RenderTarget* paramTarget = gBufferPass->pRenderTargets[GBufferSlot_Param];
 			PickResult result = paramTarget->Pick(uv, graphicsContext);

@@ -4163,6 +4163,29 @@
     <ResourceCompile Include="Resource.rc" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <PropertyGroup>
+    <EditorSDLRoot>$(ProjectDir)build-portable-dependencies\SDL3-3.4.18</EditorSDLRoot>
+    <EditorSDLArch>x64</EditorSDLArch>
+    <EditorSDLArch Condition="'$(Platform)'=='Win32'">x86</EditorSDLArch>
+  </PropertyGroup>
+  <ItemDefinitionGroup>
+    <ClCompile>
+      <AdditionalIncludeDirectories>$(EditorSDLRoot)\include;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+    </ClCompile>
+    <Link>
+      <AdditionalDependencies>$(EditorSDLRoot)\lib\$(EditorSDLArch)\SDL3.lib;%(AdditionalDependencies)</AdditionalDependencies>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="Source\GameApplication\Service\Graphics\RHI\SDL\SDLGPUBackend.cpp" />
+    <ClCompile Include="Source\GameApplication\Service\Graphics\Portable\FrameRenderer.cpp" />
+  </ItemGroup>
+  <Target Name="EnsureEditorSDL" BeforeTargets="ClCompile">
+    <Exec Command="powershell.exe -NoProfile -ExecutionPolicy Bypass -File &quot;$(ProjectDir)cmake\EnsureEditorSDL.ps1&quot; -Destination &quot;$(ProjectDir)build-portable-dependencies&quot;" />
+  </Target>
+  <Target Name="CopyEditorSDL" AfterTargets="Build">
+    <Copy SourceFiles="$(EditorSDLRoot)\lib\$(EditorSDLArch)\SDL3.dll" DestinationFolder="$(OutDir)" SkipUnchangedFiles="true" />
+  </Target>
   <ImportGroup Label="ExtensionTargets">
   </ImportGroup>
 </Project>

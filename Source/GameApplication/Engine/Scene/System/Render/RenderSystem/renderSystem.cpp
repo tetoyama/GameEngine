@@ -43,6 +43,8 @@
 #include "Graphics/graphicsContext.h"
 #include "Graphics/mainRenderer.h"
 #include "Graphics/RHI/RHIService.h"
+#include "Graphics/Portable/RenderPacketAdapter.h"
+#include "Graphics/Portable/RenderMath.h"
 
 #include "Resources/resourceService.h"
 #include "Resources/Data/vertexShaderData.h"
@@ -158,6 +160,59 @@ void RenderSystem::SynchronizeModelGeometryRuntime(){
 void RenderSystem::SubmitRenderPackets(){
 	(void)m_renderWorld.MarkSubmitted();
 	Draw();
+}
+
+ID3D11ShaderResourceView* RenderSystem::RenderPortableView(const RenderPassContext& context, bool editorView){
+	if(!m_context || !m_context->graphics || context.screenSize.x < 1 || context.screenSize.y < 1) return nullptr;
+	auto* service = m_context->graphics->GetRHIService();
+	if(!service || !service->GetDevice()) return nullptr;
+	try {
+		auto& viewport = editorView ? m_portableEditorView : m_portablePlayerView;
+		if(!viewport) viewport = std::make_unique<Rendering::EditorGPUViewport>(*service->GetDevice(),
+			m_context->graphics->GetDevice(), m_context->graphics->GetDeviceContext());
+		Rendering::FrameUniforms frame;
+		DirectX::XMFLOAT4X4 matrix;
+		DirectX::XMStoreFloat4x4(&matrix, context.viewMatrix * context.projectionMatrix);
+		std::copy_n(&matrix._11, 16, frame.viewProjection.begin());
+		frame.lightViewProjection = Rendering::Multiply(Rendering::Orthographic(80,80,0.1f,200),
+			Rendering::LookAt({-30,50,-30},{0,0,0}));
+		frame.lightDirection = {-0.4575f,0.7625f,-0.4575f,0};
+		std::vector<RenderPacket> visible;
+		for(const auto& packet : m_renderWorld.Packets().Packets()){
+			const auto layer = static_cast<size_t>(packet.layer);
+			if(layer < static_cast<size_t>(RenderLayer::MaxRenderLayer) &&
+				context.renderLayerVisibility[layer] && ShouldRenderPacket(context, packet)) visible.push_back(packet);
+		}
+		auto conversion = Rendering::ConvertRenderPackets(visible, frame, m_renderWorld.Generation(),
+			[this](const RenderPacket& packet){
+				std::vector<ModelGeometryRuntimeMesh> meshes;
+				// Animated geometry is not passed off as a rendered current pose.
+				if(packet.bindings.modelRenderer && !packet.bindings.modelRenderer->blendedAnimations.empty()) return meshes;
+				const auto* runtime = m_modelGeometryRuntime.Find(packet.modelResource.get());
+				if(runtime) for(size_t index=0; index<runtime->MeshCount(); ++index){
+					if(packet.TargetsAllSubMeshes() || packet.TargetsSubMesh(static_cast<uint32_t>(index)))
+						if(const auto* mesh = runtime->Mesh(index)) meshes.push_back(*mesh);
+				}
+				return meshes;
+			});
+		m_portableViewStatus = std::string(ToEngineConfigBackendName(service->GetSelectedBackend())) +
+			" scene / DX11 editor UI; compatibility readback. Unsupported: " +
+			std::to_string(conversion.unsupportedPackets) + "; unresolved/animated: " + std::to_string(conversion.unresolvedMeshes);
+		return viewport->Render(conversion.scene, static_cast<uint32_t>(context.screenSize.x), static_cast<uint32_t>(context.screenSize.y));
+	} catch(const std::exception& error){
+		const std::string status = std::string("Selected rendering API failed: ") + error.what();
+		if(status != m_portableViewStatus) m_context->debug->Error(status, "RenderSystem::RenderPortableView");
+		m_portableViewStatus = status;
+		return nullptr;
+	}
+}
+
+void RenderSystem::ResetPortableViews(){
+	if(m_EditorPass) m_EditorPass->result = nullptr;
+	if(m_PlayerPass) m_PlayerPass->result = nullptr;
+	m_portableEditorView.reset();
+	m_portablePlayerView.reset();
+	m_portableViewStatus.clear();
 }
 
 void RenderSystem::RegisterTasks(SystemScheduleBuilder& builder){

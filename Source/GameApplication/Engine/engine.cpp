@@ -11,6 +11,10 @@
 #include "Graphics/mainRenderer.h"
 #include "Graphics/RHI/RHIService.h"
 #include "Graphics/RHI/D3D11/D3D11GraphicsContextInterop.h"
+#include "Graphics/RHI/SDL/SDLGPUBackend.h"
+#define SDL_MAIN_HANDLED
+#include <SDL3/SDL.h>
+#include <SDL3/SDL_main.h>
 #include "DebugTools/ImGuiSystem.h"
 #include "DebugTools/DebugSystem.h"
 #include "Platform/InputSystem/InputSystem.h"
@@ -99,6 +103,12 @@ bool Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 	if(!config->Initialize()){
 		return FailInitialize(debug.get(), "ConfigService::Initialize returned false");
 	}
+	RHI::RegisterSDLGPUBackends(rhi->GetRegistry());
+	if(config->engineConfig.graphics.backend != RHI::BackendType::Direct3D11){
+		SDL_SetMainReady();
+		if(!SDL_InitSubSystem(SDL_INIT_VIDEO)) return FailInitialize(debug.get(), SDL_GetError());
+		m_sdlVideoInitialized = true;
+	}
 	if(!rhi->SelectBackend(config->engineConfig.graphics.backend)){
 		return FailInitialize(debug.get(), "RHI backend selection failed");
 	}
@@ -122,6 +132,14 @@ bool Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 	if(rhi->GetSelectedBackend() == RHI::BackendType::Direct3D11 &&
 		!RHI::EnsureGraphicsContextRHIDevice(*graphics.get())){
 		return FailInitialize(debug.get(), "D3D11 RHI device binding failed");
+	}
+	if(rhi->GetSelectedBackend() != RHI::BackendType::Direct3D11){
+		RHI::DeviceCreateDesc desc;
+		desc.swapChain.width = mainWindow->GetWidth();
+		desc.swapChain.height = mainWindow->GetHeight();
+		if(!rhi->AdoptDevice(rhi->GetBackend()->CreateDevice(desc))){
+			return FailInitialize(debug.get(), SDL_GetError());
+		}
 	}
 
 	graphics->SetMaximumFrameLatency(
@@ -215,6 +233,10 @@ bool Engine::Initialize(EngineContext* context, HINSTANCE hInstance, int nCmdSho
 
 void Engine::Shutdown(EngineContext* context){
 	if(context) context->Shutdown();
+	if(m_sdlVideoInitialized){
+		SDL_QuitSubSystem(SDL_INIT_VIDEO);
+		m_sdlVideoInitialized = false;
+	}
 }
 
 void Engine::Run(EngineContext* context){

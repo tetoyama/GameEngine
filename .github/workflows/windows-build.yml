@@ -20,6 +20,12 @@ on:
         required: false
         default: false
         type: boolean
+      target_platform:
+        description: Package target (uses a native runner for each OS)
+        required: false
+        default: all
+        type: choice
+        options: [all, Windows, macOS, Linux]
 
 concurrency:
   group: windows-build-${{ github.ref }}
@@ -34,13 +40,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [windows-2022, macos-14, ubuntu-24.04]
+        os: ${{ fromJSON(github.event_name != 'workflow_dispatch' && '["windows-2022","macos-14","ubuntu-24.04"]' || inputs.target_platform == 'Windows' && '["windows-2022"]' || inputs.target_platform == 'macOS' && '["macos-14"]' || inputs.target_platform == 'Linux' && '["ubuntu-24.04"]' || '["windows-2022","macos-14","ubuntu-24.04"]') }}
     runs-on: ${{ matrix.os }}
     timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
           show-progress: false
+      - name: Install Linux window dependencies
+        if: runner.os == 'Linux'
+        run: sudo apt-get update && sudo apt-get install -y libx11-dev libxext-dev libxcursor-dev libxi-dev libxfixes-dev libxrandr-dev libxss-dev
       - name: Configure portable runtime
         run: cmake -S . -B build-portable -DCMAKE_BUILD_TYPE=Release
       - name: Build portable runtime
@@ -58,6 +67,7 @@ jobs:
           path: portable-runtime/
 
   build-x64:
+    if: github.event_name != 'workflow_dispatch' || inputs.target_platform == 'all' || inputs.target_platform == 'Windows' || inputs.target_platform == ''
     runs-on: windows-2022
     timeout-minutes: 45
     env:

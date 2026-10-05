@@ -13,6 +13,7 @@
 #include "Graphics/graphicsContext.h"
 #include "DebugTools/ImGuiSystem.h"
 #include "Service/Graphics/mainRenderer.h"
+#include "Service/Graphics/RHI/RHIService.h"
 
 void EditorPass::Initialize(RenderSystem* renderSystem, SceneManagerContext* context){
 	m_renderSystem = renderSystem;
@@ -54,6 +55,10 @@ void EditorPass::Execute(const RenderPassContext& context){
 		m_context->renderer->GetGpuPassTimingProfiler();
 	ID3D11DeviceContext* deviceContext = graphics->GetDeviceContext();
 	m_context->imgui->SetViewProjectionMatrix(viewContext.viewMatrix, viewContext.projectionMatrix);
+	if(graphics->GetBackendType() != RHI::BackendType::Direct3D11){
+		result = m_renderSystem->RenderPortableView(viewContext, true);
+		return;
+	}
 
 	{
 		ScopedGpuPassTiming timing(

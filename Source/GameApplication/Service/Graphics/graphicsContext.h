@@ -344,9 +344,8 @@ private:
 		D3D_FEATURE_LEVEL* featureLevel,
 		ID3D11DeviceContext** immediateContext
 	){
-		if(GetBackendType() != RHI::BackendType::Direct3D11){
-			return DXGI_ERROR_UNSUPPORTED;
-		}
+		// The legacy editor shell remains DX11. Its scene viewport can render on
+		// another RHI device and publish a compatibility presentation texture.
 		return ::D3D11CreateDeviceAndSwapChain(
 			adapter,
 			driverType,
