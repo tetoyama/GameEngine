@@ -178,10 +178,17 @@ ID3D11ShaderResourceView* RenderSystem::RenderPortableView(const RenderPassConte
 			Rendering::LookAt({-30,50,-30},{0,0,0}));
 		frame.lightDirection = {-0.4575f,0.7625f,-0.4575f,0};
 		std::vector<RenderPacket> visible;
+		size_t unsupportedTextureOverrides = 0;
 		for(const auto& packet : m_renderWorld.Packets().Packets()){
 			const auto layer = static_cast<size_t>(packet.layer);
 			if(layer < static_cast<size_t>(RenderLayer::MaxRenderLayer) &&
-				context.renderLayerVisibility[layer] && ShouldRenderPacket(context, packet)) visible.push_back(packet);
+				context.renderLayerVisibility[layer] && ShouldRenderPacket(context, packet)){
+				// Entity texture overrides live outside the imported material
+				// descriptor; count them rather than rendering an untextured substitute.
+				if(packet.bindings.texture && packet.bindings.texture->m_TextureData){
+					++unsupportedTextureOverrides;
+				}else visible.push_back(packet);
+			}
 		}
 		auto conversion = Rendering::ConvertRenderPackets(visible, frame, m_renderWorld.Generation(),
 			[this](const RenderPacket& packet){
@@ -196,8 +203,8 @@ ID3D11ShaderResourceView* RenderSystem::RenderPortableView(const RenderPassConte
 				return meshes;
 			});
 		m_portableViewStatus = std::string(ToEngineConfigBackendName(service->GetSelectedBackend())) +
-			" scene / DX11 editor UI; compatibility readback. Unsupported: " +
-			std::to_string(conversion.unsupportedPackets) + "; unresolved/animated: " + std::to_string(conversion.unresolvedMeshes);
+			" scene / DX11 editor UI; compatibility readback. Draws: " + std::to_string(conversion.scene.draws.size()) + "; unsupported: " +
+			std::to_string(conversion.unsupportedPackets + unsupportedTextureOverrides) + "; unresolved/animated: " + std::to_string(conversion.unresolvedMeshes);
 		return viewport->Render(conversion.scene, static_cast<uint32_t>(context.screenSize.x), static_cast<uint32_t>(context.screenSize.y));
 	} catch(const std::exception& error){
 		const std::string status = std::string("Selected rendering API failed: ") + error.what();

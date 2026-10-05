@@ -15,7 +15,7 @@ Save Project Settingsして再起動すると、Editor View / Player Viewのシ�
 
 EditorのImGui / Win32 / Direct2D表示はD3D11のまま。選択APIで描いた最終RGBA画像を読み戻し、
 D3D11表示Textureへ転送する移行用経路。同期Readbackの遅延があるため性能比較には使わない。
-対応範囲はTextureなしの不透明Static Model。未対応Packet数とAnimation / Geometry未解決数を
+対応範囲はTextureなしの不透明Static Model。描画数、未対応Packet数とAnimation / Geometry未解決数を
 Editor Viewに表示し、選択APIが失敗した時はD3D11へ暗黙に切り替えずエラーを表示する。
 Editor Viewの旧Object-ID GBufferによるClick選択は無効化し、Hierarchy選択 / Gizmo編集を使う。
 既存の全Pass・ゲーム内容の互換性が必要ならD3D11を選ぶ。
@@ -147,9 +147,11 @@ Compute書き込み / 非整列Texture幅のReadback、Shader破棄後のPipelin
 Submit後のCommand wrapper破棄、Fence / Device寿命、古いHandleと異なるThreadの拒否も検査する。
 
 WindowsでD3D12 / Vulkanの描画とCompute契約が通過。
+既存Editorの非表示起動でも両APIの選択とEditor Viewへの描画を確認した。
+Editor表示用のD3D11 Texture転送は、画像変化とResizeを使うGPU Testでも通過。
 Window付き表示とOffscreen経路を検証し、同じSceneの画像差も比較する。
 macOS-14 Runnerでビルド / 共通処理テスト / 梱包が成功。
-2026-10-05の[Metal実行検証](https://github.com/tetoyama/GameEngine/actions/runs/37298247754)で、
+2026-10-05の[配布物からのMetal実行検証](https://github.com/tetoyama/GameEngine/actions/runs/37299270667)で、
 共通描画・GPU読み戻し・Shadow / Geometry / Material変更・Resizeの検査が通過した。
 これはMac CI RunnerのOffscreen描画検証。物理Mac上のWindow表示や既存Editor全体の移植を確認した結果ではない。
 再検証はWorkflowの手動入力 `portable_gpu`、またはMacで上のGPU Testを実行する。
