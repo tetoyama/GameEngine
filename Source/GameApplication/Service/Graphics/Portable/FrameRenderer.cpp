@@ -33,9 +33,6 @@ struct FrameRenderer::Impl {
     PipelineStateDesc geometryDescription,shadowDescription;
     uint32_t width=0,height=0,instanceCapacity=0;
     BufferHandle frameBuffer,instanceBuffer;
-    struct FrameSlot { BufferHandle instances; uint32_t capacity=0; uint64_t completion=0; };
-    std::array<FrameSlot,3> frameSlots{};
-    uint64_t frameNumber=0;
     SamplerHandle sampler,shadowSampler;
     Target albedo,normal,position,depth,shadow,hdr,output;
     PipelineStateHandle geometryPipeline,shadowPipeline,lightingPipeline,tonePipeline,presentPipeline;
@@ -55,7 +52,7 @@ struct FrameRenderer::Impl {
         if(sampler) device.DestroySampler(sampler);
         if(shadowSampler) device.DestroySampler(shadowSampler);
         if(frameBuffer) device.DestroyBuffer(frameBuffer);
-        for(auto slot:frameSlots) if(slot.instances) device.DestroyBuffer(slot.instances);
+        if(instanceBuffer) device.DestroyBuffer(instanceBuffer);
         if(frameFence) device.DestroyFence(frameFence->GetHandle());
     }
     void WaitFrame() { Require(!deviceLifetime.expired(),"RHI device expired"); if(submitted) Require(frameFence->Wait(submitted,5'000'000'000ull),"GPU frame completion timed out"); }
@@ -164,9 +161,9 @@ struct FrameRenderer::Impl {
     void Render(const RenderScene& scene,bool present,bool vsync) {
         Require(!deviceLifetime.expired(),"RHI device expired");
         Require(width && height,"Resize the renderer before rendering"); statistics={};
-        auto& frameSlot=frameSlots[frameNumber++%frameSlots.size()];
-        if(frameSlot.completion) Require(frameFence->Wait(frameSlot.completion,5'000'000'000ull),"Frame slot reuse timed out");
-        instanceBuffer=frameSlot.instances; instanceCapacity=frameSlot.capacity;
+        // Uploads are recorded on the same ordered GPU queue as the draws.
+        // The backend owns update/cycling synchronization; a second fixed
+        // frame-buffer ring here would duplicate that responsibility.
         for(float v:scene.frame.viewProjection) Require(std::isfinite(v),"Nonfinite camera matrix");
         std::vector<DrawItem> draws=scene.draws;
         Require(draws.size()<=1'000'000,"Too many draw instances");
@@ -192,11 +189,13 @@ struct FrameRenderer::Impl {
             ++batches.back().count; instances.push_back(d.instance);
         }
         if(instances.size()>instanceCapacity) {
+            // Resource replacement is exceptional; ordinary updates below
+            // stay on the GPU timeline without a per-frame host fence wait.
+            WaitFrame();
             auto capacity=std::max<uint32_t>(64,static_cast<uint32_t>(instances.size()));
             BufferDesc bd; bd.byteSize=capacity*sizeof(Instance); bd.stride=sizeof(Instance); bd.bindFlags=BufferBindFlags::Vertex;
             auto buffer=device.CreateBuffer(bd); Require(bool(buffer),"Instance buffer allocation failed");
             if(instanceBuffer) device.DestroyBuffer(instanceBuffer); instanceBuffer=buffer; instanceCapacity=capacity;
-            frameSlot.instances=buffer; frameSlot.capacity=capacity;
         }
         statistics.instances=static_cast<uint32_t>(instances.size()); statistics.batches=static_cast<uint32_t>(batches.size());
         RenderGraph graph;
@@ -230,7 +229,6 @@ struct FrameRenderer::Impl {
         submit.signalFence=frameFence->GetHandle(); submit.signalValue=++submitted;
         auto* queue=device.GetQueue(CommandQueueType::Graphics); Require(queue && queue->Submit(submit),"Frame submission failed"); targetsInitialized=true;
         if(present && device.GetSwapChain()) Present(vsync);
-        frameSlot.completion=submitted;
     }
     void Present(bool vsync) {
         auto* swap=device.GetSwapChain(); Require(swap->Present(vsync),"Presentation policy failed");

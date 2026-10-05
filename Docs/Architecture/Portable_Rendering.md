@@ -41,8 +41,15 @@ Renderer側で別のModelData CacheやAsset Managerは作らない。
 5. HDR tone mapping + gamma conversion
 6. Swapchain合成。最小化 / 非表示で取得画像がない場合は表示を省略
 
-GPUへの定数PushはCommandごとの値を保存する。更新用Instance Bufferは3フレーム分を持ち、
-同じSlotを再利用する時だけFenceを待つ。Resize / Geometry破棄 / Capture時は必要な完了を待つ。
+GPUへの定数PushはCommandごとの値を保存する。Instance Bufferの更新は描画と同じ
+ordered queue上のCopyとして記録する。更新同期 / Buffer cyclingはBackendが所有し、
+Renderer側には別の固定Frame Slot数や毎FrameのFence待機を置かない。
+Instance Buffer拡張 / Resize / Geometry破棄 / Capture時は必要な完了を待つ。
+
+既存のMaximum Frame Latency設定はWindows EditorのDXGI Swapchainの表示待ちFrame数を制限する。
+今回この設定を新設・置換してはいない。SDLのWindow付き移植用Runtimeの表示待ちはSDL側が管理する。
+Windows EditorのDX12 / Vulkan互換表示は毎Frame Captureするため、現時点でCPUとGPUの
+Frame間並列性が改善したとは言えない。
 
 DeviceはRendererより長く生存させる。資源作成・更新・Command記録はRender Threadで行う。
 CommandBufferは取得したThreadで記録・Submit・破棄する。
