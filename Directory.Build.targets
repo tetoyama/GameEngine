@@ -208,4 +208,28 @@
       <ObjectFileOutput>Asset\Shader\StaticBatchGBufferPS.cso</ObjectFileOutput>
     </FxCompile>
   </ItemGroup>
+  <!-- Keep the matching llama/ggml runtime beside the executable. -->
+  <Target Name="CopyGameEngineRuntimeDependencies"
+          AfterTargets="Build"
+          Condition="'$(MSBuildProjectName)' == 'GameEngine' and '$(Platform)' == 'x64' and '$(DesignTimeBuild)' != 'true'">
+    <ItemGroup>
+      <GameEngineRuntimeDll Include="$(MSBuildThisFileDirectory)llama.dll" />
+      <GameEngineRuntimeDll Include="$(MSBuildThisFileDirectory)ggml.dll" />
+      <GameEngineRuntimeDll Include="$(MSBuildThisFileDirectory)ggml-base.dll" />
+      <GameEngineRuntimeDll Include="$(MSBuildThisFileDirectory)ggml-cpu.dll" />
+      <GameEngineRuntimeDll Include="$(MSBuildThisFileDirectory)assimp-vc143-mt.dll" />
+      <GameEngineRuntimeDll Include="$(MSBuildThisFileDirectory)PhysX_64.dll" />
+      <GameEngineRuntimeDll Include="$(MSBuildThisFileDirectory)PhysXCommon_64.dll" />
+      <GameEngineRuntimeDll Include="$(MSBuildThisFileDirectory)PhysXCooking_64.dll" />
+      <GameEngineRuntimeDll Include="$(MSBuildThisFileDirectory)PhysXFoundation_64.dll" />
+      <GameEngineRuntimeDll Include="$(MSBuildThisFileDirectory)PVDRuntime_64.dll"
+                            Condition="Exists('$(MSBuildThisFileDirectory)PVDRuntime_64.dll')" />
+    </ItemGroup>
+    <Error Condition="!Exists('%(GameEngineRuntimeDll.Identity)')"
+           Text="Missing runtime DLL: %(GameEngineRuntimeDll.Identity). Restore a matching llama/ggml DLL set before building." />
+    <MakeDir Directories="$(TargetDir)" />
+    <Copy SourceFiles="@(GameEngineRuntimeDll)"
+          DestinationFolder="$(TargetDir)"
+          SkipUnchangedFiles="true" />
+  </Target>
 </Project>
