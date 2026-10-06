@@ -53,6 +53,11 @@ FetchContent_Declare(assimp
 FetchContent_MakeAvailable(assimp)
 if(MSVC)
   target_compile_options(assimp PRIVATE /WX-)
+else()
+  # Assimp 5.2 relies on a transitive size_t declaration and treats warnings
+  # from newer SDKs as errors. Keep these compatibility options on Assimp only;
+  # engine targets retain their own warning policy.
+  target_compile_options(assimp PRIVATE -include stddef.h -Wno-error)
 endif()
 
 add_library(GameEngineCore STATIC
