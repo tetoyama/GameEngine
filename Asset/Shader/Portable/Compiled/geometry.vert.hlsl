@@ -6,6 +6,7 @@ cbuffer Frame : register(b0, space1)
     float4 frame_lightColor : packoffset(c9);
     float4 frame_ambientColor : packoffset(c10);
     float4 frame_outputTransform : packoffset(c11);
+    float4 frame_cameraPosition : packoffset(c12);
 };
 
 
@@ -25,6 +26,10 @@ static float2 texcoord;
 static float4 uvTransform;
 static float unlit;
 static float4 shading;
+static float4 material;
+static float4 materialParameters;
+static float4 emissive;
+static float4 emissiveColor;
 
 struct SPIRV_Cross_Input
 {
@@ -38,6 +43,8 @@ struct SPIRV_Cross_Input
     float2 texcoord : TEXCOORD7;
     float4 uvTransform : TEXCOORD8;
     float4 shading : TEXCOORD9;
+    float4 materialParameters : TEXCOORD10;
+    float4 emissiveColor : TEXCOORD11;
 };
 
 struct SPIRV_Cross_Output
@@ -47,6 +54,8 @@ struct SPIRV_Cross_Output
     float4 albedo : TEXCOORD2;
     float2 uv : TEXCOORD3;
     float unlit : TEXCOORD4;
+    float4 material : TEXCOORD5;
+    float4 emissive : TEXCOORD6;
     float4 gl_Position : SV_Position;
 };
 
@@ -92,6 +101,8 @@ void vert_main()
     albedo = color;
     uv = (texcoord * uvTransform.xy) + uvTransform.zw;
     unlit = shading.x;
+    material = materialParameters;
+    emissive = emissiveColor;
     gl_Position = mul(p, frame_viewProjection);
 }
 
@@ -107,6 +118,8 @@ SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
     texcoord = stage_input.texcoord;
     uvTransform = stage_input.uvTransform;
     shading = stage_input.shading;
+    materialParameters = stage_input.materialParameters;
+    emissiveColor = stage_input.emissiveColor;
     vert_main();
     SPIRV_Cross_Output stage_output;
     stage_output.gl_Position = gl_Position;
@@ -115,5 +128,7 @@ SPIRV_Cross_Output main(SPIRV_Cross_Input stage_input)
     stage_output.albedo = albedo;
     stage_output.uv = uv;
     stage_output.unlit = unlit;
+    stage_output.material = material;
+    stage_output.emissive = emissive;
     return stage_output;
 }

@@ -185,6 +185,7 @@ ID3D11ShaderResourceView* RenderSystem::RenderPortableView(const RenderPassConte
 		// Match the existing viewport's linear UNORM presentation. Camera
 		// post effects are not implemented by this compatibility path yet.
 		frame.outputTransform = {0,0,0,0};
+		frame.cameraPosition = {context.CameraPosition.x,context.CameraPosition.y,context.CameraPosition.z,0};
 		// Reuse the Scene's existing light and transform contract. This stage
 		// supports one directional light with one shadow map, not a second
 		// independently configured lighting service.
@@ -237,7 +238,6 @@ ID3D11ShaderResourceView* RenderSystem::RenderPortableView(const RenderPassConte
 			},[this,service](const RenderPacket& packet, Rendering::DrawItem& draw){
 				const auto* material=packet.modelMaterial.GetDescriptor();
 				if(material && material->shaderID!=0 && material->shaderID!=1) return false;
-				if(material) draw.instance.shading[0]=material->shaderID==0?1.f:0.f;
 				std::shared_ptr<TextureData> texture;
 				if(packet.bindings.texture && packet.bindings.texture->m_TextureData){
 					texture=packet.bindings.texture->m_TextureData;
@@ -258,6 +258,12 @@ ID3D11ShaderResourceView* RenderSystem::RenderPortableView(const RenderPassConte
 				}
 				return true;
 			});
+		if(const auto environment=GetEnvironmentMap()) {
+			conversion.scene.environmentTexture=environment->EnsureRHI(*service->GetDevice(),
+				m_context->graphics->GetDevice(),m_context->graphics->GetDeviceContext());
+			if(!conversion.scene.environmentTexture) throw std::runtime_error("Environment map RHI transfer failed");
+			conversion.scene.frame.cameraPosition[3]=1.f;
+		}
 		m_portableViewStatus = std::string(ToEngineConfigBackendName(service->GetSelectedBackend())) +
 			" scene / DX11 editor UI; compatibility readback. Draws: " + std::to_string(conversion.scene.draws.size()) + "; unsupported: " +
 			std::to_string(conversion.unsupportedPackets) + "; unresolved/animated: " + std::to_string(conversion.unresolvedMeshes);

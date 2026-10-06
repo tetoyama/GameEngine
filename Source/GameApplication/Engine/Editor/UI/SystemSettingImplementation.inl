@@ -166,7 +166,7 @@ inline void DrawRenderingSettings(
 	}
 	ImGui::TextDisabled("API: save and restart. Frame latency: applied immediately to the editor shell.");
 	if(config.engineConfig.graphics.backend != RHI::BackendType::Direct3D11)
-		ImGui::TextWrapped("Experimental scene rendering: opaque static models, base color textures, UV transforms, unlit and one directional light. PBR/environment maps, animation, terrain, billboards, effects and other legacy passes are not yet supported. Editor UI uses DX11; image readback adds latency.");
+		ImGui::TextWrapped("Experimental scene rendering: opaque static models, base color textures, UV transforms, PBR/unlit, environment reflection, emissive and one directional light. Toon/custom shaders, animation, terrain, billboards, local lights and other legacy passes are not yet supported. Editor UI uses DX11; image readback adds latency.");
 }
 
 inline void DrawApplicationSettings(

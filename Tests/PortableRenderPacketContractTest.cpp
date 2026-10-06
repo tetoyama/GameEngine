@@ -8,12 +8,18 @@ int main() {
         p.passMask=RenderPacketPassMask::GBuffer|RenderPacketPassMask::Shadow;
         auto world=Transform({3,4,5},{2,3,4},.5f); std::copy(world.begin(),world.end(),p.transform.worldMatrix.values);
         auto material=std::make_shared<MaterialDescriptor>(); material->parameters.baseColor={.2f,.4f,.6f,1}; p.modelMaterial.ownedDescriptor=material;
+        material->shaderID=1; material->parameters.metallic=.37f; material->parameters.roughness=.63f;
+        material->parameters.emissiveColor={.1f,.2f,.3f}; material->parameters.emissiveIntensity=2;
+        material->legacyMaterialFlags=1u<<4; material->renderState.receiveShadow=false;
         FrameUniforms frame{Identity(),Identity(),{0,-1,0,0}};
         auto converted=ConvertRenderPackets(std::span(&p,1),frame,42,[](const auto&){return std::vector<ModelGeometryRuntimeMesh>{{{7,1},{8,1},24,3,3},{{9,1},{10,1},24,3,3}};});
         if(converted.scene.draws.size()!=2 || converted.scene.draws[0].instance.world!=world || converted.scene.draws[1].instance.color!=material->parameters.baseColor || !converted.scene.draws[0].castsShadow) return 1;
+        if(converted.scene.draws[0].instance.material!=std::array<float,4>{.37f,.63f,1,2} ||
+           converted.scene.draws[0].instance.emissive!=std::array<float,4>{.1f,.2f,.3f,2}) return 7;
         // Snapshot ownership must survive destruction/mutation of frame packets.
         p.transform.worldMatrix.values[12]=99; material->parameters.baseColor={1,0,0,1}; p.modelMaterial={}; material.reset();
         if(converted.scene.draws[0].instance.world[12]!=3 || converted.scene.draws[0].instance.color[1]!=.4f) return 2;
+        if(converted.scene.draws[0].instance.emissive[3]!=2 || converted.scene.draws[0].instance.material[0]!=.37f) return 8;
         p.kind=RenderPacketKind::Particle;
         auto skipped=ConvertRenderPackets(std::span(&p,1),frame,43,[](const auto&){return std::vector<ModelGeometryRuntimeMesh>{{{7,1},{8,1},24,3,3}};});
         if(skipped.unsupportedPackets!=1 || !skipped.scene.draws.empty()) return 3;

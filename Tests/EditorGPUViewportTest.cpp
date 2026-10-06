@@ -46,7 +46,9 @@ int main(int argc,char** argv) {
             const auto mesh=meshOwner.UploadMesh(vertices,indices);
             RenderPacket packet; packet.passMask=RenderPacketPassMask::GBuffer;
             const auto world=Rendering::Identity(); std::copy(world.begin(),world.end(),packet.transform.worldMatrix.values);
-            Rendering::FrameUniforms uniforms{world,world,{0,0,-1,0}};
+            // Direction points from the light toward the surface; the test
+            // triangle normal faces -Z, so illuminate it from -Z.
+            Rendering::FrameUniforms uniforms{world,world,{0,0,1,0}};
             auto scene=Rendering::ConvertRenderPackets(std::span(&packet,1),uniforms,1,[&](const RenderPacket&){return std::vector{mesh};}).scene;
             Require(scene.draws.size()==1,"Existing packet/binding conversion failed");
             Rendering::EditorGPUViewport viewport(*service.GetDevice(),shell.Get(),shellContext.Get());

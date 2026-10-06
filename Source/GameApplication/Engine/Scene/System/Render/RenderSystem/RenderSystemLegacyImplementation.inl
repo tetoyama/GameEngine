@@ -1047,6 +1047,7 @@ void RenderSystem::ReCompilePixelShaders(){
 		addFile(shaderRoot / "common.hlsl");
 		addFile(shaderRoot / "Material/MaterialDefine.hlsli");
 		addFile(shaderRoot / "Material/MaterialFunc.hlsli");
+		addFile(shaderRoot / "Material/BRDF.hlsli");
 		addFile(shaderRoot / "Material" / (forward ? "FowardFunc.hlsli" : "DeferredFunc.hlsli"));
 
 		if(!materialPath.empty()){

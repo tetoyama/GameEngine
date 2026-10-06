@@ -48,6 +48,7 @@ struct Frame
     float4 lightColor;
     float4 ambientColor;
     float4 outputTransform;
+    float4 cameraPosition;
 };
 
 struct main0_out
@@ -57,6 +58,8 @@ struct main0_out
     float4 albedo [[user(locn2)]];
     float2 uv [[user(locn3)]];
     float unlit [[user(locn4)]];
+    float4 material [[user(locn5)]];
+    float4 emissive [[user(locn6)]];
     float4 gl_Position [[position]];
 };
 
@@ -72,6 +75,8 @@ struct main0_in
     float2 texcoord [[attribute(7)]];
     float4 uvTransform [[attribute(8)]];
     float4 shading [[attribute(9)]];
+    float4 materialParameters [[attribute(10)]];
+    float4 emissiveColor [[attribute(11)]];
 };
 
 vertex main0_out main0(main0_in in [[stage_in]], constant Frame& frame [[buffer(0)]])
@@ -84,6 +89,8 @@ vertex main0_out main0(main0_in in [[stage_in]], constant Frame& frame [[buffer(
     out.albedo = in.color;
     out.uv = (in.texcoord * in.uvTransform.xy) + in.uvTransform.zw;
     out.unlit = in.shading.x;
+    out.material = in.materialParameters;
+    out.emissive = in.emissiveColor;
     out.gl_Position = frame.viewProjection * p;
     return out;
 }

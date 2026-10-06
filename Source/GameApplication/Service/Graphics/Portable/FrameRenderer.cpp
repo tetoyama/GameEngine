@@ -35,7 +35,7 @@ struct FrameRenderer::Impl {
     BufferHandle frameBuffer,instanceBuffer;
     SamplerHandle sampler,shadowSampler,materialSampler;
     Target white;
-    Target albedo,normal,position,depth,shadow,hdr,output;
+    Target albedo,normal,position,material,emissive,depth,shadow,hdr,output;
     PipelineStateHandle geometryPipeline,shadowPipeline,lightingPipeline,tonePipeline,presentPipeline;
     Format presentFormat=Format::Unknown;
     ShaderHandle fullscreen,presentShader;
@@ -81,7 +81,7 @@ struct FrameRenderer::Impl {
         desc.rasterizer.cullMode=CullMode::None; desc.renderTargets.colorAttachmentCount=1; desc.renderTargets.colorFormats[0]=format; return desc;
     }
     void Initialize() {
-        Require(device.GetCapabilities().maximumColorAttachments>=3,"Renderer requires three color attachments");
+        Require(device.GetCapabilities().maximumColorAttachments>=5,"Renderer requires five color attachments");
         frameFence=device.CreateFence(); Require(bool(frameFence),"Frame fence creation failed");
         BufferDesc constant; constant.byteSize=sizeof(FrameUniforms); constant.bindFlags=BufferBindFlags::Constant;
         frameBuffer=device.CreateBuffer(constant); Require(bool(frameBuffer),"Frame uniforms creation failed");
@@ -99,13 +99,13 @@ struct FrameRenderer::Impl {
         white.sample=device.CreateTextureView(whiteView); Require(bool(white.sample),"Default albedo view creation failed");
         auto vertex=Shader("geometry.vert",ShaderStage::Vertex,0,1),pixel=Shader("geometry.frag",ShaderStage::Pixel,1);
         PipelineStateDesc geo; geo.vertexShader=vertex; geo.pixelShader=pixel; geo.rasterizer.cullMode=CullMode::None;
-        geo.renderTargets.colorAttachmentCount=3; geo.renderTargets.colorFormats[0]=Format::RGBA8_UNorm;
-        geo.renderTargets.colorFormats[1]=geo.renderTargets.colorFormats[2]=Format::RGBA16_Float;
+        geo.renderTargets.colorAttachmentCount=5;
+        for(uint32_t index=0;index<5;++index) geo.renderTargets.colorFormats[index]=Format::RGBA16_Float;
         geo.renderTargets.depthStencilFormat=Format::D32_Float;
         geo.inputLayout={{"TEXCOORD",0,Format::RGB32_Float,0,0,false,0,0},{"TEXCOORD",1,Format::RGB32_Float,0,12,false,0,1}};
         for(uint32_t i=0;i<5;++i) geo.inputLayout.push_back({"TEXCOORD",i+2,Format::RGBA32_Float,1,i*16,true,1,i+2});
         geo.inputLayout.push_back({"TEXCOORD",7,Format::RG32_Float,0,offsetof(Vertex,uv),false,0,7});
-        for(uint32_t i=0;i<2;++i) geo.inputLayout.push_back({"TEXCOORD",8+i,Format::RGBA32_Float,1,80+i*16,true,1,8+i});
+        for(uint32_t i=0;i<4;++i) geo.inputLayout.push_back({"TEXCOORD",8+i,Format::RGBA32_Float,1,80+i*16,true,1,8+i});
         geo.vertexBuffers={{0,sizeof(Vertex),false},{1,sizeof(Instance),true}};
         geometryPipeline=Pipeline(geo);
         auto shadowDesc=geo; shadowDesc.vertexShader=Shader("shadow.vert",ShaderStage::Vertex,0,1);
@@ -116,7 +116,7 @@ struct FrameRenderer::Impl {
         geometryDescription=geo; shadowDescription=shadowDesc;
         geometryPipelines.emplace(static_cast<uint32_t>(sizeof(Vertex)),std::pair(geometryPipeline,shadowPipeline));
         fullscreen=Shader("fullscreen.vert",ShaderStage::Vertex);
-        lightingPipeline=Pipeline(Fullscreen(Shader("lighting.frag",ShaderStage::Pixel,4,1),Format::RGBA16_Float));
+        lightingPipeline=Pipeline(Fullscreen(Shader("lighting.frag",ShaderStage::Pixel,7,1),Format::RGBA16_Float));
         tonePipeline=Pipeline(Fullscreen(Shader("tonemap.frag",ShaderStage::Pixel,1,1),Format::RGBA8_UNorm));
         presentShader=Shader("present.frag",ShaderStage::Pixel,1);
     }
@@ -133,20 +133,22 @@ struct FrameRenderer::Impl {
         if(target.sample) device.DestroyTextureView(target.sample);
         if(target.texture) device.DestroyTexture(target.texture); target={};
     }
-    void DestroyTargets() { for(auto* t:{&albedo,&normal,&position,&depth,&shadow,&hdr,&output}) DestroyTarget(*t); width=height=0; targetsInitialized=false; }
+    void DestroyTargets() { for(auto* t:{&albedo,&normal,&position,&material,&emissive,&depth,&shadow,&hdr,&output}) DestroyTarget(*t); width=height=0; targetsInitialized=false; }
     void Resize(uint32_t w,uint32_t h) {
         Require(!deviceLifetime.expired(),"RHI device expired");
         Require(w && h && w<=device.GetCapabilities().maximumTextureDimension2D && h<=device.GetCapabilities().maximumTextureDimension2D,"Invalid render dimensions");
         if(w==width && h==height) return; WaitFrame(); device.WaitIdle(); DestroyTargets();
         try {
-            albedo=CreateTarget(w,h,Format::RGBA8_UNorm); normal=CreateTarget(w,h,Format::RGBA16_Float);
+            albedo=CreateTarget(w,h,Format::RGBA16_Float); normal=CreateTarget(w,h,Format::RGBA16_Float);
             position=CreateTarget(w,h,Format::RGBA16_Float); depth=CreateTarget(w,h,Format::D32_Float,true);
+            material=CreateTarget(w,h,Format::RGBA16_Float); emissive=CreateTarget(w,h,Format::RGBA16_Float);
             shadow=CreateTarget(1024,1024,Format::D32_Float,true); hdr=CreateTarget(w,h,Format::RGBA16_Float);
             output=CreateTarget(w,h,Format::RGBA8_UNorm); width=w; height=h;
         } catch(...) { DestroyTargets(); throw; }
     }
     void BindTexture(IRHICommandList& list,uint32_t slot,TextureViewHandle view) {
-        Require(list.SetTextureView(ShaderStage::Pixel,slot,view) && list.SetSampler(ShaderStage::Pixel,slot,view==shadow.sample?shadowSampler:sampler),"Texture binding failed");
+        const auto selectedSampler=view==shadow.sample?shadowSampler:(slot==6?materialSampler:sampler);
+        Require(list.SetTextureView(ShaderStage::Pixel,slot,view) && list.SetSampler(ShaderStage::Pixel,slot,selectedSampler),"Texture binding failed");
     }
     void Geometry(IRHICommandList& list,const std::vector<Batch>& batches,bool shadows) {
         list.SetViewport({0,0,float(shadows?1024:width),float(shadows?1024:height),0,1});
@@ -179,6 +181,7 @@ struct FrameRenderer::Impl {
     void Render(const RenderScene& scene,bool present,bool vsync) {
         Require(!deviceLifetime.expired(),"RHI device expired");
         Require(width && height,"Resize the renderer before rendering"); statistics={};
+        Require(scene.frame.cameraPosition[3]<.5f || bool(scene.environmentTexture),"Enabled environment map is missing");
         // Uploads are recorded on the same ordered GPU queue as the draws.
         // The backend owns update/cycling synchronization; a second fixed
         // frame-buffer ring here would duplicate that responsibility.
@@ -224,6 +227,7 @@ struct FrameRenderer::Impl {
         RenderGraph graph;
         auto initial=targetsInitialized?ResourceState::ShaderResource:ResourceState::Common;
         auto ga=graph.ImportTexture(albedo.texture,initial,"Albedo"),gn=graph.ImportTexture(normal.texture,initial,"Normal"),gp=graph.ImportTexture(position.texture,initial,"Position");
+        auto gm=graph.ImportTexture(material.texture,initial,"Material"),ge=graph.ImportTexture(emissive.texture,initial,"Emissive");
         auto gs=graph.ImportTexture(shadow.texture,initial,"Shadow"),gd=graph.ImportTexture(depth.texture,targetsInitialized?ResourceState::DepthWrite:ResourceState::Common,"Depth");
         auto gh=graph.ImportTexture(hdr.texture,initial,"HDR"),go=graph.ImportTexture(output.texture,initial,"Output");
         std::vector<RenderGraphResource> materialTextures;
@@ -236,6 +240,10 @@ struct FrameRenderer::Impl {
                 materialTextures.push_back(graph.ImportTexture(view->texture,ResourceState::ShaderResource,"Material albedo"));
             }
         }
+        const auto environment=scene.environmentTexture?scene.environmentTexture:white.sample;
+        const auto* environmentView=device.GetTextureViewDesc(environment);
+        Require(environmentView!=nullptr,"Invalid environment texture view");
+        auto genv=graph.ImportTexture(environmentView->texture,ResourceState::ShaderResource,"Environment map");
         graph.AddPass("Frame upload",[](auto&){},[&](auto& list){
             Require(list.UpdateBuffer(frameBuffer,std::as_bytes(std::span(&scene.frame,1))),"Frame uniform upload failed");
             if(!instances.empty()) Require(list.UpdateBuffer(instanceBuffer,Bytes(std::span<const Instance>(instances))),"Instance upload failed");
@@ -245,14 +253,14 @@ struct FrameRenderer::Impl {
             pass.depthAttachment.depthLoadOperation=LoadOperation::Clear; pass.depthAttachment.stencilLoadOperation=LoadOperation::Discard;
             Require(list.BeginRenderPass(pass),"Shadow pass failed"); Geometry(list,batches,true); list.EndRenderPass(); ++statistics.passes;
         });
-        graph.AddPass("GBuffer",[&](auto& b){b.Write(ga,ResourceState::RenderTarget);b.Write(gn,ResourceState::RenderTarget);b.Write(gp,ResourceState::RenderTarget);b.Write(gd,ResourceState::DepthWrite);for(auto texture:materialTextures) b.Read(texture);},[&](auto& list){
+        graph.AddPass("GBuffer",[&](auto& b){b.Write(ga,ResourceState::RenderTarget);b.Write(gn,ResourceState::RenderTarget);b.Write(gp,ResourceState::RenderTarget);b.Write(gm,ResourceState::RenderTarget);b.Write(ge,ResourceState::RenderTarget);b.Write(gd,ResourceState::DepthWrite);for(auto texture:materialTextures) b.Read(texture);},[&](auto& list){
             RenderPassDesc pass;
-            for(auto* target:{&albedo,&normal,&position}) pass.colorAttachments.push_back({target->render,LoadOperation::Clear,StoreOperation::Store,{0,0,0,0}});
+            for(auto* target:{&albedo,&normal,&position,&material,&emissive}) pass.colorAttachments.push_back({target->render,LoadOperation::Clear,StoreOperation::Store,{0,0,0,0}});
             pass.hasDepthAttachment=true; pass.depthAttachment.view=depth.render; pass.depthAttachment.depthLoadOperation=LoadOperation::Clear; pass.depthAttachment.stencilLoadOperation=LoadOperation::Discard;
             Require(list.BeginRenderPass(pass),"GBuffer pass failed"); Geometry(list,batches,false); list.EndRenderPass(); ++statistics.passes;
         });
-        graph.AddPass("Deferred lighting",[&](auto& b){b.Read(ga);b.Read(gn);b.Read(gp);b.Read(gs);b.Write(gh,ResourceState::RenderTarget);},[&](auto& list){
-            ScreenPass(list,hdr,lightingPipeline,{albedo.sample,normal.sample,position.sample,shadow.sample},true); ++statistics.passes;
+        graph.AddPass("Deferred lighting",[&](auto& b){b.Read(ga);b.Read(gn);b.Read(gp);b.Read(gs);b.Read(gm);b.Read(ge);b.Read(genv);b.Write(gh,ResourceState::RenderTarget);},[&](auto& list){
+            ScreenPass(list,hdr,lightingPipeline,{albedo.sample,normal.sample,position.sample,shadow.sample,material.sample,emissive.sample,environment},true); ++statistics.passes;
         });
         graph.AddPass("Output transform",[&](auto& b){b.Read(gh);b.Write(go,ResourceState::RenderTarget);},[&](auto& list){ScreenPass(list,output,tonePipeline,{hdr.sample},true); ++statistics.passes;});
         graph.AddPass("Publish output",[&](auto& b){b.Read(go);},[](auto&){});

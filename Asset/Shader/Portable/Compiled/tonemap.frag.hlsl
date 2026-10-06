@@ -6,6 +6,7 @@ cbuffer Frame : register(b0, space3)
     float4 frame_lightColor : packoffset(c9);
     float4 frame_ambientColor : packoffset(c10);
     float4 frame_outputTransform : packoffset(c11);
+    float4 frame_cameraPosition : packoffset(c12);
 };
 
 Texture2D<float4> sourceTexture : register(t0, space2);

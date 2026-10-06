@@ -128,12 +128,14 @@ int main(int argc,char** argv) {
         RenderScene scene;
         std::vector<RenderPacket> packets(objects.size());
         std::vector<std::shared_ptr<MaterialDescriptor>> materials;
-        for(const auto& object:objects) { auto m=std::make_shared<MaterialDescriptor>(); m->parameters.baseColor=object.color; materials.push_back(std::move(m)); }
+        for(const auto& object:objects) { auto m=std::make_shared<MaterialDescriptor>(); m->shaderID=1; m->parameters.baseColor=object.color; materials.push_back(std::move(m)); }
         auto direction=Normalize(Vec3{.55f,-1,.35f});
         scene.frame.lightDirection={direction[0],direction[1],direction[2],0};
         scene.frame.lightViewProjection=Multiply(Orthographic(22,22,.1f,45),LookAt({-10,18,-8},{0,0,0}));
         auto update=[&](float angle){
-            auto view=LookAt({10*std::sin(angle),7,-10*std::cos(angle)},{0,.6f,0});
+            const Vec3 eye{10*std::sin(angle),7,-10*std::cos(angle)};
+            auto view=LookAt(eye,{0,.6f,0});
+            scene.frame.cameraPosition={eye[0],eye[1],eye[2],0};
             scene.frame.viewProjection=Multiply(Perspective(.92f,float(renderer.Width())/renderer.Height(),.1f,100),view);
             jobs.ParallelFor(0,objects.size(),16,[&](size_t i){
                 const auto& object=objects[i]; if(!entities.IsAlive(object.entity)) return;
@@ -174,6 +176,22 @@ int main(int argc,char** argv) {
             for(auto& draw:scene.draws) draw.instance.uvTransform={0,0,.25f,.25f};
             renderer.Render(scene,false); RHI::TextureReadback sliced;
             if(!renderer.Capture(sliced) || !Different(textured,sliced)) throw std::runtime_error("UV transform does not affect output");
+            scene.draws=original; for(auto& draw:scene.draws) draw.instance.material[1]=.15f;
+            renderer.Render(scene,false); RHI::TextureReadback roughness;
+            if(!renderer.Capture(roughness) || !Different(image,roughness)) throw std::runtime_error("Roughness does not affect output");
+            for(auto& draw:scene.draws) draw.instance.material[0]=1;
+            renderer.Render(scene,false); RHI::TextureReadback metallic;
+            if(!renderer.Capture(metallic) || !Different(roughness,metallic)) throw std::runtime_error("Metallic does not affect output");
+            scene.environmentTexture=view; scene.frame.cameraPosition[3]=1;
+            for(auto& draw:scene.draws) draw.instance.material[3]=3;
+            renderer.Render(scene,false); RHI::TextureReadback environment;
+            if(!renderer.Capture(environment) || !Different(metallic,environment)) throw std::runtime_error("Environment reflection does not affect output");
+            scene.environmentTexture={}; scene.frame.cameraPosition[3]=0;
+            scene.draws=original; for(auto& draw:scene.draws) draw.instance.emissive={.1f,.2f,.3f,2};
+            renderer.Render(scene,false); RHI::TextureReadback emission;
+            if(!renderer.Capture(emission) || !Different(image,emission)) throw std::runtime_error("Emissive does not affect output");
+            scene.draws=original;
+            for(auto& draw:scene.draws) { draw.albedoTexture=view; draw.instance.uvTransform={0,0,.25f,.25f}; }
             for(auto& draw:scene.draws) draw.instance.shading[0]=1;
             renderer.Render(scene,false); RHI::TextureReadback unlit;
             if(!renderer.Capture(unlit) || !Different(sliced,unlit)) throw std::runtime_error("Unlit material does not affect output");
@@ -195,7 +213,7 @@ int main(int argc,char** argv) {
             if(!renderer.Capture(resized) || resized.width!=321 || resized.height!=213) throw std::runtime_error("Resize/readback dimension mismatch");
             renderer.Resize(options.width,options.height); update(angle); renderer.Render(scene,!options.offscreen,false);
             if(!renderer.Capture(image)) throw std::runtime_error("Post-resize capture failed"); CheckImage(image);
-            std::cout<<"validation=passed frame-reuse, geometry, shadows, materials, textures, UV, unlit, linear-output, resize, readback\n";
+            std::cout<<"validation=passed frame-reuse, geometry, shadows, materials, textures, UV, roughness, metallic, environment, emissive, unlit, linear-output, resize, readback\n";
         }
         if(!options.capture.empty()) Save(image,options.capture);
         const auto& stats=renderer.Statistics(); auto elapsed=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();

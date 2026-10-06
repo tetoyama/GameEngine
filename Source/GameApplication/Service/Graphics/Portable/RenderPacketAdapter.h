@@ -30,6 +30,12 @@ inline PacketConversion ConvertRenderPackets(std::span<const RenderPacket> packe
                 ++result.unsupportedPackets; continue;
             }
             instance.color=material->parameters.baseColor;
+            instance.shading[0]=material->shaderID==0?1.f:0.f;
+            instance.material={material->parameters.metallic,material->parameters.roughness,
+                material->parameters.ambientOcclusion,float((material->renderState.receiveShadow?1:0) |
+                ((material->legacyMaterialFlags & (1u<<4))?2:0))};
+            instance.emissive={material->parameters.emissiveColor[0],material->parameters.emissiveColor[1],
+                material->parameters.emissiveColor[2],material->parameters.emissiveIntensity};
         }
         DrawItem draw{{},instance,HasRenderPacketPass(packet.passMask,RenderPacketPassMask::Shadow)};
         if(resolveMaterial && !resolveMaterial(packet,draw)) { ++result.unsupportedPackets; continue; }

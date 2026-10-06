@@ -14,6 +14,8 @@ struct Instance {
     std::array<float, 4> color{1,1,1,1};
     std::array<float, 4> uvTransform{1,1,0,0};
     std::array<float, 4> shading{}; // x: unlit
+    std::array<float, 4> material{0,1,1,1}; // metallic, roughness, AO, flags (shadow=1, environment=2)
+    std::array<float, 4> emissive{}; // RGB and intensity
 };
 struct DrawItem { ModelGeometryRuntimeMesh mesh; Instance instance; bool castsShadow = true; RHI::TextureViewHandle albedoTexture; };
 struct FrameUniforms {
@@ -24,7 +26,8 @@ struct FrameUniforms {
     // Diagnostic runtime uses ACES + gamma; the existing Editor without
     // camera post effects publishes linear color to its UNORM viewport.
     std::array<float,4> outputTransform{1,0,0,0}; // x: ACES + gamma enabled
+    std::array<float,4> cameraPosition{0,0,-10,0}; // w: environment map enabled
 };
-struct RenderScene { FrameUniforms frame; std::vector<DrawItem> draws; uint64_t generation = 0; };
+struct RenderScene { FrameUniforms frame; std::vector<DrawItem> draws; uint64_t generation = 0; RHI::TextureViewHandle environmentTexture; };
 struct RenderStatistics { uint32_t instances = 0, batches = 0, shadowDraws = 0, geometryDraws = 0, passes = 0; };
 }

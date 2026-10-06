@@ -11,6 +11,7 @@ struct Frame
     float4 lightColor;
     float4 ambientColor;
     float4 outputTransform;
+    float4 cameraPosition;
 };
 
 struct main0_out
