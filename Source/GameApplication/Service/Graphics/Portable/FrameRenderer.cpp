@@ -36,7 +36,6 @@ struct FrameRenderer::Impl {
     ShaderHandle fullscreen,presentShader;
     std::unique_ptr<IRHIFence> frameFence;
     uint64_t submitted=0;
-    RenderStatistics statistics;
     bool targetsInitialized=false;
     Impl(IRHIDevice& d,std::filesystem::path path):device(d),deviceLifetime(d.GetLifetimeToken()),shaderDirectory(std::move(path)) {}
     ~Impl() {
@@ -157,7 +156,6 @@ struct FrameRenderer::Impl {
             Require(list.SetVertexBuffer(1,instanceBuffer,sizeof(Instance),batch.first*sizeof(Instance)),"Instance binding failed");
             Require(list.SetIndexBuffer(mesh.indexBuffer,mesh.indexFormat),"Mesh index binding failed");
             Require(list.DrawIndexedInstanced(mesh.indexCount,batch.count),"Instanced drawing failed");
-            if(shadows) ++statistics.shadowDraws; else ++statistics.geometryDraws;
         }
     }
     void ScreenPass(IRHICommandList& list,Target& target,PipelineStateHandle pipeline,std::initializer_list<TextureViewHandle> inputs,bool uniforms=false) {
@@ -171,7 +169,7 @@ struct FrameRenderer::Impl {
     }
     void Render(const RenderScene& scene,bool present,bool vsync) {
         Require(!deviceLifetime.expired(),"RHI device expired");
-        Require(width && height,"Resize the renderer before rendering"); statistics={};
+        Require(width && height,"Resize the renderer before rendering");
         Require(scene.frame.cameraPosition[3]<.5f || bool(scene.environmentTexture),"Enabled environment map is missing");
         // Uploads are recorded on the same ordered GPU queue as the draws.
         // The backend owns update/cycling synchronization; a second fixed
@@ -204,7 +202,6 @@ struct FrameRenderer::Impl {
             auto buffer=device.CreateBuffer(bd); Require(bool(buffer),"Instance buffer allocation failed");
             if(instanceBuffer) device.DestroyBuffer(instanceBuffer); instanceBuffer=buffer; instanceCapacity=capacity;
         }
-        statistics.instances=static_cast<uint32_t>(instances.size()); statistics.batches=static_cast<uint32_t>(batches.size());
         RenderGraph graph;
         auto initial=targetsInitialized?ResourceState::ShaderResource:ResourceState::Common;
         auto ga=graph.ImportTexture(albedo.texture,initial,"Albedo"),gn=graph.ImportTexture(normal.texture,initial,"Normal"),gp=graph.ImportTexture(position.texture,initial,"Position");
@@ -232,18 +229,18 @@ struct FrameRenderer::Impl {
         graph.AddPass("Directional shadow",[&](auto& b){b.Write(gs,ResourceState::DepthWrite);},[&](auto& list){
             RenderPassDesc pass; pass.hasDepthAttachment=true; pass.depthAttachment.view=shadow.render;
             pass.depthAttachment.depthLoadOperation=LoadOperation::Clear; pass.depthAttachment.stencilLoadOperation=LoadOperation::Discard;
-            Require(list.BeginRenderPass(pass),"Shadow pass failed"); Geometry(list,batches,true); list.EndRenderPass(); ++statistics.passes;
+            Require(list.BeginRenderPass(pass),"Shadow pass failed"); Geometry(list,batches,true); list.EndRenderPass();
         });
         graph.AddPass("GBuffer",[&](auto& b){b.Write(ga,ResourceState::RenderTarget);b.Write(gn,ResourceState::RenderTarget);b.Write(gp,ResourceState::RenderTarget);b.Write(gm,ResourceState::RenderTarget);b.Write(ge,ResourceState::RenderTarget);b.Write(gd,ResourceState::DepthWrite);for(auto texture:materialTextures) b.Read(texture);},[&](auto& list){
             RenderPassDesc pass;
             for(auto* target:{&albedo,&normal,&position,&material,&emissive}) pass.colorAttachments.push_back({target->render,LoadOperation::Clear,StoreOperation::Store,{0,0,0,0}});
             pass.hasDepthAttachment=true; pass.depthAttachment.view=depth.render; pass.depthAttachment.depthLoadOperation=LoadOperation::Clear; pass.depthAttachment.stencilLoadOperation=LoadOperation::Discard;
-            Require(list.BeginRenderPass(pass),"GBuffer pass failed"); Geometry(list,batches,false); list.EndRenderPass(); ++statistics.passes;
+            Require(list.BeginRenderPass(pass),"GBuffer pass failed"); Geometry(list,batches,false); list.EndRenderPass();
         });
         graph.AddPass("Deferred lighting",[&](auto& b){b.Read(ga);b.Read(gn);b.Read(gp);b.Read(gs);b.Read(gm);b.Read(ge);b.Read(genv);b.Write(gh,ResourceState::RenderTarget);},[&](auto& list){
-            ScreenPass(list,hdr,lightingPipeline,{albedo.sample,normal.sample,position.sample,shadow.sample,material.sample,emissive.sample,environment},true); ++statistics.passes;
+            ScreenPass(list,hdr,lightingPipeline,{albedo.sample,normal.sample,position.sample,shadow.sample,material.sample,emissive.sample,environment},true);
         });
-        graph.AddPass("Output transform",[&](auto& b){b.Read(gh);b.Write(go,ResourceState::RenderTarget);},[&](auto& list){ScreenPass(list,output,tonePipeline,{hdr.sample},true); ++statistics.passes;});
+        graph.AddPass("Output transform",[&](auto& b){b.Read(gh);b.Write(go,ResourceState::RenderTarget);},[&](auto& list){ScreenPass(list,output,tonePipeline,{hdr.sample},true);});
         graph.AddPass("Publish output",[&](auto& b){b.Read(go);},[](auto&){});
         auto commands=device.CreateCommandList({}); Require(bool(commands),"Frame command allocation failed");
         Require(graph.Execute(*commands),"RenderGraph execution failed");
@@ -273,7 +270,7 @@ struct FrameRenderer::Impl {
             IRHICommandList* submittedList=commands.get(); QueueSubmitDesc submit; submit.commandLists={&submittedList,1};
             submit.signalFence=frameFence->GetHandle(); submit.signalValue=++submitted;
             Require(device.GetQueue(CommandQueueType::Graphics)->Submit(submit),"Presentation submission failed");
-            ++statistics.passes; device.DestroyTextureView(view);
+            device.DestroyTextureView(view);
         } catch(...) { device.DestroyTextureView(view); throw; }
     }
 };
@@ -282,8 +279,4 @@ FrameRenderer::~FrameRenderer()=default;
 void FrameRenderer::Resize(uint32_t w,uint32_t h) { m_impl->Resize(w,h); }
 void FrameRenderer::Render(const RenderScene& s,bool p,bool v) { m_impl->Render(s,p,v); }
 bool FrameRenderer::Capture(TextureReadback& result,uint64_t timeout) { m_impl->WaitFrame(); return m_impl->device.ReadTexture(m_impl->output.texture,result,timeout); }
-TextureHandle FrameRenderer::Output() const { return m_impl->output.texture; }
-uint32_t FrameRenderer::Width() const { return m_impl->width; }
-uint32_t FrameRenderer::Height() const { return m_impl->height; }
-const RenderStatistics& FrameRenderer::Statistics() const { return m_impl->statistics; }
 }

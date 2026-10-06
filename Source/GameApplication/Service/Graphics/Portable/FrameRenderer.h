@@ -32,7 +32,6 @@ struct FrameUniforms {
     std::array<float,4> cameraPosition{0,0,-10,0}; // w: environment map enabled
 };
 struct RenderScene { FrameUniforms frame; std::vector<DrawItem> draws; RHI::TextureViewHandle environmentTexture; };
-struct RenderStatistics { uint32_t instances = 0, batches = 0, shadowDraws = 0, geometryDraws = 0, passes = 0; };
 
 
 // The renderer knows only RHI contracts. SDL and platform headers live below it.
@@ -49,10 +48,6 @@ public:
     // skips presentation while the owning output texture remains capturable.
     void Render(const RenderScene&,bool present=true,bool verticalSync=true);
     bool Capture(RHI::TextureReadback&,uint64_t timeoutNanoseconds=5'000'000'000ull);
-    RHI::TextureHandle Output() const;
-    uint32_t Width() const;
-    uint32_t Height() const;
-    const RenderStatistics& Statistics() const;
 private:
     struct Impl;
     std::unique_ptr<Impl> m_impl;
