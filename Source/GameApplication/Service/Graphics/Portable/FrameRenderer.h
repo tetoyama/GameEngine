@@ -7,7 +7,7 @@
 #include <memory>
 #include <span>
 #include "Service/Graphics/RHI/RHIInterfaces.h"
-#include "Engine/Scene/System/Render/Model/ModelGeometryRuntimeMesh.h"
+#include "Engine/Scene/System/Render/Model/ModelGeometryRuntimeStorage.h"
 
 namespace Rendering {
 // GPU/API independent, owning frame snapshot. Matrices are column-major,
