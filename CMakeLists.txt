@@ -79,6 +79,8 @@ if(NOT WIN32)
     "${sal_include}/SAL-LICENSE.txt" TLS_VERIFY ON
     EXPECTED_HASH SHA256=18647d26bc4c4d892a5fd29de1264d10906b3124cafa98313300ff300441c7f0)
   target_include_directories(GameEnginePortable SYSTEM PRIVATE "${directxmath_SOURCE_DIR}/Inc" "${sal_include}")
+  # SAL's legacy __null annotation must not replace Clang's C++ NULL value.
+  target_compile_definitions(GameEnginePortable PRIVATE PAL_STDCPP_COMPAT)
   install(FILES "${directxmath_SOURCE_DIR}/LICENSE" DESTINATION licenses RENAME DirectXMath-LICENSE.txt)
   install(FILES "${sal_include}/SAL-LICENSE.txt" DESTINATION licenses)
 endif()
