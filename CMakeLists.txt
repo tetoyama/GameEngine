@@ -33,6 +33,28 @@ if(NOT SDL3_FOUND)
   FetchContent_MakeAvailable(SDL3)
 endif()
 
+# Assimp is already the engine's importer. Build the same version natively;
+# no alternate importer or asset cache is added for the portable runtime.
+include(FetchContent)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
+set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ZLIB ON CACHE BOOL "" FORCE)
+if(POLICY CMP0175)
+  set(CMAKE_POLICY_DEFAULT_CMP0175 OLD) # legacy Assimp helper targets
+endif()
+FetchContent_Declare(assimp
+  URL https://codeload.github.com/assimp/assimp/tar.gz/refs/tags/v5.2.0
+  URL_HASH SHA256=18723edbea249ea11e02f62e040869e6a733cd2e969e96da02c101c62677f72d
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(assimp)
+if(MSVC)
+  target_compile_options(assimp PRIVATE /WX-)
+endif()
+
 add_library(GameEngineCore STATIC
   Source/GameApplication/Engine/engineContextLifecycle.cpp
   Source/GameApplication/Service/Runtime/TimeService/timeService.cpp)
@@ -54,6 +76,11 @@ if(BUILD_TESTING)
   add_executable(EngineLifecycleContractTest Tests/EngineLifecycleContractTest.cpp)
   target_link_libraries(EngineLifecycleContractTest PRIVATE GameEngineCore)
   add_test(NAME EngineLifecycleContract COMMAND EngineLifecycleContractTest)
+  add_executable(ModelGeometryImportContractTest Tests/ModelGeometryImportContractTest.cpp)
+  target_include_directories(ModelGeometryImportContractTest PRIVATE Source/GameApplication)
+  target_link_libraries(ModelGeometryImportContractTest PRIVATE assimp::assimp)
+  add_test(NAME ModelGeometryImportContract COMMAND ModelGeometryImportContractTest
+    "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Model/cube.obj")
   add_executable(PortableRenderPacketContractTest Tests/PortableRenderPacketContractTest.cpp)
   target_include_directories(PortableRenderPacketContractTest PRIVATE
     Source/GameApplication Source/GameApplication/Engine Source/GameApplication/Engine/Scene)
@@ -79,7 +106,7 @@ endif()
 add_executable(GameEnginePortable Source/GameApplication/Portable/PortableMain.cpp)
 target_include_directories(GameEnginePortable PRIVATE
   Source/GameApplication/Engine Source/GameApplication/Engine/Scene)
-target_link_libraries(GameEnginePortable PRIVATE GameEngineRHI GameEngineCore)
+target_link_libraries(GameEnginePortable PRIVATE GameEngineRHI GameEngineCore assimp::assimp)
 if(MSVC)
   target_compile_options(GameEnginePortable PRIVATE /W4 /permissive- /utf-8)
 endif()
@@ -134,6 +161,8 @@ if(WIN32 AND SDL_LIBRARY_TYPE STREQUAL "SHARED_LIBRARY")
   install(FILES "$<TARGET_FILE:SDL3::SDL3>" DESTINATION bin)
 endif()
 install(FILES ThirdParty/SDL3-LICENSE.txt DESTINATION licenses)
+install(FILES ThirdParty/ASSIMP-LICENSE.txt DESTINATION licenses)
+install(FILES ThirdParty/ZLIB-LICENSE.txt DESTINATION licenses)
 find_program(PORTABLE_GLSLC glslc HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
 find_program(PORTABLE_SPIRV_CROSS spirv-cross HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
 find_program(PORTABLE_DXC dxc HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")

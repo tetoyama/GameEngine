@@ -58,6 +58,11 @@ jobs:
           ./portable-runtime/macOS/Release/bin/GameEnginePortable --backend metal --validate --offscreen --width 480 --height 320 --capture portable-runtime/macOS/Release/metal.ppm
           ./portable-runtime/macOS/Release/bin/GameEnginePortable --backend metal --validate --width 480 --height 320 --capture portable-runtime/macOS/Release/metal-window.ppm
           cmp portable-runtime/macOS/Release/metal.ppm portable-runtime/macOS/Release/metal-window.ppm
+          ./portable-runtime/macOS/Release/bin/GameEnginePortable --backend metal --validate --offscreen --model Asset/Model/cube.obj --width 480 --height 320 --capture portable-runtime/macOS/Release/metal-model.ppm
+          if cmp -s portable-runtime/macOS/Release/metal.ppm portable-runtime/macOS/Release/metal-model.ppm; then
+            echo 'Imported model did not change the GPU output' >&2
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: portable-runtime-${{ runner.os }}

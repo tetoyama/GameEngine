@@ -38,6 +38,12 @@ Editor Viewの旧Object-ID GBufferによるClick選択は無効化し、Hierarch
 モデルのImport / ReimportとGeometry所有は `ModelGeometryRuntimeStorage` の責務を維持する。
 `ConvertRenderPackets` のResolverは既存Runtimeの選択済みSubMeshを返す。
 Renderer側で別のModelData CacheやAsset Managerは作らない。
+AssimpからCPU Geometryを抽出する処理は `ModelGeometryImport::ExtractMesh` に分離し、
+既存ModelLoaderのDX11 Buffer生成とNative Runtimeの両方から使う。
+Native Runtimeは既存Engineと同じAssimp 5.2.0を固定Hashで取得してStatic Linkする。
+`--model path` で実ファイルのStatic Geometryを追加表示できる。この段階ではGeometryのみで、
+ファイル内Material / Texture / Node hierarchy / Animationの完全な読み込みは未移行。
+頂点色はChannel 0の各頂点から取得し、Blender変換後の頂点にBoundsを揃える。
 
 Textureも既存ResourceService / TextureDataを再利用する。Windows Editorの移行用経路では、
 既に読み込まれた2D SRVを初回だけRGBA8へ読み戻して選択RHIへ転送し、GPU Handleを
@@ -130,6 +136,7 @@ GameEnginePortable.exe --backend d3d12
 GameEnginePortable.exe --backend vulkan
 # macOS: Metalを既定選択
 ./GameEnginePortable --backend metal
+./GameEnginePortable --backend metal --model /path/to/cube.obj
 # Linux
 ./GameEnginePortable --backend vulkan
 ```
@@ -163,6 +170,8 @@ ComputeはReadonly=0、ReadWrite=1、Uniform=2。MetalのEntry Pointは `main0`�
 CPU契約は通常CTestで検証する。実GPU検証は明示的に有効化する。
 Service重複登録時の所有権、依存Serviceを参照できる逆順Shutdown / 破棄、二重Shutdown、
 時計の進行、Fixed Update、Draw区間計測と再初期化を共通Lifecycle Testで検査する。
+Model Importは頂点色Channel、UV、Blender変換、三角形 / Index範囲、失敗時のSnapshot保持、
+Assimp Scene解放後のGeometry所有と既存cube.objの読み込みをCPU Testで検査する。
 
 ```sh
 cmake -S . -B build-portable -DGAMEENGINE_GPU_TESTS=ON

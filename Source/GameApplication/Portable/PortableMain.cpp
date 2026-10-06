@@ -9,6 +9,7 @@
 #include "Engine/Scene/System/Job/JobSystem.h"
 #include "Engine/Scene/Registry/entityRegistry.h"
 #include "Engine/engineContext.h"
+#include "Engine/Resources/Loader/ModelGeometryFile.h"
 #include "Service/Runtime/TimeService/timeService.h"
 #include <algorithm>
 #include <filesystem>
@@ -30,7 +31,7 @@ struct Options {
     RHI::BackendType backend=RHI::BackendType::Vulkan;
 #endif
     int frames=0; uint32_t width=960,height=640; bool hidden=false,validate=false,offscreen=false;
-    std::filesystem::path shaders,capture;
+    std::filesystem::path shaders,capture,model;
 };
 Options Parse(int argc,char** argv) {
     Options o;
@@ -43,6 +44,7 @@ Options Parse(int argc,char** argv) {
         } else if(arg=="--frames") o.frames=std::stoi(value());
         else if(arg=="--width") o.width=std::stoul(value()); else if(arg=="--height") o.height=std::stoul(value());
         else if(arg=="--shaders") o.shaders=value(); else if(arg=="--capture") o.capture=value();
+        else if(arg=="--model") o.model=value();
         else if(arg=="--hidden") o.hidden=true; else if(arg=="--validate") o.validate=true;
         else if(arg=="--offscreen") o.offscreen=true;
         else throw std::invalid_argument("Unknown option: "+arg);
@@ -129,6 +131,22 @@ int main(int argc,char** argv) {
         std::cout<<"backend="<<graphics.GetBackend()->GetName()<<'\n';
         FrameRenderer renderer(*device,options.shaders); renderer.Resize(options.width,options.height); auto cube=Cube(renderer);
         EntityRegistry entities; auto objects=MakeValidationScene(entities); JobSystem jobs; jobs.Start(2);
+        Entity importedEntity;
+        std::vector<ModelGeometryRuntimeMesh> importedMeshes;
+        if(!options.model.empty()) {
+            const auto path=options.model.u8string();
+            const auto geometry=ModelGeometryImport::LoadFile(std::string(path.begin(),path.end()));
+            importedEntity=entities.Create();
+            if(!importedEntity) throw std::runtime_error("Model entity allocation failed");
+            for(const auto& mesh:geometry) {
+                std::vector<Vertex> vertices; vertices.reserve(mesh.vertices.size());
+                for(const auto& v:mesh.vertices) vertices.push_back({{v.Position.x,v.Position.y,v.Position.z},
+                    {v.Normal.x,v.Normal.y,v.Normal.z},{v.TexCoord.x,v.TexCoord.y}});
+                importedMeshes.push_back(renderer.UploadMesh(vertices,mesh.indices));
+            }
+            objects.push_back({importedEntity,{3,2,0},{.7f,.7f,.7f},{.7f,.7f,.7f,1},true});
+            std::cout<<"imported-model="<<options.model.string()<<" meshes="<<geometry.size()<<'\n';
+        }
         RenderScene scene;
         std::vector<RenderPacket> packets(objects.size());
         std::vector<std::shared_ptr<MaterialDescriptor>> materials;
@@ -148,7 +166,9 @@ int main(int argc,char** argv) {
                 auto world=Transform(object.position,object.scale); std::copy(world.begin(),world.end(),packet.transform.worldMatrix.values);
                 packet.modelMaterial.ownedDescriptor=materials[i];
             });
-            auto converted=ConvertRenderPackets(packets,scene.frame,scene.generation+1,[&](const auto&){return std::vector<ModelGeometryRuntimeMesh>{cube};});
+            auto converted=ConvertRenderPackets(packets,scene.frame,scene.generation+1,[&](const auto& packet){
+                return packet.entity==importedEntity?importedMeshes:std::vector<ModelGeometryRuntimeMesh>{cube};
+            });
             if(converted.unsupportedPackets || converted.unresolvedMeshes) throw std::runtime_error("Scene extraction failed");
             scene=std::move(converted.scene);
         };

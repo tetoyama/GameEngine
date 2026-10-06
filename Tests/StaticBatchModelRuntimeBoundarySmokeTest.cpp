@@ -65,8 +65,7 @@ void ValidateModelRuntimeBoundary(){
 	assert(modelData.find("std::vector<ModelMeshGeometryCpuData> MeshGeometry;") !=
 		std::string::npos);
 	assert(modelLoader.find("model->MeshGeometry.resize") != std::string::npos);
-	assert(modelLoader.find("geometry.vertices.resize") != std::string::npos);
-	assert(modelLoader.find("geometry.indices.resize") != std::string::npos);
+	assert(modelLoader.find("ModelGeometryImport::ExtractMesh") != std::string::npos);
 	assert(modelLoader.find("sd.pSysMem = geometry.vertices.data();") !=
 		std::string::npos);
 	assert(modelLoader.find("sd.pSysMem = geometry.indices.data();") !=
