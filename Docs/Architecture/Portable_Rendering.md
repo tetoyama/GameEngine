@@ -176,15 +176,18 @@ WindowsでD3D12 / Vulkanの描画とCompute契約が通過。
 Editor表示用のD3D11 Texture転送は、画像変化とResizeを使うGPU Testでも通過。
 Window付き表示とOffscreen経路を検証し、同じSceneの画像差も比較する。
 macOS-14 Runnerでビルド / 共通処理テスト / 梱包が成功。
-PBR接続前の2026-10-06の[配布物からのMetal実行検証](https://github.com/tetoyama/GameEngine/actions/runs/37402882487)で、
-共通描画・GPU読み戻し・Shadow / Geometry / Material / Texture / UV / Unlit / Linear出力・Resizeの検査が通過した。
+2026-10-06の[配布物からのMetal実行検証](https://github.com/tetoyama/GameEngine/actions/runs/37405549367)で、
+共通描画・GPU読み戻し・Shadow / Geometry / Material / Texture / UV / Roughness / Metallic /
+Environment / Emissive / Unlit / Linear出力・Resizeの検査が通過した。
 OffscreenとWindow付きの両方で実行し、最後のScene画像は全Byte一致した。
 Window付き実行では最終FrameのPass数が4から5へ増え、Swapchainへの合成・提出も実行されている。
 これはMac CI Runner上の検証。手元の物理Macでの操作や既存Editor全体の移植を確認した結果ではない。
-その時点の同じ診断SceneをWindows D3D12 / VulkanとMac Metalで比較したところ、
-D3D12 / Metalの平均絶対RGB差は0.00929 / 255（480×320、差が2を超えるPixelは2）だった。
+同じ診断SceneをWindows D3D12 / VulkanとMac Metalで比較したところ、
+D3D12 / Metalの平均絶対RGB差は0.03882 / 255（480×320、差が2を超えるPixelは2）だった。
 診断SceneでのPixel完全一致は成立していない。これは `_scene.scene` の比較とは別の検証。
 再検証はWorkflowの手動入力 `portable_gpu`、またはMacで上のGPU Testを実行する。
+PBR接続のCode Commit `18f34613` の[各OS / 既存Windows Editor CI](https://github.com/tetoyama/GameEngine/actions/runs/37405524694)
+と[Core Smoke](https://github.com/tetoyama/GameEngine/actions/runs/37405524962)も成功した。
 
 ## Current limits
 
