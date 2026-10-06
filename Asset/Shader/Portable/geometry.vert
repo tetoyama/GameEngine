@@ -9,7 +9,7 @@ layout(location=6) in vec4 color;
 layout(location=7) in vec2 texcoord;
 layout(location=8) in vec4 uvTransform;
 layout(location=9) in vec4 shading;
-layout(set=1,binding=0,std140) uniform Frame { mat4 viewProjection; mat4 lightViewProjection; vec4 lightDirection; vec4 lightColor; vec4 ambientColor; } frame;
+layout(set=1,binding=0,std140) uniform Frame { mat4 viewProjection; mat4 lightViewProjection; vec4 lightDirection; vec4 lightColor; vec4 ambientColor; vec4 outputTransform; } frame;
 layout(location=0) out vec3 worldPosition;
 layout(location=1) out vec3 worldNormal;
 layout(location=2) out vec4 albedo;

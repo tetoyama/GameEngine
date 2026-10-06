@@ -182,6 +182,9 @@ ID3D11ShaderResourceView* RenderSystem::RenderPortableView(const RenderPassConte
 			Rendering::LookAt({-30,50,-30},{0,0,0}));
 		frame.lightDirection = {0.4575f,-0.7625f,0.4575f,0};
 		frame.lightColor = {0,0,0,0}; frame.ambientColor = {0,0,0,0};
+		// Match the existing viewport's linear UNORM presentation. Camera
+		// post effects are not implemented by this compatibility path yet.
+		frame.outputTransform = {0,0,0,0};
 		// Reuse the Scene's existing light and transform contract. This stage
 		// supports one directional light with one shadow map, not a second
 		// independently configured lighting service.

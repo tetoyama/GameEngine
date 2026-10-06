@@ -21,6 +21,9 @@ struct FrameUniforms {
     std::array<float,4> lightDirection;
     std::array<float,4> lightColor{1.8f,1.8f,1.8f,1}; // w: cast shadow
     std::array<float,4> ambientColor{.17f,.17f,.17f,0};
+    // Diagnostic runtime uses ACES + gamma; the existing Editor without
+    // camera post effects publishes linear color to its UNORM viewport.
+    std::array<float,4> outputTransform{1,0,0,0}; // x: ACES + gamma enabled
 };
 struct RenderScene { FrameUniforms frame; std::vector<DrawItem> draws; uint64_t generation = 0; };
 struct RenderStatistics { uint32_t instances = 0, batches = 0, shadowDraws = 0, geometryDraws = 0, passes = 0; };

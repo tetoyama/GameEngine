@@ -117,7 +117,7 @@ struct FrameRenderer::Impl {
         geometryPipelines.emplace(static_cast<uint32_t>(sizeof(Vertex)),std::pair(geometryPipeline,shadowPipeline));
         fullscreen=Shader("fullscreen.vert",ShaderStage::Vertex);
         lightingPipeline=Pipeline(Fullscreen(Shader("lighting.frag",ShaderStage::Pixel,4,1),Format::RGBA16_Float));
-        tonePipeline=Pipeline(Fullscreen(Shader("tonemap.frag",ShaderStage::Pixel,1),Format::RGBA8_UNorm));
+        tonePipeline=Pipeline(Fullscreen(Shader("tonemap.frag",ShaderStage::Pixel,1,1),Format::RGBA8_UNorm));
         presentShader=Shader("present.frag",ShaderStage::Pixel,1);
     }
     Target CreateTarget(uint32_t w,uint32_t h,Format format,bool depthTarget=false) {
@@ -254,7 +254,7 @@ struct FrameRenderer::Impl {
         graph.AddPass("Deferred lighting",[&](auto& b){b.Read(ga);b.Read(gn);b.Read(gp);b.Read(gs);b.Write(gh,ResourceState::RenderTarget);},[&](auto& list){
             ScreenPass(list,hdr,lightingPipeline,{albedo.sample,normal.sample,position.sample,shadow.sample},true); ++statistics.passes;
         });
-        graph.AddPass("Tone mapping",[&](auto& b){b.Read(gh);b.Write(go,ResourceState::RenderTarget);},[&](auto& list){ScreenPass(list,output,tonePipeline,{hdr.sample}); ++statistics.passes;});
+        graph.AddPass("Output transform",[&](auto& b){b.Read(gh);b.Write(go,ResourceState::RenderTarget);},[&](auto& list){ScreenPass(list,output,tonePipeline,{hdr.sample},true); ++statistics.passes;});
         graph.AddPass("Publish output",[&](auto& b){b.Read(go);},[](auto&){});
         auto commands=device.CreateCommandList({}); Require(bool(commands),"Frame command allocation failed");
         Require(graph.Execute(*commands),"RenderGraph execution failed");

@@ -46,7 +46,7 @@ API非依存FrameRendererにはTextureViewHandleを渡す。
 2. Directional shadow (D32 depth、比較Sampler、3x3 PCF)
 3. 3-target GBuffer (albedo / normal / world position) + depth
 4. Deferred directional lighting / Unlit（SceneのDirectional Lightの向き・色・Ambient・Shadow有効性を利用）
-5. HDR tone mapping + gamma conversion
+5. 最終出力変換。診断RuntimeはHDR tone mapping + gamma、既存Editor互換経路はLinear UNORM
 6. Swapchain合成。最小化 / 非表示で取得画像がない場合は表示を省略
 
 GPUへの定数PushはCommandごとの値を保存する。Instance Bufferの更新は描画と同じ
@@ -159,6 +159,8 @@ ctest --test-dir build-portable -C Debug --output-on-failure
 
 GPU検証は、画像の変化を使ってGeometry、Material、Shadow、Resize、同一Frameの再利用を検査する。
 Texture、UV変換、Unlit切り替えも実際のGPU画像の変化で検査する。
+Linear出力はUnlitの既知色（0.25 / 0.5 / 0.75）がUNORMの64 / 128 / 191として
+出力されることを検査し、意図しないTone Mapping / Gamma変換を検出する。
 Compute書き込み / 非整列Texture幅のReadback、Shader破棄後のPipeline利用、
 Submit後のCommand wrapper破棄、Fence / Device寿命、古いHandleと異なるThreadの拒否も検査する。
 
@@ -176,7 +178,8 @@ macOS-14 Runnerでビルド / 共通処理テスト / 梱包が成功。
 
 2026-10-06に同じ `_scene.scene` Snapshot、Camera、1280×720、Stopped / dt=0でEditor Viewを比較した。
 D3D12とVulkanはRGB全Pixelが一致し、各APIの1 Frame目と3 Frame目も一致した。
-D3D11との平均絶対RGB差は40.94 / 255で、一致していない。
+D3D11との平均絶対RGB差は26.76 / 255で、一致していない。チャンネル差が2を超えるPixelは35.84%。
+既存Editor CameraはPost Effectが空のため、共通経路でもTone Mapping / Gamma変換を適用しない。
 Texture / UV / Unlit / 既存Directional Lightの接続により床と空のTextureが表示されるが、
 既存PBR / Environment Map / CSM / Post Effectとの差が残る。未対応Materialも14 Packet残る。
 この比較はMac上で既存Sceneを描いた結果ではない。

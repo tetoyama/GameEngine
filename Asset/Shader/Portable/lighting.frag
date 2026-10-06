@@ -4,7 +4,7 @@ layout(set=2,binding=0) uniform sampler2D albedoTexture;
 layout(set=2,binding=1) uniform sampler2D normalTexture;
 layout(set=2,binding=2) uniform sampler2D positionTexture;
 layout(set=2,binding=3) uniform sampler2DShadow shadowTexture;
-layout(set=3,binding=0,std140) uniform Frame { mat4 viewProjection; mat4 lightViewProjection; vec4 lightDirection; vec4 lightColor; vec4 ambientColor; } frame;
+layout(set=3,binding=0,std140) uniform Frame { mat4 viewProjection; mat4 lightViewProjection; vec4 lightDirection; vec4 lightColor; vec4 ambientColor; vec4 outputTransform; } frame;
 layout(location=0) out vec4 outColor;
 void main() {
     vec4 p = texture(positionTexture,uv);

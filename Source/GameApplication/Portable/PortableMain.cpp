@@ -178,11 +178,24 @@ int main(int argc,char** argv) {
             renderer.Render(scene,false); RHI::TextureReadback unlit;
             if(!renderer.Capture(unlit) || !Different(sliced,unlit)) throw std::runtime_error("Unlit material does not affect output");
             scene.draws=original; device->DestroyTextureView(view); device->DestroyTexture(texture);
+            for(auto& draw:scene.draws) { draw.instance.shading[0]=1; draw.instance.color={.25f,.5f,.75f,1}; }
+            scene.frame.outputTransform[0]=0;
+            renderer.Render(scene,false); RHI::TextureReadback linear;
+            if(!renderer.Capture(linear) || linear.format!=RHI::Format::RGBA8_UNorm) throw std::runtime_error("Linear viewport readback failed");
+            size_t linearPixels=0;
+            for(uint32_t y=0;y<linear.height;++y) for(uint32_t x=0;x<linear.width;++x) {
+                const auto* pixel=linear.pixels.data()+size_t(y)*linear.rowPitch+x*4;
+                if(std::abs(std::to_integer<int>(pixel[0])-64)<=1 &&
+                   std::abs(std::to_integer<int>(pixel[1])-128)<=1 &&
+                   std::abs(std::to_integer<int>(pixel[2])-191)<=1) ++linearPixels;
+            }
+            if(linearPixels<100) throw std::runtime_error("Linear viewport color was tone mapped or gamma converted");
+            scene.draws=original; scene.frame.outputTransform[0]=1;
             renderer.Resize(321,213); update(angle); renderer.Render(scene,false); RHI::TextureReadback resized;
             if(!renderer.Capture(resized) || resized.width!=321 || resized.height!=213) throw std::runtime_error("Resize/readback dimension mismatch");
             renderer.Resize(options.width,options.height); update(angle); renderer.Render(scene,!options.offscreen,false);
             if(!renderer.Capture(image)) throw std::runtime_error("Post-resize capture failed"); CheckImage(image);
-            std::cout<<"validation=passed frame-reuse, geometry, shadows, materials, textures, UV, unlit, resize, readback\n";
+            std::cout<<"validation=passed frame-reuse, geometry, shadows, materials, textures, UV, unlit, linear-output, resize, readback\n";
         }
         if(!options.capture.empty()) Save(image,options.capture);
         const auto& stats=renderer.Statistics(); auto elapsed=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();

@@ -47,6 +47,7 @@ struct Frame
     float4 lightDirection;
     float4 lightColor;
     float4 ambientColor;
+    float4 outputTransform;
 };
 
 struct main0_out
