@@ -54,7 +54,10 @@ jobs:
         run: cmake -DTARGET_PLATFORM=${{ runner.os }} -P cmake/BuildPortable.cmake
       - name: Validate Metal renderer
         if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.portable_gpu
-        run: ./portable-runtime/macOS/Release/bin/GameEnginePortable --backend metal --validate --offscreen --width 480 --height 320 --capture portable-runtime/macOS/Release/metal.ppm
+        run: |
+          ./portable-runtime/macOS/Release/bin/GameEnginePortable --backend metal --validate --offscreen --width 480 --height 320 --capture portable-runtime/macOS/Release/metal.ppm
+          ./portable-runtime/macOS/Release/bin/GameEnginePortable --backend metal --validate --width 480 --height 320 --capture portable-runtime/macOS/Release/metal-window.ppm
+          cmp portable-runtime/macOS/Release/metal.ppm portable-runtime/macOS/Release/metal-window.ppm
       - uses: actions/upload-artifact@v4
         with:
           name: portable-runtime-${{ runner.os }}
