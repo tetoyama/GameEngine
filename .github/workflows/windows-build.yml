@@ -63,6 +63,11 @@ jobs:
             echo 'Imported model did not change the GPU output' >&2
             exit 1
           fi
+          ./portable-runtime/macOS/Release/bin/GameEnginePortable --backend metal --validate --offscreen --model Asset/Model/cube.obj --texture Asset/Texture/mesh.png --width 480 --height 320 --capture portable-runtime/macOS/Release/metal-assets.ppm
+          if cmp -s portable-runtime/macOS/Release/metal-model.ppm portable-runtime/macOS/Release/metal-assets.ppm; then
+            echo 'Imported texture did not change the GPU output' >&2
+            exit 1
+          fi
       - uses: actions/upload-artifact@v4
         with:
           name: portable-runtime-${{ runner.os }}

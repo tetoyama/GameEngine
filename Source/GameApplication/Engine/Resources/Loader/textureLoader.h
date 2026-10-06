@@ -4,10 +4,14 @@
 // 
 // =======================================================================
 #pragma once
-#include "ResourceLoader.h"
-
 #include <memory>
 #include <string>
+#include <filesystem>
+#include "Engine/Resources/Data/textureData.h"
+#include "TextureImageFile.h"
+
+#ifdef _WIN32
+#include "ResourceLoader.h"
 #include <d3d11.h>
 #include <wrl/client.h>
 
@@ -73,3 +77,4 @@ inline void ResourceLoader<TextureData>::SetupLoadFunc(void* contextPtr) {
 		return LoadTextureFromFile(path, context);
 	});
 }
+#endif

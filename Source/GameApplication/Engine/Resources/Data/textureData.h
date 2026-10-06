@@ -5,24 +5,49 @@
 // =======================================================================
 #pragma once
 #include <string>
+#include "Engine/Resources/Loader/TextureImage.h"
+#ifdef _WIN32
 #include <d3d11.h>
 #include <wrl/client.h> 
 #include "Backends/DirectX11/DirectXTex.h"
+#endif
 #include "Service/Graphics/RHI/RHIInterfaces.h"
 
 // テクスチャリソースのデータを保持する構造体
 struct TextureData {
 	TextureData(){
+#ifdef _WIN32
 		OutputDebugStringA("Created TextureData\n");
+#endif
 	}
 	~TextureData(){
+#ifdef _WIN32
 		OutputDebugStringA(("Destroyed TextureData: " + FilePath + "\n").c_str());
 		pTexture.Reset();
+#endif
 		ResetRHI();
 	}
 	TextureData(const TextureData&) = delete;
 	TextureData& operator=(const TextureData&) = delete;
+	RHI::TextureViewHandle EnsureRHI(RHI::IRHIDevice& device,const TextureImage& image) {
+		if(!image.IsValid()) return {};
+		ResetRHI();
+		RHI::TextureDesc desc; desc.width=image.width; desc.height=image.height;
+		desc.initialState=RHI::ResourceState::ShaderResource; desc.debugName=FilePath;
+		auto texture=device.CreateTexture(desc,image.pixels,image.width*4);
+		if(!texture) return {};
+		RHI::TextureViewDesc view; view.texture=texture;
+		auto binding=device.CreateTextureView(view);
+		if(!binding) { device.DestroyTexture(texture); return {}; }
+		m_rhiDevice=&device; m_rhiLifetime=device.GetLifetimeToken(); m_rhiTexture=texture; m_rhiView=binding;
+		Width=static_cast<int>(image.width); Height=static_cast<int>(image.height);
+		return m_rhiView;
+	}
+	RHI::TextureViewHandle GetRHIView() const noexcept {
+		return m_rhiLifetime.expired()?RHI::TextureViewHandle{}:m_rhiView;
+	}
 
+#ifdef _WIN32
 	// Temporary editor bridge: reuse the resource already loaded by the
 	// existing ResourceService. No second texture cache or file loader.
 	// Native RHI resources belong to this TextureData and follow its lifetime.
@@ -64,15 +89,21 @@ struct TextureData {
 		m_rhiSource=pTexture;
 		return m_rhiView;
 	}
+#endif
 	void ResetRHI() noexcept {
 		if(m_rhiDevice && !m_rhiLifetime.expired()) {
 			if(m_rhiView) m_rhiDevice->DestroyTextureView(m_rhiView);
 			if(m_rhiTexture) m_rhiDevice->DestroyTexture(m_rhiTexture);
 		}
-		m_rhiDevice=nullptr; m_rhiLifetime.reset(); m_rhiTexture={}; m_rhiView={}; m_rhiSource.Reset();
+		m_rhiDevice=nullptr; m_rhiLifetime.reset(); m_rhiTexture={}; m_rhiView={};
+#ifdef _WIN32
+		m_rhiSource.Reset();
+#endif
 	}
 	std::string FilePath;
+#ifdef _WIN32
 	Microsoft::WRL::ComPtr <ID3D11ShaderResourceView> pTexture;	//ポインター
+#endif
 	int Width = 0;
 	int Height = 0;
 private:
@@ -80,5 +111,7 @@ private:
 	RHI::IRHIDevice::LifetimeToken m_rhiLifetime;
 	RHI::TextureHandle m_rhiTexture;
 	RHI::TextureViewHandle m_rhiView;
+#ifdef _WIN32
 	Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> m_rhiSource;
+#endif
 };

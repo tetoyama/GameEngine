@@ -51,6 +51,12 @@ Textureも既存ResourceService / TextureDataを再利用する。Windows Editor
 別のTexture Cache / Loaderは作らない。この読み込みBridge自体はWindows Editor専用で、
 API非依存FrameRendererにはTextureViewHandleを渡す。
 
+Native Runtimeのファイル読み込みは `LoadTextureFromFile(path, IRHIDevice&)` を使い、
+同じTextureDataがRHI TextureとViewを所有する。CPUのRGBA8画像は既に同梱されたstb_imageで
+PNG / JPEG / TGA / BMPから読み込む。`--texture path` で実ファイルをUV付きで描画できる。
+Windows既存LoaderのDirectXTex経路は維持する。DDS / HDR / 16-bit画像 / Mip chain / Cube mapの
+Native Importは未移行で、対応していない画像はエラーにする。別のTexture Cacheは追加しない。
+
 Environment Mapは既存RenderSystemが選択したTextureDataを同じBridgeで渡す。
 BRDFの純粋な計算は `Source/Shader/Material/BRDF.hlsli` を既存HLSLとPortable GLSLで共有する。
 材質Snapshotには既存MaterialDescriptorの金属度 / 粗さ / AO / 発光 / ShadowとEnvironmentのFlagsをコピーする。
@@ -172,6 +178,8 @@ Service重複登録時の所有権、依存Serviceを参照できる逆順Shutdo
 時計の進行、Fixed Update、Draw区間計測と再初期化を共通Lifecycle Testで検査する。
 Model Importは頂点色Channel、UV、Blender変換、三角形 / Index範囲、失敗時のSnapshot保持、
 Assimp Scene解放後のGeometry所有と既存cube.objの読み込みをCPU Testで検査する。
+Texture Importは既存PNG / TGA、RGBAとAlpha、上下方向、日本語ファイル名、不正ファイル、
+TextureDataによるGPU資源の所有とDevice失効後の破棄をCPU Testで検査する。
 
 ```sh
 cmake -S . -B build-portable -DGAMEENGINE_GPU_TESTS=ON
@@ -191,6 +199,8 @@ WindowsでD3D12 / Vulkanの描画とCompute契約が通過。
 Editor表示用のD3D11 Texture転送は、画像変化とResizeを使うGPU Testでも通過。
 Window付き表示とOffscreen経路を検証し、同じSceneの画像差も比較する。
 macOS-14 Runnerでビルド / 共通処理テスト / 梱包が成功。
+Assimp共有後の[Metalでの実モデル読み込み](https://github.com/tetoyama/GameEngine/actions/runs/37432334908)
+も通過。既存cube.objを読み込み、Geometryを追加した画像が変化することを検査した。
 2026-10-06の[配布物からのMetal実行検証](https://github.com/tetoyama/GameEngine/actions/runs/37405549367)で、
 共通描画・GPU読み戻し・Shadow / Geometry / Material / Texture / UV / Roughness / Metallic /
 Environment / Emissive / Unlit / Linear出力・Resizeの検査が通過した。

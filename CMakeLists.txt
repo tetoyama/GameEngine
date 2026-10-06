@@ -65,6 +65,10 @@ add_library(GameEngineCore STATIC
   Source/GameApplication/Service/Runtime/TimeService/timeService.cpp)
 target_include_directories(GameEngineCore PUBLIC Source Source/GameApplication)
 
+add_library(GameEngineAssets STATIC Source/GameApplication/Engine/Resources/Loader/TextureImage.cpp)
+target_include_directories(GameEngineAssets PUBLIC Source/GameApplication)
+target_compile_definitions(GameEngineAssets PUBLIC $<$<PLATFORM_ID:Windows>:NOMINMAX>)
+
 add_library(GameEngineRHI STATIC
   Source/GameApplication/Service/Graphics/RHI/SDL/SDLGPUBackend.cpp
   Source/GameApplication/Service/Graphics/Portable/FrameRenderer.cpp)
@@ -86,6 +90,9 @@ if(BUILD_TESTING)
   target_link_libraries(ModelGeometryImportContractTest PRIVATE assimp::assimp)
   add_test(NAME ModelGeometryImportContract COMMAND ModelGeometryImportContractTest
     "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Model/cube.obj")
+  add_executable(TextureImageContractTest Tests/TextureImageContractTest.cpp)
+  target_link_libraries(TextureImageContractTest PRIVATE GameEngineAssets)
+  add_test(NAME TextureImageContract COMMAND TextureImageContractTest "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Texture")
   add_executable(PortableRenderPacketContractTest Tests/PortableRenderPacketContractTest.cpp)
   target_include_directories(PortableRenderPacketContractTest PRIVATE
     Source/GameApplication Source/GameApplication/Engine Source/GameApplication/Engine/Scene)
@@ -111,7 +118,7 @@ endif()
 add_executable(GameEnginePortable Source/GameApplication/Portable/PortableMain.cpp)
 target_include_directories(GameEnginePortable PRIVATE
   Source/GameApplication/Engine Source/GameApplication/Engine/Scene)
-target_link_libraries(GameEnginePortable PRIVATE GameEngineRHI GameEngineCore assimp::assimp)
+target_link_libraries(GameEnginePortable PRIVATE GameEngineRHI GameEngineCore GameEngineAssets assimp::assimp)
 if(MSVC)
   target_compile_options(GameEnginePortable PRIVATE /W4 /permissive- /utf-8)
 endif()
@@ -152,6 +159,12 @@ if(BUILD_TESTING AND GAMEENGINE_GPU_TESTS)
       COMMAND GameEnginePortable --backend ${backend} --validate --offscreen
         --width 480 --height 320 --capture "${CMAKE_CURRENT_BINARY_DIR}/captures/${backend}.ppm")
     set_tests_properties(Renderer_${backend} PROPERTIES TIMEOUT 90 LABELS "gpu;manual")
+    add_test(NAME AssetRenderer_${backend}
+      COMMAND GameEnginePortable --backend ${backend} --validate --offscreen
+        --model "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Model/cube.obj"
+        --texture "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Texture/mesh.png"
+        --width 480 --height 320 --capture "${CMAKE_CURRENT_BINARY_DIR}/captures/${backend}-assets.ppm")
+    set_tests_properties(AssetRenderer_${backend} PROPERTIES TIMEOUT 90 LABELS "gpu;manual")
     add_test(NAME GPUContract_${backend} COMMAND SDLGPUContractTest ${backend} "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Shader/Portable/Compiled")
     set_tests_properties(GPUContract_${backend} PROPERTIES TIMEOUT 90 LABELS "gpu;manual")
     if(WIN32)
@@ -168,6 +181,7 @@ endif()
 install(FILES ThirdParty/SDL3-LICENSE.txt DESTINATION licenses)
 install(FILES ThirdParty/ASSIMP-LICENSE.txt DESTINATION licenses)
 install(FILES ThirdParty/ZLIB-LICENSE.txt DESTINATION licenses)
+install(FILES ThirdParty/STB-IMAGE-LICENSE.txt DESTINATION licenses)
 find_program(PORTABLE_GLSLC glslc HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
 find_program(PORTABLE_SPIRV_CROSS spirv-cross HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
 find_program(PORTABLE_DXC dxc HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
