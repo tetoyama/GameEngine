@@ -31,6 +31,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\ViewWindow.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\textureLoaderLink.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Resources\Loader\TextureImage.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\Resources\resourceServiceWindows.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\ScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\System\Script\CustomScriptSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\Scene\Script\GN31.cpp" />

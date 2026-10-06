@@ -57,6 +57,13 @@ PNG / JPEG / TGA / BMPから読み込む。`--texture path` で実ファイル�
 Windows既存LoaderのDirectXTex経路は維持する。DDS / HDR / 16-bit画像 / Mip chain / Cube mapの
 Native Importは未移行で、対応していない画像はエラーにする。別のTexture Cacheは追加しない。
 
+Native RuntimeのTextureとCPU Model Geometryの読み込みは、既存 `ResourceService` /
+`ResourceLoader` のCacheを通す。Windows専用Loader登録を別の翻訳単位へ移し、
+共通Serviceには明示的なLoader登録を追加する。Cache Key、参照中の資源保持、
+ClearUnused、Shutdownの責務は同じ。GPUを作成するLoaderはRender Threadで呼ぶ。
+既存CPU用LoadAsyncは引数を展開して同じLoad / Cache Key経路へ渡す。
+DebugLogServiceの収集・MemoryLogSinkも共通化し、ImGuiの依存はEditor側に置く。
+
 Environment Mapは既存RenderSystemが選択したTextureDataを同じBridgeで渡す。
 BRDFの純粋な計算は `Source/Shader/Material/BRDF.hlsli` を既存HLSLとPortable GLSLで共有する。
 材質Snapshotには既存MaterialDescriptorの金属度 / 粗さ / AO / 発光 / ShadowとEnvironmentのFlagsをコピーする。
@@ -180,6 +187,8 @@ Model Importは頂点色Channel、UV、Blender変換、三角形 / Index範囲�
 Assimp Scene解放後のGeometry所有と既存cube.objの読み込みをCPU Testで検査する。
 Texture Importは既存PNG / TGA、RGBAとAlpha、上下方向、日本語ファイル名、不正ファイル、
 TextureDataによるGPU資源の所有とDevice失効後の破棄をCPU Testで検査する。
+Resource Serviceは重複登録の拒否、同じPath / ArgsのCache identity、引数別Cache、
+CPU Asyncの引数伝達、失敗Load、外部参照保持、未使用GPU資源の解放、ログと再初期化を検査する。
 
 ```sh
 cmake -S . -B build-portable -DGAMEENGINE_GPU_TESTS=ON

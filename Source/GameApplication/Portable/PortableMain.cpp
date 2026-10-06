@@ -11,6 +11,7 @@
 #include "Engine/engineContext.h"
 #include "Engine/Resources/Loader/ModelGeometryFile.h"
 #include "Engine/Resources/Loader/TextureImageFile.h"
+#include "Engine/Resources/resourceService.h"
 #include "Service/Runtime/TimeService/timeService.h"
 #include <algorithm>
 #include <filesystem>
@@ -123,6 +124,7 @@ int main(int argc,char** argv) {
         if(!options.offscreen) { window.reset(SDL_CreateWindow("GameEngine | portable renderer",int(options.width),int(options.height),SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY|(options.hidden?SDL_WINDOW_HIDDEN:0))); if(!window) throw std::runtime_error(SDL_GetError()); }
         EngineContext context;
         struct ShutdownServices { EngineContext& context; ~ShutdownServices(){ context.Shutdown(); } } shutdown{context};
+        auto& log=*context.Emplace<DebugLogService>(); log.Initialize();
         auto& graphics=*context.Emplace<RHI::RenderHardwareInterfaceService>();
         auto& time=*context.Emplace<TimeService>();
         if(!RHI::RegisterSDLGPUBackends(graphics.GetRegistry()) || !graphics.SelectBackend(options.backend)) throw std::runtime_error(std::string("Unsupported GPU backend: ")+SDL_GetError());
@@ -130,11 +132,21 @@ int main(int argc,char** argv) {
         dd.enableDebugLayer=options.validate;
         if(!graphics.AdoptDevice(graphics.GetBackend()->CreateDevice(dd))) throw std::runtime_error(std::string("GPU creation failed: ")+SDL_GetError());
         auto* device=graphics.GetDevice();
+        auto& resources=*context.Emplace<ResourceService>(); resources.InitializeNative(&log);
+        using GeometryList=std::vector<ModelGeometryImport::Geometry>;
+        if(!resources.RegisterLoader<TextureData>([device](const std::string& path,std::shared_ptr<void>) {
+            return LoadTextureFromFile(std::filesystem::path(std::u8string(path.begin(),path.end())),*device);
+        }) || !resources.RegisterLoader<GeometryList>([](const std::string& path,std::shared_ptr<void> args) {
+            const auto request=std::static_pointer_cast<std::tuple<bool>>(args);
+            return std::make_shared<GeometryList>(ModelGeometryImport::LoadFile(path,std::get<0>(*request)));
+        })) throw std::runtime_error("Native resource loader registration failed");
         std::cout<<"backend="<<graphics.GetBackend()->GetName()<<'\n';
         FrameRenderer renderer(*device,options.shaders); renderer.Resize(options.width,options.height); auto cube=Cube(renderer);
         std::shared_ptr<TextureData> importedTexture;
         if(!options.texture.empty()) {
-            importedTexture=LoadTextureFromFile(options.texture,*device);
+            const auto utf8=options.texture.u8string();
+            importedTexture=resources.Load<TextureData>(std::string(utf8.begin(),utf8.end()));
+            if(!importedTexture) throw std::runtime_error("Native texture resource load failed");
             std::cout<<"imported-texture="<<importedTexture->FilePath<<" size="<<importedTexture->Width<<'x'<<importedTexture->Height<<'\n';
         }
         EntityRegistry entities; auto objects=MakeValidationScene(entities); JobSystem jobs; jobs.Start(2);
@@ -142,17 +154,18 @@ int main(int argc,char** argv) {
         std::vector<ModelGeometryRuntimeMesh> importedMeshes;
         if(!options.model.empty()) {
             const auto path=options.model.u8string();
-            const auto geometry=ModelGeometryImport::LoadFile(std::string(path.begin(),path.end()));
+            const auto geometry=resources.Load<GeometryList>(std::string(path.begin(),path.end()),false);
+            if(!geometry) throw std::runtime_error("Native model resource load failed");
             importedEntity=entities.Create();
             if(!importedEntity) throw std::runtime_error("Model entity allocation failed");
-            for(const auto& mesh:geometry) {
+            for(const auto& mesh:*geometry) {
                 std::vector<Vertex> vertices; vertices.reserve(mesh.vertices.size());
                 for(const auto& v:mesh.vertices) vertices.push_back({{v.Position.x,v.Position.y,v.Position.z},
                     {v.Normal.x,v.Normal.y,v.Normal.z},{v.TexCoord.x,v.TexCoord.y}});
                 importedMeshes.push_back(renderer.UploadMesh(vertices,mesh.indices));
             }
             objects.push_back({importedEntity,{3,2,0},{.7f,.7f,.7f},{.7f,.7f,.7f,1},true});
-            std::cout<<"imported-model="<<options.model.string()<<" meshes="<<geometry.size()<<'\n';
+            std::cout<<"imported-model="<<options.model.string()<<" meshes="<<geometry->size()<<'\n';
         }
         RenderScene scene;
         std::vector<RenderPacket> packets(objects.size());

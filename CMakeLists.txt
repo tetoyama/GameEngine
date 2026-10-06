@@ -62,12 +62,16 @@ endif()
 
 add_library(GameEngineCore STATIC
   Source/GameApplication/Engine/engineContextLifecycle.cpp
+  Source/GameApplication/Service/DebugTools/DebugSystem.cpp
   Source/GameApplication/Service/Runtime/TimeService/timeService.cpp)
 target_include_directories(GameEngineCore PUBLIC Source Source/GameApplication)
 
-add_library(GameEngineAssets STATIC Source/GameApplication/Engine/Resources/Loader/TextureImage.cpp)
+add_library(GameEngineAssets STATIC
+  Source/GameApplication/Engine/Resources/Loader/TextureImage.cpp
+  Source/GameApplication/Engine/Resources/resourceService.cpp)
 target_include_directories(GameEngineAssets PUBLIC Source/GameApplication)
 target_compile_definitions(GameEngineAssets PUBLIC $<$<PLATFORM_ID:Windows>:NOMINMAX>)
+target_link_libraries(GameEngineAssets PUBLIC GameEngineCore)
 
 add_library(GameEngineRHI STATIC
   Source/GameApplication/Service/Graphics/RHI/SDL/SDLGPUBackend.cpp
@@ -93,6 +97,9 @@ if(BUILD_TESTING)
   add_executable(TextureImageContractTest Tests/TextureImageContractTest.cpp)
   target_link_libraries(TextureImageContractTest PRIVATE GameEngineAssets)
   add_test(NAME TextureImageContract COMMAND TextureImageContractTest "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Texture")
+  add_executable(ResourceServiceContractTest Tests/ResourceServiceContractTest.cpp)
+  target_link_libraries(ResourceServiceContractTest PRIVATE GameEngineAssets)
+  add_test(NAME ResourceServiceContract COMMAND ResourceServiceContractTest "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Texture")
   add_executable(PortableRenderPacketContractTest Tests/PortableRenderPacketContractTest.cpp)
   target_include_directories(PortableRenderPacketContractTest PRIVATE
     Source/GameApplication Source/GameApplication/Engine Source/GameApplication/Engine/Scene)

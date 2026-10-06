@@ -9,10 +9,16 @@
 #include <iomanip>
 #include <sstream>
 #include <unordered_set>
-#include <ImGui/imgui_internal.h>
+#ifdef _WIN32
+#include <Windows.h>
+#endif
 
 void DebugLog(std::string Message){
+#ifdef _WIN32
 	OutputDebugStringA(Message.c_str());
+#else
+	std::clog << Message;
+#endif
 }
 
 void DebugLogService::Initialize(){
@@ -53,7 +59,17 @@ void DebugLogService::Log(LogLevel level,
 	entry.file = file;
 	entry.line = line;
 	entry.timestamp = std::chrono::system_clock::now();
-	OutputDebugStringW((Utf8ToWide(message) +L"\n").c_str());
+#ifdef _WIN32
+	const int size=MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, message.c_str(), -1, nullptr, 0);
+	if(size>0) {
+		std::wstring wide(static_cast<size_t>(size), L'\0');
+		if(MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, message.c_str(), -1, wide.data(), size)>0) {
+			wide.back()=L'\n'; OutputDebugStringW(wide.c_str());
+		}
+	} else OutputDebugStringA((message+"\n").c_str());
+#else
+	std::clog << message << '\n';
+#endif
 
 	std::lock_guard<std::mutex> lock(mutex);
 	for(const auto& sink : sinks){

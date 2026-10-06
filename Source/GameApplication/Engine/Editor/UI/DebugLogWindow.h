@@ -6,6 +6,7 @@
 #pragma once
 #include "Editor/InterFace/IEditorUI.h"
 #include "Service/DebugTools/DebugSystem.h"
+#include "Backends/ImGui/imgui.h"
 
 #include <algorithm>
 #include <array>
