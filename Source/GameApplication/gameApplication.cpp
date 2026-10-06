@@ -101,7 +101,7 @@ int GameApplication::Run(int argc, char** argv) {
     auto device = backend.CreateDevice(description);
     if(!device) throw std::runtime_error(SDL_GetError());
 
-    // Preview geometry uses the existing 60-byte model vertex layout.
+    // Use the engine model vertex type; there is no separate portable layout.
     // The application owns these buffers; FrameRenderer only borrows their handles.
     struct MeshOwner {
         RHI::IRHIDevice& device;
@@ -112,16 +112,16 @@ int GameApplication::Run(int argc, char** argv) {
             if(mesh.vertexBuffer) device.DestroyBuffer(mesh.vertexBuffer);
         }
     } geometry{*device, {}};
-    const std::array<std::array<float, 15>, 3> vertices{{
-        {-.7f,-.7f,.5f, 0,0,-1, 1,0,0, 1,1,1,1, 0,0},
-        { .7f,-.7f,.5f, 0,0,-1, 1,0,0, 1,1,1,1, 1,0},
-        {   0, .7f,.5f, 0,0,-1, 1,0,0, 1,1,1,1, .5f,1}}};
+    const std::array<VERTEX_3D, 3> vertices{{
+        {{-.7f,-.7f,.5f}, {0,0,-1}, {1,0,0}, {1,1,1,1}, {0,0}},
+        {{ .7f,-.7f,.5f}, {0,0,-1}, {1,0,0}, {1,1,1,1}, {1,0}},
+        {{   0, .7f,.5f}, {0,0,-1}, {1,0,0}, {1,1,1,1}, {.5f,1}}}};
     const std::array<uint32_t, 3> indices{0,1,2};
-    RHI::BufferDesc buffer; buffer.byteSize = sizeof(vertices); buffer.stride = 60; buffer.bindFlags = RHI::BufferBindFlags::Vertex;
+    RHI::BufferDesc buffer; buffer.byteSize = sizeof(vertices); buffer.stride = sizeof(VERTEX_3D); buffer.bindFlags = RHI::BufferBindFlags::Vertex;
     geometry.mesh.vertexBuffer = device->CreateBuffer(buffer, std::as_bytes(std::span(vertices)));
     buffer.byteSize = sizeof(indices); buffer.stride = sizeof(uint32_t); buffer.bindFlags = RHI::BufferBindFlags::Index;
     geometry.mesh.indexBuffer = device->CreateBuffer(buffer, std::as_bytes(std::span(indices)));
-    geometry.mesh.vertexStride = 60; geometry.mesh.vertexCount = geometry.mesh.indexCount = 3;
+    geometry.mesh.vertexStride = sizeof(VERTEX_3D); geometry.mesh.vertexCount = geometry.mesh.indexCount = 3;
     if(!geometry.mesh.IsReady()) throw std::runtime_error("Preview geometry creation failed");
     const char* base = SDL_GetBasePath();
     const auto shaders = std::filesystem::path(std::u8string(reinterpret_cast<const char8_t*>(base ? base : ""))) / "shaders";

@@ -95,6 +95,8 @@ Visual Studioは従来のWindows Editorを、CMakeは各OSの描画プレビュ�
 - Editorのサービス登録・終了順は従来の `EngineContext`。
 - ファイル読み込み・キャッシュは従来の `ResourceService` / Loader。
 - モデルGPU Bufferは従来の `ModelGeometryRuntimeStorage`。
+  頂点型は既存 `Shader/common.hlsl` の `VERTEX_3D`。Strideと属性Offsetは `sizeof` / `offsetof` で取得する。
+  macOSもWindows SDKと同じDirectXMath 3.19の型を使用する。固定HashのHeaderだけを取得し、別の数学層・頂点型は追加しない。
 - テクスチャGPU資源は `TextureData`。既存DX11 Textureを必要時に選択APIへ転送する。
 - `RenderSystem` が既存RenderPacketから描画データを作る。別のScene・Asset管理は追加しない。
 - `FrameRenderer` はモデルBufferと材質TextureのHandleを参照する。

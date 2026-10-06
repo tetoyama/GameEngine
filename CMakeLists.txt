@@ -31,9 +31,32 @@ add_executable(GameEnginePortable
   Source/GameApplication/gameApplication.cpp
   Source/GameApplication/Service/Graphics/RHI/SDL/SDLGPUBackend.cpp
   Source/GameApplication/Service/Graphics/Portable/FrameRenderer.cpp)
-target_include_directories(GameEnginePortable PRIVATE Source/GameApplication)
+target_include_directories(GameEnginePortable PRIVATE Source Source/GameApplication)
 target_compile_definitions(GameEnginePortable PRIVATE GAMEENGINE_PORTABLE)
 target_link_libraries(GameEnginePortable PRIVATE SDL3::SDL3)
+# Reuse the engine's DirectXMath 3.19 types on native non-Windows builds.
+# Headers only: do not bring in DirectXMath's own build/install/test targets.
+if(NOT WIN32)
+  include(FetchContent)
+  FetchContent_Declare(directxmath
+    URL https://codeload.github.com/microsoft/DirectXMath/tar.gz/58f045a6caaaad6ce15049bba3cd075ed419c85e
+    URL_HASH SHA256=ebe7943f3078a53bf38214b7a5b81ab83007615de3d59fa730d673fa1873159a
+    DOWNLOAD_EXTRACT_TIMESTAMP TRUE SOURCE_SUBDIR Inc)
+  FetchContent_MakeAvailable(directxmath)
+  set(sal_include "${CMAKE_CURRENT_BINARY_DIR}/directxmath-sal")
+  file(MAKE_DIRECTORY "${sal_include}")
+  file(DOWNLOAD
+    https://raw.githubusercontent.com/dotnet/corert/9d8bd29a71f68941aaa2c00e9c9a0eed86cafa10/src/Native/inc/unix/sal.h
+    "${sal_include}/sal.h" TLS_VERIFY ON
+    EXPECTED_HASH SHA256=bb9ea7c1d05cdfc10a17fe80d87a7cd160c1063c7e5fa089cd6405c31c610a1b)
+  file(DOWNLOAD
+    https://raw.githubusercontent.com/dotnet/corert/9d8bd29a71f68941aaa2c00e9c9a0eed86cafa10/LICENSE.TXT
+    "${sal_include}/SAL-LICENSE.txt" TLS_VERIFY ON
+    EXPECTED_HASH SHA256=18647d26bc4c4d892a5fd29de1264d10906b3124cafa98313300ff300441c7f0)
+  target_include_directories(GameEnginePortable SYSTEM PRIVATE "${directxmath_SOURCE_DIR}/Inc" "${sal_include}")
+  install(FILES "${directxmath_SOURCE_DIR}/LICENSE" DESTINATION licenses RENAME DirectXMath-LICENSE.txt)
+  install(FILES "${sal_include}/SAL-LICENSE.txt" DESTINATION licenses)
+endif()
 if(MSVC)
   target_compile_options(GameEnginePortable PRIVATE /W4 /permissive-)
 else()

@@ -1,4 +1,5 @@
 #pragma once
+#include "Shader/common.hlsl"
 #include <array>
 #include <cstdint>
 #include <vector>

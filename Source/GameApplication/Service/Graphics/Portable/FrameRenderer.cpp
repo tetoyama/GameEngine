@@ -1,6 +1,7 @@
 #include "FrameRenderer.h"
 #include "Service/Graphics/RHI/RHIRenderGraph.h"
 #include <algorithm>
+#include <cstddef>
 #include <fstream>
 #include <stdexcept>
 #include <cmath>
@@ -95,11 +96,11 @@ struct FrameRenderer::Impl {
         geo.renderTargets.colorAttachmentCount=5;
         for(uint32_t index=0;index<5;++index) geo.renderTargets.colorFormats[index]=Format::RGBA16_Float;
         geo.renderTargets.depthStencilFormat=Format::D32_Float;
-        geo.inputLayout={{"TEXCOORD",0,Format::RGB32_Float,0,0,false,0,0},{"TEXCOORD",1,Format::RGB32_Float,0,12,false,0,1}};
+        geo.inputLayout={{"TEXCOORD",0,Format::RGB32_Float,0,offsetof(VERTEX_3D,Position),false,0,0},{"TEXCOORD",1,Format::RGB32_Float,0,offsetof(VERTEX_3D,Normal),false,0,1}};
         for(uint32_t i=0;i<5;++i) geo.inputLayout.push_back({"TEXCOORD",i+2,Format::RGBA32_Float,1,i*16,true,1,i+2});
-        geo.inputLayout.push_back({"TEXCOORD",7,Format::RG32_Float,0,52,false,0,7});
+        geo.inputLayout.push_back({"TEXCOORD",7,Format::RG32_Float,0,offsetof(VERTEX_3D,TexCoord),false,0,7});
         for(uint32_t i=0;i<4;++i) geo.inputLayout.push_back({"TEXCOORD",8+i,Format::RGBA32_Float,1,80+i*16,true,1,8+i});
-        geo.vertexBuffers={{0,60,false},{1,sizeof(Instance),true}};
+        geo.vertexBuffers={{0,sizeof(VERTEX_3D),false},{1,sizeof(Instance),true}};
         geometryPipeline=Pipeline(geo);
         auto shadowDesc=geo; shadowDesc.vertexShader=Shader("shadow.vert",ShaderStage::Vertex,0,1);
         shadowDesc.pixelShader=Shader("shadow.frag",ShaderStage::Pixel); shadowDesc.renderTargets.colorAttachmentCount=0;
@@ -180,7 +181,7 @@ struct FrameRenderer::Impl {
         for(const auto& d:draws) {
             const auto* vertices=device.GetBufferDesc(d.mesh.vertexBuffer);
             const auto* indices=device.GetBufferDesc(d.mesh.indexBuffer);
-            Require(d.mesh.IsReady() && d.mesh.vertexStride==60 && vertices && indices &&
+            Require(d.mesh.IsReady() && d.mesh.vertexStride==sizeof(VERTEX_3D) && vertices && indices &&
                 uint64_t(d.mesh.vertexCount)*d.mesh.vertexStride<=vertices->byteSize &&
                 uint64_t(d.mesh.indexCount)*(d.mesh.indexFormat==IndexFormat::UInt16?2:4)<=indices->byteSize,"Invalid geometry runtime binding");
             for(float v:d.instance.world) Require(std::isfinite(v),"Nonfinite instance matrix");
