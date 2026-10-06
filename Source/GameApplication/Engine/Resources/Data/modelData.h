@@ -9,9 +9,11 @@
 #include <string>
 #include <vector>
 #include <unordered_map>
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 #include <d3d11.h>
+#endif
 #include <DirectXMath.h>
-#include "Shader/Common.hlsl"
+#include "Shader/common.hlsl"
 
 #include "assimp/cimport.h"
 #include "assimp/scene.h"
@@ -84,11 +86,15 @@ struct ModelMeshGeometryCpuData {
 struct ModelData {
 public:
 	ModelData(){
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 		OutputDebugStringA(("Created ModelData " + FilePath + "\n").c_str());
+#endif
 	}
 
 	~ModelData(){
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 		OutputDebugStringA(("Destroyed ModelData " + FilePath + "\n").c_str());
+#endif
 		Release();
 	}
 
@@ -192,9 +198,11 @@ public:
 	}
 
 	// Legacy通常描画互換。生成・所有は段階的にRenderSystem/RHIへ移す。
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 	std::vector<ID3D11Buffer*> VertexBuffer;
 	std::vector<ID3D11Buffer*> IndexBuffer;
 	std::unordered_map<std::string, ID3D11ShaderResourceView*> m_Texture;
+#endif
 
 	std::vector<BONE> m_Bones;
 	std::unordered_map<std::string, uint32_t> m_BoneIndexMap;
@@ -203,6 +211,7 @@ public:
 	std::unordered_map<std::string, AnimationData> m_Animation;
 	std::vector<DEFORM_VERTEX>* m_DeformVertex = nullptr;
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 	std::vector<ID3D11Buffer*> m_SkinInputBuffer;
 	std::vector<ID3D11ShaderResourceView*> m_SkinInputSRV;
 	std::vector<ID3D11Buffer*> m_SkinOutputUAVBuffer;
@@ -217,6 +226,7 @@ public:
 		GraphicsContext* ctx,
 		std::vector<ID3D11Buffer*>& dynamicVertexBuffers
 	);
+#endif
 
 	void CreateBone(aiNode* Node);
 	void UpdateBoneMatrix(aiNode* Node, aiMatrix4x4 Parent);

@@ -29,11 +29,36 @@ endif()
 add_executable(GameEnginePortable
   Source/main.cpp
   Source/GameApplication/gameApplication.cpp
+  Source/GameApplication/Engine/Resources/Data/modelData.cpp
   Source/GameApplication/Service/Graphics/RHI/SDL/SDLGPUBackend.cpp
   Source/GameApplication/Service/Graphics/Portable/FrameRenderer.cpp)
-target_include_directories(GameEnginePortable PRIVATE Source Source/GameApplication)
+target_include_directories(GameEnginePortable PRIVATE
+  Source Source/GameApplication Source/GameApplication/Engine Source/GameApplication/Engine/Scene)
 target_compile_definitions(GameEnginePortable PRIVATE GAMEENGINE_PORTABLE)
 target_link_libraries(GameEnginePortable PRIVATE SDL3::SDL3)
+# Use the existing ModelLoader and ModelData with the engine's Assimp version.
+include(FetchContent)
+set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
+set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
+set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
+set(ASSIMP_BUILD_ZLIB ON CACHE BOOL "" FORCE)
+set(CMAKE_POLICY_DEFAULT_CMP0175 OLD)
+FetchContent_Declare(assimp
+  URL https://codeload.github.com/assimp/assimp/tar.gz/refs/tags/v5.2.0
+  URL_HASH SHA256=18723edbea249ea11e02f62e040869e6a733cd2e969e96da02c101c62677f72d
+  DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
+FetchContent_MakeAvailable(assimp)
+if(MSVC)
+  target_compile_options(assimp PRIVATE /WX-)
+else()
+  target_compile_options(assimp PRIVATE -include stddef.h -Wno-error)
+endif()
+target_link_libraries(GameEnginePortable PRIVATE assimp)
+install(FILES "${assimp_SOURCE_DIR}/LICENSE" DESTINATION licenses RENAME Assimp-LICENSE.txt)
+install(FILES "${assimp_SOURCE_DIR}/contrib/zlib/README" DESTINATION licenses RENAME Zlib-README.txt)
 # Reuse the engine's DirectXMath 3.19 types on native non-Windows builds.
 # Headers only: do not bring in DirectXMath's own build/install/test targets.
 if(NOT WIN32)

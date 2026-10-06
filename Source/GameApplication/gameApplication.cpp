@@ -49,6 +49,8 @@ int GameApplication::Run(HINSTANCE hInstance, int nCmdShow){
 #include <SDL3/SDL_main.h>
 #include "Service/Graphics/RHI/SDL/SDLGPUBackend.h"
 #include "Service/Graphics/Portable/FrameRenderer.h"
+#include "Engine/Resources/Loader/modelLoader.h"
+#include "Engine/Scene/System/Render/Model/ModelGeometryRuntimeStorage.h"
 #include <fstream>
 #include <stdexcept>
 #include <string>
@@ -65,7 +67,7 @@ int GameApplication::Run(int argc, char** argv) {
     int frames = 0;
     uint32_t width = 960, height = 640;
     bool offscreen = false, hidden = false;
-    std::filesystem::path capture;
+    std::filesystem::path capture, modelPath;
     for(int i = 1; i < argc; ++i) {
         const std::string option = argv[i];
         auto value = [&]() { if(++i >= argc) throw std::invalid_argument("Missing value for " + option); return std::string(argv[i]); };
@@ -79,6 +81,7 @@ int GameApplication::Run(int argc, char** argv) {
         else if(option == "--width") width = std::stoul(value());
         else if(option == "--height") height = std::stoul(value());
         else if(option == "--capture") capture = value();
+        else if(option == "--model") modelPath = value();
         else if(option == "--offscreen") offscreen = true;
         else if(option == "--hidden") hidden = true;
         else throw std::invalid_argument("Unknown option: " + option);
@@ -101,38 +104,53 @@ int GameApplication::Run(int argc, char** argv) {
     auto device = backend.CreateDevice(description);
     if(!device) throw std::runtime_error(SDL_GetError());
 
-    // Use the engine model vertex type; there is no separate portable layout.
-    // The application owns these buffers; FrameRenderer only borrows their handles.
-    struct MeshOwner {
-        RHI::IRHIDevice& device;
-        ModelGeometryRuntimeMesh mesh;
-        ~MeshOwner() {
-            device.WaitIdle();
-            if(mesh.indexBuffer) device.DestroyBuffer(mesh.indexBuffer);
-            if(mesh.vertexBuffer) device.DestroyBuffer(mesh.vertexBuffer);
-        }
-    } geometry{*device, {}};
-    const std::array<VERTEX_3D, 3> vertices{{
-        {{-.7f,-.7f,.5f}, {0,0,-1}, {1,0,0}, {1,1,1,1}, {0,0}},
-        {{ .7f,-.7f,.5f}, {0,0,-1}, {1,0,0}, {1,1,1,1}, {1,0}},
-        {{   0, .7f,.5f}, {0,0,-1}, {1,0,0}, {1,1,1,1}, {.5f,1}}}};
-    const std::array<uint32_t, 3> indices{0,1,2};
-    RHI::BufferDesc buffer; buffer.byteSize = sizeof(vertices); buffer.stride = sizeof(VERTEX_3D); buffer.bindFlags = RHI::BufferBindFlags::Vertex;
-    geometry.mesh.vertexBuffer = device->CreateBuffer(buffer, std::as_bytes(std::span(vertices)));
-    buffer.byteSize = sizeof(indices); buffer.stride = sizeof(uint32_t); buffer.bindFlags = RHI::BufferBindFlags::Index;
-    geometry.mesh.indexBuffer = device->CreateBuffer(buffer, std::as_bytes(std::span(indices)));
-    geometry.mesh.vertexStride = sizeof(VERTEX_3D); geometry.mesh.vertexCount = geometry.mesh.indexCount = 3;
-    if(!geometry.mesh.IsReady()) throw std::runtime_error("Preview geometry creation failed");
+    // ModelData owns the CPU source; the existing runtime storage owns GPU geometry.
+    // FrameRenderer only borrows the runtime handles.
+    auto model = modelPath.empty() ? std::make_shared<ModelData>() :
+        LoadModelFromFile(modelPath.string(), false, nullptr);
+    if(!model) throw std::runtime_error("Model import failed: " + modelPath.string());
+    if(modelPath.empty()) {
+        ModelMeshGeometryCpuData source;
+        source.vertices = {
+            {{-.7f,-.7f,.5f}, {0,0,-1}, {1,0,0}, {1,1,1,1}, {0,0}},
+            {{ .7f,-.7f,.5f}, {0,0,-1}, {1,0,0}, {1,1,1,1}, {1,0}},
+            {{   0, .7f,.5f}, {0,0,-1}, {1,0,0}, {1,1,1,1}, {.5f,1}}};
+        source.indices = {0,1,2};
+        model->MeshGeometry.push_back(std::move(source));
+    }
+    ModelGeometryRuntimeStorage geometry;
+    RenderPacket packet; packet.kind = RenderPacketKind::Model; packet.modelResource = model;
+    geometry.Synchronize(*device, std::span(&packet, 1), 1);
+    const auto* runtime = geometry.Find(model.get());
+    if(!runtime || !runtime->IsReady()) throw std::runtime_error("Model geometry creation failed");
     const char* base = SDL_GetBasePath();
     const auto shaders = std::filesystem::path(std::u8string(reinterpret_cast<const char8_t*>(base ? base : ""))) / "shaders";
     Rendering::FrameRenderer renderer(*device, shaders);
     Rendering::RenderScene scene;
     const Rendering::Matrix identity{1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1};
+    auto world = identity;
+    if(!modelPath.empty()) {
+        auto minimum = model->MeshGeometry.front().vertices.front().Position;
+        auto maximum = minimum;
+        for(const auto& mesh : model->MeshGeometry) for(const auto& vertex : mesh.vertices) {
+            minimum.x = (std::min)(minimum.x, vertex.Position.x); maximum.x = (std::max)(maximum.x, vertex.Position.x);
+            minimum.y = (std::min)(minimum.y, vertex.Position.y); maximum.y = (std::max)(maximum.y, vertex.Position.y);
+            minimum.z = (std::min)(minimum.z, vertex.Position.z); maximum.z = (std::max)(maximum.z, vertex.Position.z);
+        }
+        const float extent = (std::max)({maximum.x-minimum.x, maximum.y-minimum.y, maximum.z-minimum.z, .001f});
+        const float scale = .8f / extent;
+        world[0] = world[5] = world[10] = scale;
+        world[12] = -(minimum.x+maximum.x)*.5f*scale;
+        world[13] = -(minimum.y+maximum.y)*.5f*scale;
+        world[14] = .5f-(minimum.z+maximum.z)*.5f*scale;
+    }
     scene.frame.viewProjection = scene.frame.lightViewProjection = identity;
     scene.frame.lightDirection = {0,0,-1,0};
-    Rendering::DrawItem draw; draw.mesh = geometry.mesh; draw.instance.world = identity;
-    draw.instance.color = {.11f,.48f,.75f,1}; draw.instance.shading[0] = 1; draw.castsShadow = false;
-    scene.draws.push_back(draw);
+    for(size_t mesh = 0; mesh < runtime->MeshCount(); ++mesh) {
+        Rendering::DrawItem draw; draw.mesh = *runtime->Mesh(mesh); draw.instance.world = world;
+        draw.instance.color = {.11f,.48f,.75f,1}; draw.instance.shading[0] = 1; draw.castsShadow = false;
+        scene.draws.push_back(draw);
+    }
     for(int frame = 0; !frames || frame < frames; ++frame) {
         SDL_Event event;
         while(SDL_PollEvent(&event))

@@ -4,23 +4,23 @@
 // 
 // =======================================================================
 #pragma once
-#include "ResourceLoader.h"
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
+#include "resourceLoader.h"
+#include "Graphics/graphicsContext.h"
+#include "Backends/DirectX11/DirectXTex.h"
+#pragma comment (lib, "assimp-vc143-mt.lib")
+#endif
 
 #include <memory>
 #include <string>
 #include <filesystem>
 
 #include "Resources/Data/modelData.h"
-#include "Graphics/graphicsContext.h"
-
-#include "Backends/DirectX11/DirectXTex.h"
 #include "Backends/Assimp/material.h"
 #include "Backends/Assimp/scene.h"
 #include "Backends/Assimp/cimport.h"
 #include "Backends/Assimp/postprocess.h"
 #include "Backends/Assimp/matrix4x4.h"
-
-#pragma comment (lib, "assimp-vc143-mt.lib")
 
 #include <cassert>
 
@@ -39,8 +39,12 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 	}
 
 	model->MeshGeometry.resize(model->AiScene->mNumMeshes);
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 	model->VertexBuffer.resize(model->AiScene->mNumMeshes);
 	model->IndexBuffer.resize(model->AiScene->mNumMeshes);
+#else
+	(void)context;
+#endif
 
 	//変形後頂点配列生成
 	model->m_DeformVertex = new std::vector<DEFORM_VERTEX>[model->AiScene->mNumMeshes];
@@ -119,6 +123,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 			}
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 			D3D11_BUFFER_DESC bd = {};
 			bd.Usage = D3D11_USAGE_DYNAMIC;
 			bd.ByteWidth = sizeof(VERTEX_3D) * mesh->mNumVertices;
@@ -129,6 +134,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			sd.pSysMem = geometry.vertices.data();
 
 			context->GetDevice()->CreateBuffer(&bd, &sd, &model->VertexBuffer[m]);
+#endif
 		}
 		if (hasBones) {
 
@@ -153,6 +159,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 				index[f * 3 + 2] = face->mIndices[2];
 			}
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 			D3D11_BUFFER_DESC bd = {};
 
 			bd.Usage = D3D11_USAGE_DEFAULT;
@@ -165,6 +172,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			sd.pSysMem = geometry.indices.data();
 
 			context->GetDevice()->CreateBuffer(&bd, &sd, &model->IndexBuffer[m]);
+#endif
 		}
 
 		//変形後頂点データ初期化
@@ -219,6 +227,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 	}
 
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 	if(model->AiScene->mNumTextures > 0){
 		model->SetTexture = true;
 
@@ -362,6 +371,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			}
 		}
 	}
+#endif
 	if (hasBones && model->AiScene->HasAnimations()) {
 		for (unsigned int i = 0; i < model->AiScene->mNumAnimations; i++) {
 
@@ -380,10 +390,13 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			model->m_Animation[animName] = animationData;
 		}
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 		model->CreateSkinningBuffers(context);
+#endif
 	}
 	return model;
 }
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 template<>
 inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr) {
 	OutputDebugStringA("SetupLoadFunc ModelData called\n");
@@ -401,3 +414,4 @@ inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr) {
 		return LoadModelFromFile(path, isBlender, context);
 	});
 }
+#endif

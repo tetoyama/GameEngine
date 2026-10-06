@@ -128,7 +128,11 @@ cmake -DTARGET_PLATFORM=macOS -P cmake/BuildPortable.cmake
 ```
 
 CMakeは実行ファイル1つを作る。デモ専用のService登録・Asset Loader・テストターゲットは持たない。
-描画プレビューは最小限の起動と三角形の表示だけを行う。
+描画プレビューは最小限の起動と三角形の表示を行う。
+`--model Asset/Model/player.obj` で既存のModelLoader / ModelDataから読み込み、
+既存のModelGeometryRuntimeStorageがGPU Bufferを所有する。別のモデルCacheは持たない。
+CPU側の読み込み・Animationデータは共有し、DX11 Buffer / Texture / GPU Skinningの処理だけを
+Windows Editor用の条件付きコンパイルにする。ネイティブプレビューのTexture・Animation描画は未対応。
 GPU描画の手動確認では `--backend d3d12|vulkan|metal --frames 2 --offscreen --capture image.ppm` を使える。
 
 共通GLSLからSPIR-V / DXIL / MSLを生成する。3形式は各APIで実行するために必要。
