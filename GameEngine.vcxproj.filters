@@ -2510,9 +2510,6 @@
     <ClCompile Include="Source\GameApplication\Engine\engineContext.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>
-    <ClCompile Include="Source\GameApplication\Engine\engineContextLifecycle.cpp">
-      <Filter>ソース ファイル</Filter>
-    </ClCompile>
     <ClCompile Include="Source\GameApplication\Engine\engine.cpp">
       <Filter>ソース ファイル</Filter>
     </ClCompile>

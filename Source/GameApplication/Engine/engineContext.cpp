@@ -80,3 +80,21 @@ std::unique_ptr<EngineContext> EngineContextBuilder::Build(){
 
 	return context;
 }
+
+void EngineContext::Shutdown(){
+	for(auto iterator = m_serviceOrder.rbegin();
+		iterator != m_serviceOrder.rend();
+		++iterator){
+		auto found = m_services.find(*iterator);
+		if(found != m_services.end() && found->second){
+			found->second->Shutdown();
+		}
+	}
+
+	for(auto iterator = m_serviceOrder.rbegin();
+		iterator != m_serviceOrder.rend();
+		++iterator){
+		m_services.erase(*iterator);
+	}
+	m_serviceOrder.clear();
+}

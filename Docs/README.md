@@ -25,7 +25,6 @@ Archive内の文書は当時の判断や実装経緯を残すためのもので�
 ### Engine Architecture
 - [ECS and Scheduling](Architecture/ECS_and_Scheduling.md)
 - [Rendering](Architecture/Rendering.md)
-- [Portable rendering / Windows, macOS, Linux](Architecture/Portable_Rendering.md)
 - [Scripting and Physics](Architecture/Scripting_and_Physics.md)
 - [RenderPipeline Graph Design](Architecture/RenderPipelineGraph_Design.md)
 

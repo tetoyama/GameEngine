@@ -11,7 +11,6 @@
 #include <filesystem>
 
 #include "Resources/Data/modelData.h"
-#include "ModelGeometryFile.h"
 #include "Graphics/graphicsContext.h"
 
 #include "Backends/DirectX11/DirectXTex.h"
@@ -32,7 +31,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 	model->FilePath = path;
 	model->SetTexture = false;
 	model->isBlender = isBlender;
-	model->AiScene = ModelGeometryImport::ImportScene(path).release();
+	model->AiScene = aiImportFile(path.c_str(), aiProcessPreset_TargetRealtime_MaxQuality | aiProcess_ConvertToLeftHanded /* | aiProcess_GenBoundingBoxes */);
 
 	if(!model->AiScene){
 		model.reset();
@@ -64,16 +63,62 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 		aiMesh* mesh = model->AiScene->mMeshes[m];
 		ModelMeshGeometryCpuData& geometry = model->MeshGeometry[m];
 
-        if(!ModelGeometryImport::ExtractMesh(*mesh,isBlender,geometry)) return nullptr;
-        for(const auto& p:geometry.vertices) {
-            if(m==0 && &p==geometry.vertices.data()) { Min={p.Position.x,p.Position.y,p.Position.z}; Max=Min; }
-            else {
-                Min.x=(std::min)(p.Position.x,Min.x); Min.y=(std::min)(p.Position.y,Min.y); Min.z=(std::min)(p.Position.z,Min.z);
-                Max.x=(std::max)(p.Position.x,Max.x); Max.y=(std::max)(p.Position.y,Max.y); Max.z=(std::max)(p.Position.z,Max.z);
-            }
-        }
-        // Native buffers use exactly the CPU snapshot shared with other backends.
-        {
+		// Backend非依存CPU頂点を生成し、既存D3D11 Bufferと将来のRHI Runtimeで共有する。
+		{
+			geometry.vertices.resize(mesh->mNumVertices);
+			VERTEX_3D* vertex = geometry.vertices.data();
+
+			for(unsigned int v = 0; v < mesh->mNumVertices; v++){
+
+				if(mesh->HasPositions()){
+					if(isBlender){
+						vertex[v].Position = DirectX::XMFLOAT3(mesh->mVertices[v].x, -mesh->mVertices[v].z, mesh->mVertices[v].y);
+
+					} else{
+						vertex[v].Position = DirectX::XMFLOAT3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
+					}
+				} else{
+					vertex[v].Position = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+				}
+				const auto& position = vertex[v].Position;
+				if(v == 0 && m == 0) Min = Max = position;
+				else {
+					Min.x = (std::min)(position.x, Min.x); Min.y = (std::min)(position.y, Min.y); Min.z = (std::min)(position.z, Min.z);
+					Max.x = (std::max)(position.x, Max.x); Max.y = (std::max)(position.y, Max.y); Max.z = (std::max)(position.z, Max.z);
+				}
+				if(mesh->HasNormals()){
+					if(isBlender){
+						vertex[v].Normal = DirectX::XMFLOAT3(mesh->mNormals[v].x, -mesh->mNormals[v].z, mesh->mNormals[v].y);
+					} else{
+						vertex[v].Normal = DirectX::XMFLOAT3(mesh->mNormals[v].x, mesh->mNormals[v].y, mesh->mNormals[v].z);
+					}
+				} else{
+					vertex[v].Normal = DirectX::XMFLOAT3(1.0f, 1.0f, 1.0f);
+				}
+				if(mesh->HasTangentsAndBitangents()){
+					if(isBlender){
+						vertex[v].Tangent = DirectX::XMFLOAT3(mesh->mTangents[v].x, -mesh->mTangents[v].z, mesh->mTangents[v].y);
+					} else{
+						vertex[v].Tangent = DirectX::XMFLOAT3(mesh->mTangents[v].x, mesh->mTangents[v].y, mesh->mTangents[v].z);
+					}
+				} else{
+					vertex[v].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
+				}
+				if(mesh->HasVertexColors(0)){
+					vertex[v].Diffuse = DirectX::XMFLOAT4(mesh->mColors[0][v].r, mesh->mColors[0][v].g, mesh->mColors[0][v].b, mesh->mColors[0][v].a);
+				} else{
+					vertex[v].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
+				}
+
+				if(mesh->HasTextureCoords(0)){
+					vertex[v].TexCoord = DirectX::XMFLOAT2(mesh->mTextureCoords[0][v].x, mesh->mTextureCoords[0][v].y);
+				} else{
+					vertex[v].TexCoord = DirectX::XMFLOAT2(0.0f, 0.0f);
+				}
+
+
+			}
+
 			D3D11_BUFFER_DESC bd = {};
 			bd.Usage = D3D11_USAGE_DYNAMIC;
 			bd.ByteWidth = sizeof(VERTEX_3D) * mesh->mNumVertices;
@@ -95,6 +140,19 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 		// Backend非依存CPU Indexを生成し、既存D3D11 Bufferと将来のRHI Runtimeで共有する。
 		{
+			geometry.indices.resize(static_cast<std::size_t>(mesh->mNumFaces) * 3u);
+			std::uint32_t* index = geometry.indices.data();
+
+			for (unsigned int f = 0; f < mesh->mNumFaces; f++) {
+				const aiFace* face = &mesh->mFaces[f];
+
+				//assert(face->mNumIndices == 3);
+
+				index[f * 3 + 0] = face->mIndices[0];
+				index[f * 3 + 1] = face->mIndices[1];
+				index[f * 3 + 2] = face->mIndices[2];
+			}
+
 			D3D11_BUFFER_DESC bd = {};
 
 			bd.Usage = D3D11_USAGE_DEFAULT;

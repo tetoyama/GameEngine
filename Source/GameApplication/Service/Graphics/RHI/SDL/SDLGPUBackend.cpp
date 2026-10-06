@@ -155,13 +155,10 @@ struct Sampler { SamplerDesc desc; std::shared_ptr<SDL_GPUSampler> native; };
 struct Shader {
     ShaderDesc desc;
     std::shared_ptr<SDL_GPUShader> native;
-    std::vector<std::byte> computeCode;
-    SDL_GPUShaderFormat format;
 };
 struct Pipeline {
     PipelineStateDesc desc;
     std::shared_ptr<SDL_GPUGraphicsPipeline> graphics;
-    std::shared_ptr<SDL_GPUComputePipeline> compute;
     std::vector<VertexBufferLayoutDesc> layouts;
     std::array<ShaderDesc, 3> shaderDescriptions;
 };
@@ -273,7 +270,7 @@ public:
         m_capabilities.maximumConstantBufferSize = 16384;
         m_capabilities.maximumVertexBufferSlots = 16;
         m_capabilities.maximumShaderResourceSlots = 16;
-        m_capabilities.supportsCompute = true;
+        m_capabilities.supportsCompute = false;
         // Geometry/tessellation/multiple explicit queues are deliberately not
         // advertised: SDL's portable feature set does not implement those APIs.
     }
@@ -499,12 +496,12 @@ SamplerHandle GPUDevice::CreateSampler(const SamplerDesc& desc) {
 }
 ShaderHandle GPUDevice::CreateShader(const ShaderDesc& desc, std::span<const std::byte> bytes) {
     if (bytes.empty() || desc.entryPoint.empty() || desc.sampledTextures > 16 || desc.storageBuffers > 8 ||
-        desc.storageTextures > 8 || desc.uniformBuffers > 4 || desc.writableStorageBuffers > 8 || desc.writableStorageTextures > 8 ||
-        desc.sampledTextures + desc.storageTextures + desc.writableStorageTextures > 16) return {};
+        desc.storageTextures > 8 || desc.uniformBuffers > 4 ||
+        desc.sampledTextures + desc.storageTextures > 16) return {};
     const auto expected = m_backend == BackendType::Vulkan ? ShaderDesc::CodeFormat::SPIRV :
         m_backend == BackendType::Direct3D12 ? ShaderDesc::CodeFormat::DXIL : ShaderDesc::CodeFormat::MetalSource;
     if (desc.codeFormat != expected && desc.codeFormat != ShaderDesc::CodeFormat::BackendNative) return {};
-    if (static_cast<size_t>(desc.stage) >= 3) return {};
+    if (desc.stage != ShaderStage::Vertex && desc.stage != ShaderStage::Pixel) return {};
     if (m_backend == BackendType::Vulkan) {
         uint32_t magic = 0;
         if (bytes.size() < 20 || bytes.size() % 4) return {};
@@ -512,45 +509,21 @@ ShaderHandle GPUDevice::CreateShader(const ShaderDesc& desc, std::span<const std
         if (magic != 0x07230203u) return {};
     }
     if (m_backend == BackendType::Metal && bytes.back() != std::byte{0}) return {};
-    Shader result{desc, {}, {}, ShaderFormat(m_backend)};
-    if (desc.stage == ShaderStage::Compute) {
-        if (!desc.threadGroupSize[0] || !desc.threadGroupSize[1] || !desc.threadGroupSize[2] ||
-            uint64_t(desc.threadGroupSize[0])*desc.threadGroupSize[1]*desc.threadGroupSize[2] > 1024) return {};
-        result.computeCode.assign(bytes.begin(), bytes.end());
-    } else {
-        if (desc.writableStorageBuffers || desc.writableStorageTextures || desc.storageTextures) return {};
-        SDL_GPUShaderCreateInfo info{};
-        info.code = reinterpret_cast<const Uint8*>(bytes.data()); info.code_size = bytes.size();
-        info.entrypoint = desc.entryPoint.c_str(); info.format = result.format;
-        info.stage = desc.stage == ShaderStage::Vertex ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
-        info.num_samplers = desc.sampledTextures; info.num_storage_textures = desc.storageTextures;
-        info.num_storage_buffers = desc.storageBuffers; info.num_uniform_buffers = desc.uniformBuffers;
-        auto* native = SDL_CreateGPUShader(gpu, &info);
-        if (!native) return {};
-        result.native = {native, [d = gpu](auto* p) { SDL_ReleaseGPUShader(d, p); }};
-    }
+    if (desc.storageTextures) return {};
+    Shader result{desc, {}};
+    SDL_GPUShaderCreateInfo info{};
+    info.code = reinterpret_cast<const Uint8*>(bytes.data()); info.code_size = bytes.size();
+    info.entrypoint = desc.entryPoint.c_str(); info.format = ShaderFormat(m_backend);
+    info.stage = desc.stage == ShaderStage::Vertex ? SDL_GPU_SHADERSTAGE_VERTEX : SDL_GPU_SHADERSTAGE_FRAGMENT;
+    info.num_samplers = desc.sampledTextures; info.num_storage_buffers = desc.storageBuffers; info.num_uniform_buffers = desc.uniformBuffers;
+    auto* native = SDL_CreateGPUShader(gpu, &info);
+    if (!native) return {};
+    result.native = {native, [d = gpu](auto* p) { SDL_ReleaseGPUShader(d, p); }};
     return shaders.Create(std::move(result));
 }
 PipelineStateHandle GPUDevice::CreatePipelineState(const PipelineStateDesc& desc) {
-    Pipeline result{desc, {}, {}, {}, {}};
-    if (desc.computeShader) {
-        auto* shader = shaders.TryGet(desc.computeShader);
-        if (!shader || shader->desc.stage != ShaderStage::Compute || desc.vertexShader || desc.pixelShader) return {};
-        result.shaderDescriptions[2] = shader->desc;
-        SDL_GPUComputePipelineCreateInfo info{};
-        info.code = reinterpret_cast<const Uint8*>(shader->computeCode.data()); info.code_size = shader->computeCode.size();
-        info.entrypoint = shader->desc.entryPoint.c_str(); info.format = shader->format;
-        info.num_samplers = shader->desc.sampledTextures; info.num_readonly_storage_textures = shader->desc.storageTextures;
-        info.num_readonly_storage_buffers = shader->desc.storageBuffers;
-        info.num_readwrite_storage_textures = shader->desc.writableStorageTextures;
-        info.num_readwrite_storage_buffers = shader->desc.writableStorageBuffers;
-        info.num_uniform_buffers = shader->desc.uniformBuffers;
-        info.threadcount_x = shader->desc.threadGroupSize[0]; info.threadcount_y = shader->desc.threadGroupSize[1]; info.threadcount_z = shader->desc.threadGroupSize[2];
-        auto* native = SDL_CreateGPUComputePipeline(gpu, &info);
-        if (!native) return {};
-        result.compute = {native, [d = gpu](auto* p) { SDL_ReleaseGPUComputePipeline(d, p); }};
-        return pipelines.Create(std::move(result));
-    }
+    if (desc.computeShader) return {};
+    Pipeline result{desc, {}, {}, {}};
     auto* vertex = shaders.TryGet(desc.vertexShader); auto* fragment = shaders.TryGet(desc.pixelShader);
     if (!vertex || !fragment || vertex->desc.stage != ShaderStage::Vertex || fragment->desc.stage != ShaderStage::Pixel ||
         desc.renderTargets.colorAttachmentCount > 8 || desc.renderTargets.sampleCount != 1 || desc.blend.alphaToCoverageEnable || desc.rasterizer.scissorEnable) return {};
@@ -712,7 +685,7 @@ void CommandList::EndRenderPass() { if (m_pass && !m_lifetime.expired()) SDL_End
 bool CommandList::SetPipelineState(PipelineStateHandle h) {
     if (!Ready()) return false;
     auto* pipeline = m_device.pipelines.TryGet(h);
-    if (!pipeline || (m_pass && !pipeline->graphics) || (!m_pass && !pipeline->compute)) return false;
+    if (!pipeline || !m_pass || !pipeline->graphics) return false;
     if (m_pass) {
         const auto& targets = pipeline->desc.renderTargets;
         if (targets.colorAttachmentCount != m_colorFormats.size() || targets.depthStencilFormat != m_depthFormat) return false;
@@ -795,7 +768,6 @@ bool CommandList::BindResources(ShaderStage stage) {
     if (!bindings.empty()) {
         if (stage == ShaderStage::Vertex) SDL_BindGPUVertexSamplers(m_pass, 0, bindings.data(), static_cast<uint32_t>(bindings.size()));
         else if (stage == ShaderStage::Pixel) SDL_BindGPUFragmentSamplers(m_pass, 0, bindings.data(), static_cast<uint32_t>(bindings.size()));
-        // Compute resources are bound after BeginGPUComputePass in Dispatch.
     }
     if (stage != ShaderStage::Compute) {
         std::vector<SDL_GPUBuffer*> storage;
@@ -831,46 +803,8 @@ bool CommandList::DrawIndexedInstanced(uint32_t count, uint32_t instances, uint3
     if (!m_indexBound || first > m_indexCapacity || count > m_indexCapacity-first || !CanDraw()) return false;
     SDL_DrawGPUIndexedPrimitives(m_pass, count, instances, first, offset, firstInstance); return true;
 }
-void CommandList::Dispatch(uint32_t x, uint32_t y, uint32_t z) {
-    if (!Ready() || m_pass || !x || !y || !z) throw std::runtime_error("Invalid RHI compute dispatch");
-    auto* pipeline = m_device.pipelines.TryGet(m_pipeline);
-    if (!pipeline || !pipeline->compute) throw std::runtime_error("Missing compute pipeline");
-    const auto& shader = pipeline->shaderDescriptions[2];
-    for (uint32_t slot = 0; slot < shader.uniformBuffers; ++slot) if (!m_uniformBound[2][slot]) throw std::runtime_error("Missing compute uniforms");
-    // Slot order is readonly buffers followed by writable buffers. Textures use
-    // sampled slots followed by readonly storage and writable storage textures.
-    std::vector<SDL_GPUBuffer*> readBuffers;
-    std::vector<SDL_GPUStorageBufferReadWriteBinding> writeBuffers;
-    std::vector<SDL_GPUTexture*> readTextures;
-    std::vector<SDL_GPUStorageTextureReadWriteBinding> writeTextures;
-    std::vector<SDL_GPUTextureSamplerBinding> samplers;
-    const size_t stage = static_cast<size_t>(ShaderStage::Compute);
-    for (uint32_t slot = 0; slot < shader.storageBuffers + shader.writableStorageBuffers; ++slot) {
-        auto* view = m_device.bufferViews.TryGet(m_buffers[stage][slot]);
-        auto* buffer = view ? m_device.buffers.TryGet(view->desc.buffer) : nullptr;
-        bool write = slot >= shader.storageBuffers;
-        if (!buffer || !buffer->native || view->desc.type != (write ? BufferViewType::UnorderedAccess : BufferViewType::ShaderResource)) throw std::runtime_error("Invalid compute storage buffer");
-        if (write) writeBuffers.push_back({buffer->native.get(), false, 0, 0, 0}); else readBuffers.push_back(buffer->native.get());
-    }
-    for (uint32_t slot = 0; slot < shader.sampledTextures + shader.storageTextures + shader.writableStorageTextures; ++slot) {
-        auto* view = m_device.textureViews.TryGet(m_textures[stage][slot]); auto* texture = view ? m_device.textures.TryGet(view->desc.texture) : nullptr;
-        if (!texture || !texture->Get()) throw std::runtime_error("Invalid compute texture");
-        if (slot < shader.sampledTextures) {
-            auto* sampler = m_device.samplers.TryGet(m_samplers[stage][slot]);
-            if (!sampler || view->desc.type != TextureViewType::ShaderResource) throw std::runtime_error("Invalid compute sampler");
-            samplers.push_back({texture->Get(), sampler->native.get()});
-        } else if (slot < shader.sampledTextures + shader.storageTextures) readTextures.push_back(texture->Get());
-        else {
-            if (view->desc.type != TextureViewType::UnorderedAccess) throw std::runtime_error("Invalid compute output texture");
-            SDL_GPUStorageTextureReadWriteBinding binding{}; binding.texture = texture->Get(); writeTextures.push_back(binding);
-        }
-    }
-    auto* compute = SDL_BeginGPUComputePass(m_command, writeTextures.data(), static_cast<uint32_t>(writeTextures.size()), writeBuffers.data(), static_cast<uint32_t>(writeBuffers.size()));
-    SDL_BindGPUComputePipeline(compute, pipeline->compute.get());
-    if (!samplers.empty()) SDL_BindGPUComputeSamplers(compute, 0, samplers.data(), static_cast<uint32_t>(samplers.size()));
-    if (!readTextures.empty()) SDL_BindGPUComputeStorageTextures(compute, 0, readTextures.data(), static_cast<uint32_t>(readTextures.size()));
-    if (!readBuffers.empty()) SDL_BindGPUComputeStorageBuffers(compute, 0, readBuffers.data(), static_cast<uint32_t>(readBuffers.size()));
-    SDL_DispatchGPUCompute(compute, x, y, z); SDL_EndGPUComputePass(compute);
+void CommandList::Dispatch(uint32_t, uint32_t, uint32_t) {
+    throw std::runtime_error("SDL GPU backend compute support is not implemented");
 }
 
 bool SwapChain::AcquireNextImage(IRHICommandList& list) {

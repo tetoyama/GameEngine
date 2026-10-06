@@ -9,36 +9,20 @@
 #include <memory>
 #include <functional>
 #include <typeinfo>
-#ifdef _WIN32
 #include <Windows.h>
-#else
-#include <iostream>
-#endif
 #include <sstream>
 #include <mutex>
 #include <future>
 #include <exception>
-#include <tuple>
-#include <utility>
 
 #include "IResourceLoader.h"
-
-namespace ResourceLoaderDetail {
-inline void Trace(const char* message) {
-#ifdef _WIN32
-    OutputDebugStringA(message);
-#else
-    std::clog << message;
-#endif
-}
-}
 
 // 汎用リソースローダーのテンプレートクラス
 template<typename T>
 class ResourceLoader : public IResourceLoader {
 public:
     virtual ~ResourceLoader() {
-        ResourceLoaderDetail::Trace("ResourceLoader destroyed\n");
+        OutputDebugStringA("ResourceLoader destroyed\n");
         if (!m_Cache.empty()) {
             DumpCacheState();
         }
@@ -64,26 +48,26 @@ public:
 
             auto result = m_LoadFunc(path, argsTuple);
             if (result) {
-                ResourceLoaderDetail::Trace("Load Success: ");
-                ResourceLoaderDetail::Trace(cacheKey.c_str());
-                ResourceLoaderDetail::Trace("\n");
+                OutputDebugStringA("Load Success: ");
+                OutputDebugStringA(cacheKey.c_str());
+                OutputDebugStringA("\n");
 
                 std::lock_guard<std::mutex> lock(m_mutex);
                 m_Cache[cacheKey] = result;
             } else {
-                ResourceLoaderDetail::Trace("Load FAILED: ");
-                ResourceLoaderDetail::Trace(cacheKey.c_str());
-                ResourceLoaderDetail::Trace("\n");
+                OutputDebugStringA("Load FAILED: ");
+                OutputDebugStringA(cacheKey.c_str());
+                OutputDebugStringA("\n");
             }
 
             return result;
         }
         catch (const std::exception& e) {
-            ResourceLoaderDetail::Trace(("Load exception: " + std::string(e.what()) + "\n").c_str());
+            OutputDebugStringA(("Load exception: " + std::string(e.what()) + "\n").c_str());
             return nullptr;
         }
         catch (...) {
-            ResourceLoaderDetail::Trace("Load unknown exception\n");
+            OutputDebugStringA("Load unknown exception\n");
             return nullptr;
         }
     }
@@ -92,10 +76,7 @@ public:
     template<typename... Args>
     std::future<std::shared_ptr<T>> LoadAsync(const std::string& path, Args&&... args) {
         return std::async(std::launch::async, [this, path, argsTuple = std::make_tuple(std::forward<Args>(args)...)]() mutable {
-            // The loader must remain alive until the returned future finishes.
-            return std::apply([this,&path](auto&&... unpacked) {
-                return this->Load(path,std::forward<decltype(unpacked)>(unpacked)...);
-            },std::move(argsTuple));
+            return this->Load(path, argsTuple);
         });
     }
 
@@ -107,7 +88,7 @@ public:
         return typeid(T);
     }
 
-    virtual void SetupLoadFunc(void* /*contextPtr*/) override {
+    virtual void SetupLoadFunc(void* contextPtr) override {
         // 特殊化で実装
     }
 
@@ -124,12 +105,12 @@ public:
         if (it != m_Cache.end()) {
             if (it->second.use_count() == 1) {
                 m_Cache.erase(it);
-                ResourceLoaderDetail::Trace("Unloaded resource: ");
+                OutputDebugStringA("Unloaded resource: ");
             } else {
-                ResourceLoaderDetail::Trace("Cannot unload: still in use: ");
+                OutputDebugStringA("Cannot unload: still in use: ");
             }
-            ResourceLoaderDetail::Trace(cacheKey.c_str());
-            ResourceLoaderDetail::Trace("\n");
+            OutputDebugStringA(cacheKey.c_str());
+            OutputDebugStringA("\n");
         }
     }
 
@@ -138,10 +119,10 @@ public:
         for (auto it = m_Cache.begin(); it != m_Cache.end(); ) {
             if (it->first.rfind(path + ":", 0) == 0) {
                 if (it->second.use_count() == 1) {
-                    ResourceLoaderDetail::Trace(("Unloaded: " + it->first + "\n").c_str());
+                    OutputDebugStringA(("Unloaded: " + it->first + "\n").c_str());
                     it = m_Cache.erase(it);
                 } else {
-                    ResourceLoaderDetail::Trace(("Still in use: " + it->first + "\n").c_str());
+                    OutputDebugStringA(("Still in use: " + it->first + "\n").c_str());
                     ++it;
                 }
             } else {
@@ -161,14 +142,14 @@ public:
     }
 
     void DumpCacheState() const override {
-        ResourceLoaderDetail::Trace("DumpCacheState\n");
+        OutputDebugStringA("DumpCacheState\n");
         std::lock_guard<std::mutex> lock(m_mutex);
         if (m_Cache.empty()) {
-            ResourceLoaderDetail::Trace("  Cache is empty\n");
+            OutputDebugStringA("  Cache is empty\n");
         }
         for (const auto& [key, ptr] : m_Cache) {
             std::string msg = key + ", use_count = " + std::to_string(ptr.use_count()) + "\n";
-            ResourceLoaderDetail::Trace(msg.c_str());
+            OutputDebugStringA(msg.c_str());
         }
     }
 

@@ -2,9 +2,7 @@
 #include "Service/Graphics/RHI/RHIRenderGraph.h"
 #include <algorithm>
 #include <fstream>
-#include <map>
 #include <stdexcept>
-#include <limits>
 #include <cmath>
 #include <tuple>
 namespace Rendering {
@@ -28,9 +26,6 @@ struct FrameRenderer::Impl {
     std::filesystem::path shaderDirectory;
     std::vector<ShaderHandle> shaders;
     std::vector<PipelineStateHandle> pipelines;
-    std::vector<ModelGeometryRuntimeMesh> ownedMeshes;
-    std::map<uint32_t,std::pair<PipelineStateHandle,PipelineStateHandle>> geometryPipelines;
-    PipelineStateDesc geometryDescription,shadowDescription;
     uint32_t width=0,height=0,instanceCapacity=0;
     BufferHandle frameBuffer,instanceBuffer;
     SamplerHandle sampler,shadowSampler,materialSampler;
@@ -47,7 +42,6 @@ struct FrameRenderer::Impl {
     ~Impl() {
         if(deviceLifetime.expired()) return;
         device.WaitIdle(); DestroyTargets();
-        for(auto mesh:ownedMeshes) { device.DestroyBuffer(mesh.vertexBuffer); device.DestroyBuffer(mesh.indexBuffer); }
         for(auto p:pipelines) device.DestroyPipelineState(p);
         for(auto s:shaders) device.DestroyShader(s);
         if(sampler) device.DestroySampler(sampler);
@@ -104,17 +98,15 @@ struct FrameRenderer::Impl {
         geo.renderTargets.depthStencilFormat=Format::D32_Float;
         geo.inputLayout={{"TEXCOORD",0,Format::RGB32_Float,0,0,false,0,0},{"TEXCOORD",1,Format::RGB32_Float,0,12,false,0,1}};
         for(uint32_t i=0;i<5;++i) geo.inputLayout.push_back({"TEXCOORD",i+2,Format::RGBA32_Float,1,i*16,true,1,i+2});
-        geo.inputLayout.push_back({"TEXCOORD",7,Format::RG32_Float,0,offsetof(Vertex,uv),false,0,7});
+        geo.inputLayout.push_back({"TEXCOORD",7,Format::RG32_Float,0,52,false,0,7});
         for(uint32_t i=0;i<4;++i) geo.inputLayout.push_back({"TEXCOORD",8+i,Format::RGBA32_Float,1,80+i*16,true,1,8+i});
-        geo.vertexBuffers={{0,sizeof(Vertex),false},{1,sizeof(Instance),true}};
+        geo.vertexBuffers={{0,60,false},{1,sizeof(Instance),true}};
         geometryPipeline=Pipeline(geo);
         auto shadowDesc=geo; shadowDesc.vertexShader=Shader("shadow.vert",ShaderStage::Vertex,0,1);
         shadowDesc.pixelShader=Shader("shadow.frag",ShaderStage::Pixel); shadowDesc.renderTargets.colorAttachmentCount=0;
         // Explicit locations preserve the shader ABI even with unused attributes.
         std::erase_if(shadowDesc.inputLayout,[](const auto& item){return item.location!=0 && (item.location<2 || item.location>5);});
         shadowPipeline=Pipeline(shadowDesc);
-        geometryDescription=geo; shadowDescription=shadowDesc;
-        geometryPipelines.emplace(static_cast<uint32_t>(sizeof(Vertex)),std::pair(geometryPipeline,shadowPipeline));
         fullscreen=Shader("fullscreen.vert",ShaderStage::Vertex);
         lightingPipeline=Pipeline(Fullscreen(Shader("lighting.frag",ShaderStage::Pixel,7,1),Format::RGBA16_Float));
         tonePipeline=Pipeline(Fullscreen(Shader("tonemap.frag",ShaderStage::Pixel,1,1),Format::RGBA8_UNorm));
@@ -156,8 +148,7 @@ struct FrameRenderer::Impl {
         for(auto batch:batches) {
             if(shadows && !batch.shadow) continue;
             const auto& mesh=batch.mesh;
-            auto pipeline=geometryPipelines.at(mesh.vertexStride);
-            Require(list.SetPipelineState(shadows?pipeline.second:pipeline.first),"Geometry pipeline binding failed");
+            Require(list.SetPipelineState(shadows?shadowPipeline:geometryPipeline),"Geometry pipeline binding failed");
             if(!shadows) {
                 const auto texture=batch.albedoTexture?batch.albedoTexture:white.sample;
                 Require(list.SetTextureView(ShaderStage::Pixel,0,texture) && list.SetSampler(ShaderStage::Pixel,0,materialSampler),"Material texture binding failed");
@@ -191,19 +182,9 @@ struct FrameRenderer::Impl {
         for(const auto& d:draws) {
             const auto* vertices=device.GetBufferDesc(d.mesh.vertexBuffer);
             const auto* indices=device.GetBufferDesc(d.mesh.indexBuffer);
-            Require(d.mesh.IsReady() && d.mesh.vertexStride>=sizeof(Vertex) && vertices && indices &&
+            Require(d.mesh.IsReady() && d.mesh.vertexStride==60 && vertices && indices &&
                 uint64_t(d.mesh.vertexCount)*d.mesh.vertexStride<=vertices->byteSize &&
                 uint64_t(d.mesh.indexCount)*(d.mesh.indexFormat==IndexFormat::UInt16?2:4)<=indices->byteSize,"Invalid geometry runtime binding");
-            if(!geometryPipelines.contains(d.mesh.vertexStride)) {
-                auto geo=geometryDescription,shade=shadowDescription;
-                geo.vertexBuffers[0].stride=shade.vertexBuffers[0].stride=d.mesh.vertexStride;
-                // Existing VERTEX_3D: position / normal / tangent / color / UV.
-                // Generated diagnostic Vertex has UV immediately after normal.
-                if(d.mesh.vertexStride==60) {
-                    for(auto& item:geo.inputLayout) if(item.location==7) item.alignedByteOffset=52;
-                } else Require(d.mesh.vertexStride==sizeof(Vertex),"Unsupported vertex UV layout");
-                geometryPipelines.emplace(d.mesh.vertexStride,std::pair(Pipeline(geo),Pipeline(shade)));
-            }
             for(float v:d.instance.world) Require(std::isfinite(v),"Nonfinite instance matrix");
         }
         auto key=[](const DrawItem& d){ return std::tuple(d.mesh.vertexBuffer.index,d.mesh.vertexBuffer.generation,d.mesh.indexBuffer.index,d.mesh.indexBuffer.generation,d.mesh.vertexStride,d.mesh.indexFormat,d.mesh.indexCount,d.castsShadow,d.albedoTexture.index,d.albedoTexture.generation); };
@@ -298,23 +279,6 @@ struct FrameRenderer::Impl {
 };
 FrameRenderer::FrameRenderer(IRHIDevice& d,std::filesystem::path p):m_impl(std::make_unique<Impl>(d,std::move(p))) { m_impl->Initialize(); }
 FrameRenderer::~FrameRenderer()=default;
-ModelGeometryRuntimeMesh FrameRenderer::UploadMesh(std::span<const Vertex> vertices,std::span<const uint32_t> indices) {
-    Require(!vertices.empty() && !indices.empty() && indices.size()%3==0,"Mesh must contain indexed triangles");
-    Require(vertices.size_bytes()<=UINT32_MAX && indices.size_bytes()<=UINT32_MAX,"Mesh too large");
-    for(auto index:indices) Require(index<vertices.size(),"Mesh index out of range");
-    m_impl->WaitFrame(); BufferDesc bd; bd.byteSize=static_cast<uint32_t>(vertices.size_bytes()); bd.stride=sizeof(Vertex); bd.bindFlags=BufferBindFlags::Vertex;
-    ModelGeometryRuntimeMesh mesh; mesh.vertexBuffer=m_impl->device.CreateBuffer(bd,Bytes(vertices)); Require(bool(mesh.vertexBuffer),"Vertex upload failed");
-    bd.byteSize=static_cast<uint32_t>(indices.size_bytes()); bd.bindFlags=BufferBindFlags::Index; bd.stride=sizeof(uint32_t);
-    mesh.indexBuffer=m_impl->device.CreateBuffer(bd,Bytes(indices));
-    if(!mesh.indexBuffer) { m_impl->device.DestroyBuffer(mesh.vertexBuffer); throw std::runtime_error("Index upload failed"); }
-    mesh.indexCount=static_cast<uint32_t>(indices.size()); mesh.vertexCount=static_cast<uint32_t>(vertices.size()); mesh.vertexStride=sizeof(Vertex);
-    m_impl->ownedMeshes.push_back(mesh); return mesh;
-}
-bool FrameRenderer::RemoveMesh(const ModelGeometryRuntimeMesh& mesh) {
-    auto i=std::find_if(m_impl->ownedMeshes.begin(),m_impl->ownedMeshes.end(),[&](const auto& m){return m.vertexBuffer==mesh.vertexBuffer && m.indexBuffer==mesh.indexBuffer;});
-    if(i==m_impl->ownedMeshes.end()) return false;
-    m_impl->WaitFrame(); m_impl->device.DestroyBuffer(i->vertexBuffer); m_impl->device.DestroyBuffer(i->indexBuffer); m_impl->ownedMeshes.erase(i); return true;
-}
 void FrameRenderer::Resize(uint32_t w,uint32_t h) { m_impl->Resize(w,h); }
 void FrameRenderer::Render(const RenderScene& s,bool p,bool v) { m_impl->Render(s,p,v); }
 bool FrameRenderer::Capture(TextureReadback& result,uint64_t timeout) { m_impl->WaitFrame(); return m_impl->device.ReadTexture(m_impl->output.texture,result,timeout); }

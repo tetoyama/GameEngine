@@ -6,6 +6,7 @@
 #include <unordered_map>
 #include <utility>
 #include <vector>
+#include <windows.h>
 
 #include "Service/IService.h"
 
@@ -56,14 +57,13 @@ public:
 	ServiceRef<T> Get() const {
 		auto iterator = m_services.find(std::type_index(typeid(T)));
 		if(iterator == m_services.end()){
-			ReportMissingService();
+			OutputDebugStringA("EngineContext: service not registered.\n");
 			return {};
 		}
 		return ServiceRef<T>(static_cast<T*>(iterator->second.get()));
 	}
 
 private:
-	static void ReportMissingService() noexcept;
 	std::unordered_map<std::type_index, std::unique_ptr<IService>> m_services;
 	std::vector<std::type_index> m_serviceOrder;
 };

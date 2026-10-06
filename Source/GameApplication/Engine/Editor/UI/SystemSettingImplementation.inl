@@ -288,25 +288,25 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 			ImGui::EndTabItem();
 		}
 		if(ImGui::BeginTabItem("Build")) {
-			ImGui::TextUnformatted("Portable runtime package");
+			ImGui::TextUnformatted("Native rendering preview package");
 			int target = config->engineConfig.buildTarget == BuildTarget::MacOS ? 1 : 0;
 			if(ImGui::Combo("Target platform", &target, "Windows\0macOS\0"))
 				config->engineConfig.buildTarget = target == 1 ? BuildTarget::MacOS : BuildTarget::Windows;
 			const auto selected = config->engineConfig.buildTarget;
 			ImGui::Text("Runtime API: %s", selected == BuildTarget::MacOS ? "Metal" : "Direct3D 12 / Vulkan");
-			ImGui::TextWrapped("Builds the portable rendering runtime. The full editor and the current project's gameplay/assets are not included in this package yet.");
+			ImGui::TextWrapped("Builds the rendering preview. The full editor and the current project's gameplay/assets are not included in this package yet.");
 			const std::string command = "cmake -DTARGET_PLATFORM=" + std::string(BuildTargetName(selected)) + " -P cmake/BuildPortable.cmake";
 			ImGui::TextWrapped("Native build command: %s", command.c_str());
 			if(ImGui::Button("Copy build command")) ImGui::SetClipboardText(command.c_str());
 			ImGui::UndoInputText("CMake executable", &m_cmakeExecutable, 1024);
-			const bool building = m_buildJob.Poll();
+			const bool building = PollBuild();
 			ImGui::BeginDisabled(building || selected != BuildTarget::Windows);
-			if(ImGui::Button("Build package on this computer")) m_buildJob.Start(selected, m_cmakeExecutable);
+			if(ImGui::Button("Build package on this computer")) StartBuild(selected);
 			ImGui::EndDisabled();
 			if(selected == BuildTarget::MacOS) ImGui::TextWrapped("Use a Mac for the native build, or choose macOS in the Windows Build workflow's target_platform input. CI packages can be downloaded from the workflow's Artifacts.");
 			if(ImGui::Button("Open CI builds")) ShellExecuteW(nullptr, L"open", L"https://github.com/tetoyama/GameEngine/actions/workflows/windows-build.yml", nullptr, nullptr, SW_SHOWNORMAL);
-			if(!m_buildJob.Status().empty()) ImGui::TextWrapped("%s", m_buildJob.Status().c_str());
-			if(!m_buildJob.LogPath().empty() && ImGui::Button("Open build log")) ShellExecuteW(nullptr, L"open", m_buildJob.LogPath().c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+			if(!m_buildStatus.empty()) ImGui::TextWrapped("%s", m_buildStatus.c_str());
+			if(!m_buildLogPath.empty() && ImGui::Button("Open build log")) ShellExecuteW(nullptr, L"open", m_buildLogPath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
 			ImGui::TextDisabled("Save Project Settings to keep the target platform.");
 			ImGui::EndTabItem();
 		}

@@ -1,14 +1,5 @@
 cmake_minimum_required(VERSION 3.24)
 project(GameEnginePortable LANGUAGES CXX)
-set(GAMEENGINE_TARGET_PLATFORM "${CMAKE_SYSTEM_NAME}" CACHE STRING "Package target: Windows, macOS or Linux")
-if(GAMEENGINE_TARGET_PLATFORM STREQUAL "macOS")
-  set(expected_system Darwin)
-else()
-  set(expected_system "${GAMEENGINE_TARGET_PLATFORM}")
-endif()
-if(NOT expected_system STREQUAL CMAKE_SYSTEM_NAME)
-  message(FATAL_ERROR "Target ${GAMEENGINE_TARGET_PLATFORM} requires its native host/toolchain. This toolchain builds ${CMAKE_SYSTEM_NAME}.")
-endif()
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -17,7 +8,7 @@ if(MSVC)
 endif()
 
 # The existing Visual Studio editor remains available. This target builds the
-# platform-independent runtime and its GPU backends on Windows, macOS and Linux.
+# native rendering preview and its GPU backends on Windows, macOS and Linux.
 find_package(SDL3 3.4 CONFIG QUIET)
 if(NOT SDL3_FOUND)
   include(FetchContent)
@@ -33,101 +24,20 @@ if(NOT SDL3_FOUND)
   FetchContent_MakeAvailable(SDL3)
 endif()
 
-# Assimp is already the engine's importer. Build the same version natively;
-# no alternate importer or asset cache is added for the portable runtime.
-include(FetchContent)
-set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_TESTS OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_ASSIMP_TOOLS OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_SAMPLES OFF CACHE BOOL "" FORCE)
-set(ASSIMP_NO_EXPORT ON CACHE BOOL "" FORCE)
-set(ASSIMP_INSTALL OFF CACHE BOOL "" FORCE)
-set(ASSIMP_BUILD_ZLIB ON CACHE BOOL "" FORCE)
-if(POLICY CMP0175)
-  set(CMAKE_POLICY_DEFAULT_CMP0175 OLD) # legacy Assimp helper targets
-endif()
-FetchContent_Declare(assimp
-  URL https://codeload.github.com/assimp/assimp/tar.gz/refs/tags/v5.2.0
-  URL_HASH SHA256=18723edbea249ea11e02f62e040869e6a733cd2e969e96da02c101c62677f72d
-  DOWNLOAD_EXTRACT_TIMESTAMP TRUE)
-FetchContent_MakeAvailable(assimp)
-if(MSVC)
-  target_compile_options(assimp PRIVATE /WX-)
-else()
-  # Assimp 5.2 relies on a transitive size_t declaration and treats warnings
-  # from newer SDKs as errors. Keep these compatibility options on Assimp only;
-  # engine targets retain their own warning policy.
-  target_compile_options(assimp PRIVATE -include stddef.h -Wno-error)
-endif()
-
-add_library(GameEngineCore STATIC
-  Source/GameApplication/Engine/engineContextLifecycle.cpp
-  Source/GameApplication/Service/DebugTools/DebugSystem.cpp
-  Source/GameApplication/Service/Runtime/TimeService/timeService.cpp)
-target_include_directories(GameEngineCore PUBLIC Source Source/GameApplication)
-
-add_library(GameEngineAssets STATIC
-  Source/GameApplication/Engine/Resources/Loader/TextureImage.cpp
-  Source/GameApplication/Engine/Resources/resourceService.cpp)
-target_include_directories(GameEngineAssets PUBLIC Source/GameApplication)
-target_compile_definitions(GameEngineAssets PUBLIC $<$<PLATFORM_ID:Windows>:NOMINMAX>)
-target_link_libraries(GameEngineAssets PUBLIC GameEngineCore)
-
-add_library(GameEngineRHI STATIC
+# The native renderer preview and Windows editor use the same application entry files.
+# Scene/gameplay and editor portability are still pending; this target builds the GPU foundation.
+add_executable(GameEnginePortable
+  Source/main.cpp
+  Source/GameApplication/gameApplication.cpp
   Source/GameApplication/Service/Graphics/RHI/SDL/SDLGPUBackend.cpp
   Source/GameApplication/Service/Graphics/Portable/FrameRenderer.cpp)
-target_include_directories(GameEngineRHI PUBLIC Source/GameApplication)
-target_link_libraries(GameEngineRHI PUBLIC SDL3::SDL3)
+target_include_directories(GameEnginePortable PRIVATE Source/GameApplication)
+target_compile_definitions(GameEnginePortable PRIVATE GAMEENGINE_PORTABLE)
+target_link_libraries(GameEnginePortable PRIVATE SDL3::SDL3)
 if(MSVC)
-  target_compile_options(GameEngineRHI PRIVATE /W4 /permissive- /utf-8)
+  target_compile_options(GameEnginePortable PRIVATE /W4 /permissive-)
 else()
-  target_compile_options(GameEngineRHI PRIVATE -Wall -Wextra -Wpedantic)
-endif()
-option(BUILD_TESTING "Build engine contract tests" ON)
-if(BUILD_TESTING)
-  enable_testing()
-  add_executable(EngineLifecycleContractTest Tests/EngineLifecycleContractTest.cpp)
-  target_link_libraries(EngineLifecycleContractTest PRIVATE GameEngineCore)
-  add_test(NAME EngineLifecycleContract COMMAND EngineLifecycleContractTest)
-  add_executable(ModelGeometryImportContractTest Tests/ModelGeometryImportContractTest.cpp)
-  target_include_directories(ModelGeometryImportContractTest PRIVATE Source/GameApplication)
-  target_link_libraries(ModelGeometryImportContractTest PRIVATE assimp::assimp)
-  add_test(NAME ModelGeometryImportContract COMMAND ModelGeometryImportContractTest
-    "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Model/cube.obj")
-  add_executable(TextureImageContractTest Tests/TextureImageContractTest.cpp)
-  target_link_libraries(TextureImageContractTest PRIVATE GameEngineAssets)
-  add_test(NAME TextureImageContract COMMAND TextureImageContractTest "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Texture")
-  add_executable(ResourceServiceContractTest Tests/ResourceServiceContractTest.cpp)
-  target_link_libraries(ResourceServiceContractTest PRIVATE GameEngineAssets)
-  add_test(NAME ResourceServiceContract COMMAND ResourceServiceContractTest "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Texture")
-  add_executable(PortableRenderPacketContractTest Tests/PortableRenderPacketContractTest.cpp)
-  target_include_directories(PortableRenderPacketContractTest PRIVATE
-    Source/GameApplication Source/GameApplication/Engine Source/GameApplication/Engine/Scene)
-  add_test(NAME PortableRenderPacketContract COMMAND PortableRenderPacketContractTest)
-  if(MSVC)
-    add_executable(EngineGraphicsConfigTest Tests/EngineGraphicsConfigTest.cpp)
-    target_include_directories(EngineGraphicsConfigTest PRIVATE Source Source/GameApplication
-      Source/GameApplication/Engine Source/GameApplication/Engine/Scene Source/GameApplication/Service Source/GameApplication/Backends)
-    target_link_directories(EngineGraphicsConfigTest PRIVATE Source/GameApplication/Backends/yaml-cpp)
-    add_test(NAME EngineGraphicsConfig COMMAND EngineGraphicsConfigTest)
-  endif()
-  foreach(test JobSystemSmokeTest RHISmokeTest)
-    add_executable(${test} Tests/${test}.cpp)
-    target_include_directories(${test} PRIVATE Source/GameApplication Source/GameApplication/Engine Source/GameApplication/Engine/Scene)
-    add_test(NAME ${test} COMMAND ${test})
-    if(MSVC)
-      target_compile_options(${test} PRIVATE /UNDEBUG)
-    else()
-      target_compile_options(${test} PRIVATE -UNDEBUG)
-    endif()
-  endforeach()
-endif()
-add_executable(GameEnginePortable Source/GameApplication/Portable/PortableMain.cpp)
-target_include_directories(GameEnginePortable PRIVATE
-  Source/GameApplication/Engine Source/GameApplication/Engine/Scene)
-target_link_libraries(GameEnginePortable PRIVATE GameEngineRHI GameEngineCore GameEngineAssets assimp::assimp)
-if(MSVC)
-  target_compile_options(GameEnginePortable PRIVATE /W4 /permissive- /utf-8)
+  target_compile_options(GameEnginePortable PRIVATE -Wall -Wextra -Wpedantic)
 endif()
 add_custom_command(TARGET GameEnginePortable POST_BUILD
   COMMAND ${CMAKE_COMMAND} -E copy_directory
@@ -139,56 +49,12 @@ if(WIN32 AND SDL_LIBRARY_TYPE STREQUAL "SHARED_LIBRARY")
     COMMAND ${CMAKE_COMMAND} -E copy_if_different
       "$<TARGET_FILE:SDL3::SDL3>" "$<TARGET_FILE_DIR:GameEnginePortable>")
 endif()
-option(GAMEENGINE_GPU_TESTS "Enable manual real-GPU renderer validation" OFF)
-if(BUILD_TESTING AND GAMEENGINE_GPU_TESTS)
-  add_executable(SDLGPUContractTest Tests/SDLGPUContractTest.cpp)
-  target_link_libraries(SDLGPUContractTest PRIVATE GameEngineRHI)
-  if(WIN32 AND SDL_LIBRARY_TYPE STREQUAL "SHARED_LIBRARY")
-    add_custom_command(TARGET SDLGPUContractTest POST_BUILD
-      COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:SDL3::SDL3>" "$<TARGET_FILE_DIR:SDLGPUContractTest>")
-  endif()
-  if(WIN32)
-    set(gpu_backends d3d12 vulkan)
-    add_executable(EditorGPUViewportTest Tests/EditorGPUViewportTest.cpp)
-    target_include_directories(EditorGPUViewportTest PRIVATE Source/GameApplication/Engine Source/GameApplication/Engine/Scene)
-    target_link_libraries(EditorGPUViewportTest PRIVATE GameEngineRHI d3d11)
-    if(SDL_LIBRARY_TYPE STREQUAL "SHARED_LIBRARY")
-      add_custom_command(TARGET EditorGPUViewportTest POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy_if_different "$<TARGET_FILE:SDL3::SDL3>" "$<TARGET_FILE_DIR:EditorGPUViewportTest>")
-    endif()
-  elseif(APPLE)
-    set(gpu_backends metal)
-  else()
-    set(gpu_backends vulkan)
-  endif()
-  foreach(backend IN LISTS gpu_backends)
-    add_test(NAME Renderer_${backend}
-      COMMAND GameEnginePortable --backend ${backend} --validate --offscreen
-        --width 480 --height 320 --capture "${CMAKE_CURRENT_BINARY_DIR}/captures/${backend}.ppm")
-    set_tests_properties(Renderer_${backend} PROPERTIES TIMEOUT 90 LABELS "gpu;manual")
-    add_test(NAME AssetRenderer_${backend}
-      COMMAND GameEnginePortable --backend ${backend} --validate --offscreen
-        --model "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Model/cube.obj"
-        --texture "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Texture/mesh.png"
-        --width 480 --height 320 --capture "${CMAKE_CURRENT_BINARY_DIR}/captures/${backend}-assets.ppm")
-    set_tests_properties(AssetRenderer_${backend} PROPERTIES TIMEOUT 90 LABELS "gpu;manual")
-    add_test(NAME GPUContract_${backend} COMMAND SDLGPUContractTest ${backend} "${CMAKE_CURRENT_SOURCE_DIR}/Asset/Shader/Portable/Compiled")
-    set_tests_properties(GPUContract_${backend} PROPERTIES TIMEOUT 90 LABELS "gpu;manual")
-    if(WIN32)
-      add_test(NAME EditorViewport_${backend} COMMAND EditorGPUViewportTest ${backend})
-      set_tests_properties(EditorViewport_${backend} PROPERTIES WORKING_DIRECTORY "${CMAKE_CURRENT_SOURCE_DIR}" TIMEOUT 90 LABELS "gpu;manual")
-    endif()
-  endforeach()
-endif()
 install(TARGETS GameEnginePortable RUNTIME DESTINATION bin)
 install(DIRECTORY Asset/Shader/Portable/Compiled/ DESTINATION bin/shaders)
 if(WIN32 AND SDL_LIBRARY_TYPE STREQUAL "SHARED_LIBRARY")
   install(FILES "$<TARGET_FILE:SDL3::SDL3>" DESTINATION bin)
 endif()
 install(FILES ThirdParty/SDL3-LICENSE.txt DESTINATION licenses)
-install(FILES ThirdParty/ASSIMP-LICENSE.txt DESTINATION licenses)
-install(FILES ThirdParty/ZLIB-LICENSE.txt DESTINATION licenses)
-install(FILES ThirdParty/STB-IMAGE-LICENSE.txt DESTINATION licenses)
 find_program(PORTABLE_GLSLC glslc HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
 find_program(PORTABLE_SPIRV_CROSS spirv-cross HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")
 find_program(PORTABLE_DXC dxc HINTS "$ENV{VULKAN_SDK}/Bin" "$ENV{VULKAN_SDK}/bin")

@@ -14,7 +14,10 @@
 #include "YAMLConverters.h"
 #include "buildSetting.h"
 #include "appConfig.h"
-#include "BuildTarget.h"
+enum class BuildTarget { Windows, MacOS };
+inline constexpr std::string_view BuildTargetName(BuildTarget target) noexcept {
+    return target == BuildTarget::MacOS ? "macOS" : "Windows";
+}
 #include "Service/Graphics/RHI/RHIBackend.h"
 
 struct EngineGraphicsConfig {

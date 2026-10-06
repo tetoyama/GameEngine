@@ -76,28 +76,64 @@ StaticBatchは次の段階を持つ。
 既存Editor UIはD3D11 Backendを利用する。Scene Viewは設定されたD3D11、
 またはD3D12 / Vulkanの共通描画経路を利用する。後者はEditor UIへ画像を転送する。
 移植用の共通描画経路はD3D12 / Vulkan / Metal Backendを利用できる。
-実行範囲と検証状況は [Portable rendering](Portable_Rendering.md) を参照。
+
 
 ServiceはDevice generation / lifetime tokenを持ち、
 GPU resource ownerが古いDeviceを誤って解放しないためのOwnership Epochを提供する。
 
 Backend抽象化は存在するが、Renderer全体からD3D11依存が完全に消えた状態ではない。
 
-### Portable frame path
+##### Portable rendering
 
-既存の `RenderHardwareInterfaceService`、`RenderPacket`、`ModelGeometryRuntimeMesh`、
-`RenderGraph` を利用する `FrameRenderer` が、API非依存の実行経路を持つ。
+既存RHIにSDL GPU Backendを追加し、同じ描画処理をDirect3D 12 / Vulkan / Metalで使う。
+起動元は `Source/main.cpp`、起動・終了は既存 `GameApplication` にまとめる。
+Visual Studioは従来のWindows Editorを、CMakeは各OSの描画プレビューをビルドする。
+プレビューはScene・ゲーム・Editor全体の移植ではない。Macで本体が動く段階は未達。
 
+#### 既存の責務
+
+- Editorのサービス登録・終了順は従来の `EngineContext`。
+- ファイル読み込み・キャッシュは従来の `ResourceService` / Loader。
+- モデルGPU Bufferは従来の `ModelGeometryRuntimeStorage`。
+- テクスチャGPU資源は `TextureData`。既存DX11 Textureを必要時に選択APIへ転送する。
+- `RenderSystem` が既存RenderPacketから描画データを作る。別のScene・Asset管理は追加しない。
+- `FrameRenderer` はモデルBufferと材質TextureのHandleを参照する。
+  所有するのは自身の描画ターゲット・Shader・Pipeline・更新Bufferだけ。
+- Backendは既存Handle / ResourcePool / Queue / Fenceの契約をSDL GPUへ接続する。Computeは未対応。
+  Pass依存と論理状態遷移には既存 `RenderGraph` を使う。
+
+#### Editorでの選択
+
+Project Settings → Application → Rendering APIで選択し、保存して再起動する。
+Direct3D 11経路は従来通り。Direct3D 12 / Vulkanは不透明な静的モデル、BaseColor Texture、
+UV変換、PBR / Unlit、発光、Environment Map、単一Directional Lightに対応する。
+Animation・Toon / Custom Shader・Terrain・透過・CSM・Local Light・Post Effect等は未移行。
+未対応・未解決の件数をEditor Viewに表示する。
+
+Editor UIはDX11のまま、描画結果を同期Readbackで表示する。性能改善は未達。
+旧Object-IDによるViewクリック選択は無効、Hierarchy / Gizmoは既存経路を使う。
+既存のMaximum Frame Latency設定はDXGIの表示待ちを制限する。新しい固定Frame数設定は追加しない。
+Buffer更新の同期・cyclingはBackendに任せ、Rendererに別のFrame Slotを持たせない。
+
+#### ビルド
+
+Windows / macOSはProject Settings → Buildで選択する。各OSのネイティブ環境、またはCIでビルドする。
+WindowsからMacへ直接クロスコンパイルする仕組みではない。
+
+```sh
+cmake -DTARGET_PLATFORM=Windows -P cmake/BuildPortable.cmake
+cmake -DTARGET_PLATFORM=macOS -P cmake/BuildPortable.cmake
 ```
-RenderPacket -> owning RenderScene snapshot
-  -> RenderGraph (Shadow / GBuffer / Lighting / Output transform)
-  -> RHI command list / queue / fence
-  -> D3D12 / Vulkan / Metal through SDL GPU
-```
 
-GeometryのResource Handleは既存Runtimeから直接受け取れる。
-ModelData単位の別Asset Managerや別Geometry Cacheは設けない。
-既存Editorの機能を一括で置き換える経路ではなく、既存RHI上で段階移行できる共通基盤。
+CMakeは実行ファイル1つを作る。デモ専用のService登録・Asset Loader・テストターゲットは持たない。
+描画プレビューは最小限の起動と三角形の表示だけを行う。
+GPU描画の手動確認では `--backend d3d12|vulkan|metal --frames 2 --offscreen --capture image.ppm` を使える。
+
+共通GLSLからSPIR-V / DXIL / MSLを生成する。3形式は各APIで実行するために必要。
+生成途中のHLSLは配布しない。Shader再生成はSDKのglslc / spirv-cross / dxcで
+CMakeの `PortableShaders` ターゲットを使う。
+BRDF計算は既存HLSLとGLSLで `Source/Shader/Material/BRDF.hlsli` を共有する。
+SDL3 3.4.18を固定Hashで取得する。ライセンスは `ThirdParty/SDL3-LICENSE.txt`。
 
 ## Shadow
 

@@ -10,10 +10,12 @@
 #include <memory>
 #include <vector>
 #include <mutex>
+#include <Windows.h>
 
 #include <unordered_map>
 #include <unordered_set>
 #include "Service/IService.h"
+#include "Backends/ImGui/imgui.h"
 
 #define LOG_TRACE(msg)    Log(LogLevel::Trace,   msg, __FUNCTION__, __FILE__, __LINE__)
 #define LOG_DEBUG(msg)    Log(LogLevel::Debug,   msg, __FUNCTION__, __FILE__, __LINE__)
@@ -88,6 +90,13 @@ private:
 	std::vector<std::shared_ptr<ILogSink>> sinks;
 	std::mutex mutex; // マルチスレッド対応
 
+	std::wstring Utf8ToWide(const std::string& utf8){
+		int size = MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, nullptr, 0);
+		std::wstring wide(size, 0);
+		MultiByteToWideChar(CP_UTF8, 0, utf8.c_str(), -1, &wide[0], size);
+		wide.pop_back(); // null終端除去
+		return wide;
+	}
 };
 
 // メモリ上にログエントリを蓄積するシンク実装

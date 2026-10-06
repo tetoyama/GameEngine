@@ -5,52 +5,29 @@
 // =======================================================================
 
 #include "timeService.h"
-#ifdef _WIN32
 #include <Windows.h>
-#else
-#include <chrono>
-#endif
-
-namespace {
-long long ReadCounter() {
-#ifdef _WIN32
-    LARGE_INTEGER counter;
-    QueryPerformanceCounter(&counter);
-    return counter.QuadPart;
-#else
-    return std::chrono::duration_cast<std::chrono::nanoseconds>(
-        std::chrono::steady_clock::now().time_since_epoch()).count();
-#endif
-}
-}
 
 void TimeService::Initialize(){
-#ifdef _WIN32
-    LARGE_INTEGER freq;
-    QueryPerformanceFrequency(&freq);
-    frequency_ = static_cast<double>(freq.QuadPart);
-#else
-    frequency_ = 1'000'000'000.0;
-#endif
+	LARGE_INTEGER freq;
+	QueryPerformanceFrequency(&freq);
+	frequency_ = static_cast<double>(freq.QuadPart);
 
-    const auto now = ReadCounter();
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
 
-	startTime_ = now;
-	prevTime_ = now;
+	startTime_ = now.QuadPart;
+	prevTime_ = now.QuadPart;
 
-	prevDeltaTime_ = now;
-	prevFixedTime_ = now;
-	prevDrawTime_ = now;
+	prevDeltaTime_ = now.QuadPart;
+	prevFixedTime_ = now.QuadPart;
+	prevDrawTime_ = now.QuadPart;
 
-	updateBeginTime_ = now;
-	drawBeginTime_ = now;
-	drawSectionBeginTime_ = now;
-	frameBeginTime_ = now;
+	updateBeginTime_ = now.QuadPart;
+	drawBeginTime_ = now.QuadPart;
+	drawSectionBeginTime_ = now.QuadPart;
+	frameBeginTime_ = now.QuadPart;
 
 	deltaTime_ = 0.0f;
-	fixedTimeAccumulator_ = 0.0f;
-	frameTime_ = frameFPS_ = frameTimer_ = 0.0;
-	frameCount_ = 0;
 	totalTime_ = 0.0f;
 
 	deltaUpdateTime_ = 0.0;
@@ -75,9 +52,10 @@ void TimeService::Initialize(){
 }
 
 void TimeService::Tick(){
-    const auto now = ReadCounter();
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
 
-	long long current = now;
+	long long current = now.QuadPart;
 
 	frameTime_ =
 		static_cast<double>(current - frameBeginTime_) / frequency_;
@@ -94,7 +72,7 @@ void TimeService::Tick(){
 		frameTimer_ = 0.0;
 		frameCount_ = 0;
 	}
-	frameBeginTime_ = now;
+	frameBeginTime_ = now.QuadPart;
 
 	deltaTime_ =
 		static_cast<float>(
@@ -133,14 +111,16 @@ float TimeService::GetFixedDeltaTime() const{
 }
 
 void TimeService::BeginDeltaUpdate(){
-    const auto now = ReadCounter();
-	updateBeginTime_ = now;
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+	updateBeginTime_ = now.QuadPart;
 }
 
 void TimeService::EndDeltaUpdate(){
-    const auto now = ReadCounter();
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
 
-	long long current = now;
+	long long current = now.QuadPart;
 
 	// Updateフェーズのみ
 	deltaUpdateTime_ =
@@ -162,9 +142,10 @@ void TimeService::EndDeltaUpdate(){
 }
 
 void TimeService::EndFixedUpdate(){
-    const auto now = ReadCounter();
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
 
-	long long current = now;
+	long long current = now.QuadPart;
 
 	fixedUpdateTime_ =
 		static_cast<double>(
@@ -187,9 +168,10 @@ void TimeService::EndFixedUpdate(){
 }
 
 void TimeService::BeginDraw(uint64_t frameSerial){
-    const auto now = ReadCounter();
-	drawBeginTime_ = now;
-	drawSectionBeginTime_ = now;
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
+	drawBeginTime_ = now.QuadPart;
+	drawSectionBeginTime_ = now.QuadPart;
 	drawSectionActive_ = false;
 	currentDrawTiming_ = {};
 	currentDrawTiming_.frameSerial = frameSerial;
@@ -197,10 +179,11 @@ void TimeService::BeginDraw(uint64_t frameSerial){
 }
 
 void TimeService::BeginDrawSection(DrawTimingSection section){
-    const auto now = ReadCounter();
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
 
 	activeDrawSection_ = section;
-	drawSectionBeginTime_ = now;
+	drawSectionBeginTime_ = now.QuadPart;
 	drawSectionActive_ = true;
 }
 
@@ -209,10 +192,11 @@ void TimeService::EndDrawSection(DrawTimingSection section){
 		return;
 	}
 
-    const auto now = ReadCounter();
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
 
 	const double elapsedSeconds =
-		static_cast<double>(now - drawSectionBeginTime_) /
+		static_cast<double>(now.QuadPart - drawSectionBeginTime_) /
 		frequency_;
 	AccumulateDrawSection(section, elapsedSeconds);
 	drawSectionActive_ = false;
@@ -223,9 +207,10 @@ void TimeService::EndDraw(){
 		EndDrawSection(activeDrawSection_);
 	}
 
-    const auto now = ReadCounter();
+	LARGE_INTEGER now;
+	QueryPerformanceCounter(&now);
 
-	long long current = now;
+	long long current = now.QuadPart;
 
 	// BeginDrawからPresent完了までのDrawフェーズ全体
 	drawTime_ =

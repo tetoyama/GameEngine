@@ -338,9 +338,6 @@ struct ShaderDesc {
 	uint32_t storageTextures = 0;
 	uint32_t storageBuffers = 0;
 	uint32_t uniformBuffers = 0;
-	uint32_t writableStorageTextures = 0;
-	uint32_t writableStorageBuffers = 0;
-	std::array<uint32_t, 3> threadGroupSize{1, 1, 1};
 };
 
 struct InputElementDesc {

@@ -5,7 +5,6 @@
 // =======================================================================
 #pragma once
 #include <string>
-#include "Engine/Resources/Loader/TextureImage.h"
 #ifdef _WIN32
 #include <d3d11.h>
 #include <wrl/client.h> 
@@ -29,20 +28,6 @@ struct TextureData {
 	}
 	TextureData(const TextureData&) = delete;
 	TextureData& operator=(const TextureData&) = delete;
-	RHI::TextureViewHandle EnsureRHI(RHI::IRHIDevice& device,const TextureImage& image) {
-		if(!image.IsValid()) return {};
-		ResetRHI();
-		RHI::TextureDesc desc; desc.width=image.width; desc.height=image.height;
-		desc.initialState=RHI::ResourceState::ShaderResource; desc.debugName=FilePath;
-		auto texture=device.CreateTexture(desc,image.pixels,image.width*4);
-		if(!texture) return {};
-		RHI::TextureViewDesc view; view.texture=texture;
-		auto binding=device.CreateTextureView(view);
-		if(!binding) { device.DestroyTexture(texture); return {}; }
-		m_rhiDevice=&device; m_rhiLifetime=device.GetLifetimeToken(); m_rhiTexture=texture; m_rhiView=binding;
-		Width=static_cast<int>(image.width); Height=static_cast<int>(image.height);
-		return m_rhiView;
-	}
 	RHI::TextureViewHandle GetRHIView() const noexcept {
 		return m_rhiLifetime.expired()?RHI::TextureViewHandle{}:m_rhiView;
 	}

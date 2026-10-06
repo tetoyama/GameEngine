@@ -14,7 +14,7 @@
 #include "Service/IService.h"
 #include "Service/DebugTools/DebugSystem.h"
 #include "Loader/IResourceLoader.h"
-#include "Loader/resourceLoader.h"
+#include "Loader/ResourceLoader.h"
 
 class GraphicsContext;
 class AudioContext;
@@ -24,19 +24,6 @@ class ResourceService : public IService {
 public:
 	// 描画・音声コンテキストを受け取り、各種ローダーを登録する
 	void Initialize(GraphicsContext* graphics, AudioContext* audio, DebugLogService* debugLog = nullptr);
-	// Native runtimes register their supported loaders explicitly. Registry
-	// mutations and GPU file loads stay on the resource/render owner thread.
-	void InitializeNative(DebugLogService* debugLog = nullptr);
-
-    template<typename T>
-    bool RegisterLoader(typename ResourceLoader<T>::AnyLoadFunc loadFunction) {
-        const std::type_index type(typeid(T));
-        if(!loadFunction || m_Loaders.contains(type)) return false;
-        auto loader=std::make_shared<ResourceLoader<T>>();
-        loader->SetLoadFunction(std::move(loadFunction));
-        m_Loaders.emplace(type,std::move(loader));
-        return true;
-    }
 
 	void Shutdown() override;
 

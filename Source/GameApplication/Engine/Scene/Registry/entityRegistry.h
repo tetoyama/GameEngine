@@ -12,12 +12,12 @@
 #include <vector>
 
 #include "Entity/Entity.h"
-#include "Config/SceneStorageDefaults.h"
+#include "Config/SceneStorageConfig.h"
 
 class EntityRegistry {
 public:
 	EntityRegistry(){
-		Reserve(SceneStorageDefaults::DefaultExpectedEntityCount);
+		Reserve(SceneStorageConfig::DefaultExpectedEntityCount);
 	}
 	~EntityRegistry() = default;
 

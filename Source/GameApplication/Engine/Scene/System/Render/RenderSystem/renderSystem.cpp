@@ -44,8 +44,6 @@
 #include "Graphics/graphicsContext.h"
 #include "Graphics/mainRenderer.h"
 #include "Graphics/RHI/RHIService.h"
-#include "Graphics/Portable/RenderPacketAdapter.h"
-#include "Graphics/Portable/RenderMath.h"
 
 #include "Resources/resourceService.h"
 #include "Resources/Data/vertexShaderData.h"
@@ -172,14 +170,14 @@ ID3D11ShaderResourceView* RenderSystem::RenderPortableView(const RenderPassConte
 	if(!service || !service->GetDevice()) return nullptr;
 	try {
 		auto& viewport = editorView ? m_portableEditorView : m_portablePlayerView;
-		if(!viewport) viewport = std::make_unique<Rendering::EditorGPUViewport>(*service->GetDevice(),
+		if(!viewport) viewport = std::make_unique<EditorGPUViewport>(*service->GetDevice(),
 			m_context->graphics->GetDevice(), m_context->graphics->GetDeviceContext());
 		Rendering::FrameUniforms frame;
 		DirectX::XMFLOAT4X4 matrix;
 		DirectX::XMStoreFloat4x4(&matrix, context.viewMatrix * context.projectionMatrix);
 		std::copy_n(&matrix._11, 16, frame.viewProjection.begin());
-		frame.lightViewProjection = Rendering::Multiply(Rendering::Orthographic(80,80,0.1f,200),
-			Rendering::LookAt({-30,50,-30},{0,0,0}));
+		DirectX::XMStoreFloat4x4(&matrix, DirectX::XMMatrixIdentity());
+		std::copy_n(&matrix._11, 16, frame.lightViewProjection.begin());
 		frame.lightDirection = {0.4575f,-0.7625f,0.4575f,0};
 		frame.lightColor = {0,0,0,0}; frame.ambientColor = {0,0,0,0};
 		// Match the existing viewport's linear UNORM presentation. Camera
@@ -203,71 +201,88 @@ ID3D11ShaderResourceView* RenderSystem::RenderPortableView(const RenderPassConte
 				if(!light || !transform || !light->light.Enable ||
 					(light->light.LightType!=LIGHT_TYPE_DIRECTIONAL && light->light.LightType!=LIGHT_TYPE_DIRECTIONAL_CSM)) continue;
 				const auto front=transform->front();
-				const auto direction=Rendering::Normalize({front.x,front.y,front.z});
-				frame.lightDirection={direction[0],direction[1],direction[2],0};
+				DirectX::XMFLOAT3 direction;
+				const auto frontVector = DirectX::XMVectorSet(front.x, front.y, front.z, 0);
+				if(DirectX::XMVectorGetX(DirectX::XMVector3LengthSq(frontVector)) < 1e-16f)
+					throw std::runtime_error("Invalid directional light transform");
+				DirectX::XMStoreFloat3(&direction, DirectX::XMVector3Normalize(frontVector));
+				frame.lightDirection={direction.x,direction.y,direction.z,0};
 				frame.lightColor={light->light.Diffuse.x,light->light.Diffuse.y,light->light.Diffuse.z,light->light.CastShadow?1.f:0.f};
 				frame.ambientColor={light->light.Ambient.x,light->light.Ambient.y,light->light.Ambient.z,0};
-				const Rendering::Vec3 center{context.CameraPosition.x,context.CameraPosition.y,context.CameraPosition.z};
+				const auto center = DirectX::XMVectorSet(context.CameraPosition.x, context.CameraPosition.y, context.CameraPosition.z, 1);
 				const float size=(std::max)(50.f,light->light.Param.x/10.f);
-				const Rendering::Vec3 eye{center[0]-direction[0]*size,center[1]-direction[1]*size,center[2]-direction[2]*size};
-				const Rendering::Vec3 up=std::abs(direction[1])>.99f?Rendering::Vec3{0,0,1}:Rendering::Vec3{0,1,0};
-				frame.lightViewProjection=Rendering::Multiply(Rendering::Orthographic(size,size,.1f,size*2),Rendering::LookAt(eye,center,up));
+				const auto eye = DirectX::XMVectorSubtract(center, DirectX::XMVectorScale(DirectX::XMLoadFloat3(&direction), size));
+				const auto up = std::abs(direction.y) > .99f ? DirectX::XMVectorSet(0,0,1,0) : DirectX::XMVectorSet(0,1,0,0);
+				DirectX::XMStoreFloat4x4(&matrix, DirectX::XMMatrixLookAtLH(eye, center, up) * DirectX::XMMatrixOrthographicLH(size, size, .1f, size*2));
+				std::copy_n(&matrix._11, 16, frame.lightViewProjection.begin());
 				lightFound=true; break;
 			}
 			if(lightFound) break;
 		}
-		std::vector<RenderPacket> visible;
+		Rendering::RenderScene scene; scene.frame = frame;
+		size_t unsupported = 0, unresolved = 0;
 		for(const auto& packet : m_renderWorld.Packets().Packets()){
 			const auto layer = static_cast<size_t>(packet.layer);
-			if(layer < static_cast<size_t>(RenderLayer::MaxRenderLayer) &&
-				context.renderLayerVisibility[layer] && ShouldRenderPacket(context, packet)){
-				visible.push_back(packet);
+			if(layer >= static_cast<size_t>(RenderLayer::MaxRenderLayer) ||
+				!context.renderLayerVisibility[layer] || !ShouldRenderPacket(context, packet)) continue;
+			if(packet.kind != RenderPacketKind::Model ||
+				(packet.layer != RenderLayer::Opaque3D && packet.layer != RenderLayer::Background2D) ||
+				!HasRenderPacketPass(packet.passMask, RenderPacketPassMask::GBuffer)) { ++unsupported; continue; }
+			if(packet.bindings.modelRenderer && !packet.bindings.modelRenderer->blendedAnimations.empty()) { ++unresolved; continue; }
+			const auto* runtime = m_modelGeometryRuntime.Find(packet.modelResource.get());
+			if(!runtime) { ++unresolved; continue; }
+			const auto* material = packet.modelMaterial.GetDescriptor();
+			if(material && (material->renderState.alphaMode != MaterialAlphaMode::Opaque ||
+				(material->shaderID != 0 && material->shaderID != 1))) { ++unsupported; continue; }
+			Rendering::DrawItem draw;
+			std::copy_n(packet.transform.worldMatrix.values, 16, draw.instance.world.begin());
+			draw.castsShadow = HasRenderPacketPass(packet.passMask, RenderPacketPassMask::Shadow);
+			if(material){
+				draw.instance.color = material->parameters.baseColor;
+				draw.instance.shading[0] = material->shaderID == 0 ? 1.f : 0.f;
+				draw.instance.material = {material->parameters.metallic, material->parameters.roughness,
+					material->parameters.ambientOcclusion, float((material->renderState.receiveShadow ? 1 : 0) |
+					((material->legacyMaterialFlags & (1u << 4)) ? 2 : 0))};
+				draw.instance.emissive = {material->parameters.emissiveColor[0], material->parameters.emissiveColor[1],
+					material->parameters.emissiveColor[2], material->parameters.emissiveIntensity};
+			}
+			std::shared_ptr<TextureData> texture;
+			if(packet.bindings.texture && packet.bindings.texture->m_TextureData){
+				texture = packet.bindings.texture->m_TextureData;
+				const auto uv = packet.bindings.texture->ResolveUVMatrixBuffer();
+				draw.instance.uvTransform = {uv.UVEnd.x-uv.UVStart.x,uv.UVEnd.y-uv.UVStart.y,uv.UVStart.x,uv.UVStart.y};
+			}
+			bool supported = true;
+			if(material && !texture) for(const auto& binding : material->textures){
+				if(binding.semantic != MaterialTextureSemantic::BaseColor || binding.uvChannel != 0 || binding.uvRotation != 0) { supported = false; break; }
+				if(!texture){
+					texture = m_context->resource->Load<TextureData>(binding.assetPath);
+					draw.instance.uvTransform = {binding.uvScale[0],binding.uvScale[1],binding.uvOffset[0],binding.uvOffset[1]};
+					if(!texture) { supported = false; break; }
+				}
+			}
+			if(texture){
+				draw.albedoTexture = texture->EnsureRHI(*service->GetDevice(),m_context->graphics->GetDevice(),m_context->graphics->GetDeviceContext());
+				if(!draw.albedoTexture) supported = false;
+			}
+			if(!supported) { ++unsupported; continue; }
+			for(size_t index = 0; index < runtime->MeshCount(); ++index){
+				if(!packet.TargetsAllSubMeshes() && !packet.TargetsSubMesh(static_cast<uint32_t>(index))) continue;
+				const auto* mesh = runtime->Mesh(index);
+				if(!mesh || !mesh->IsReady()) { ++unresolved; continue; }
+				draw.mesh = *mesh; scene.draws.push_back(draw);
 			}
 		}
-		auto conversion = Rendering::ConvertRenderPackets(visible, frame, m_renderWorld.Generation(),
-			[this](const RenderPacket& packet){
-				std::vector<ModelGeometryRuntimeMesh> meshes;
-				// Animated geometry is not passed off as a rendered current pose.
-				if(packet.bindings.modelRenderer && !packet.bindings.modelRenderer->blendedAnimations.empty()) return meshes;
-				const auto* runtime = m_modelGeometryRuntime.Find(packet.modelResource.get());
-				if(runtime) for(size_t index=0; index<runtime->MeshCount(); ++index){
-					if(packet.TargetsAllSubMeshes() || packet.TargetsSubMesh(static_cast<uint32_t>(index)))
-						if(const auto* mesh = runtime->Mesh(index)) meshes.push_back(*mesh);
-				}
-				return meshes;
-			},[this,service](const RenderPacket& packet, Rendering::DrawItem& draw){
-				const auto* material=packet.modelMaterial.GetDescriptor();
-				if(material && material->shaderID!=0 && material->shaderID!=1) return false;
-				std::shared_ptr<TextureData> texture;
-				if(packet.bindings.texture && packet.bindings.texture->m_TextureData){
-					texture=packet.bindings.texture->m_TextureData;
-					const auto uv=packet.bindings.texture->ResolveUVMatrixBuffer();
-					draw.instance.uvTransform={uv.UVEnd.x-uv.UVStart.x,uv.UVEnd.y-uv.UVStart.y,uv.UVStart.x,uv.UVStart.y};
-				}
-				if(material && !texture) for(const auto& binding:material->textures){
-					if(binding.semantic!=MaterialTextureSemantic::BaseColor || binding.uvChannel!=0 || binding.uvRotation!=0) return false;
-					if(!texture){
-						texture=m_context->resource->Load<TextureData>(binding.assetPath);
-						draw.instance.uvTransform={binding.uvScale[0],binding.uvScale[1],binding.uvOffset[0],binding.uvOffset[1]};
-						if(!texture) return false;
-					}
-				}
-				if(texture){
-					draw.albedoTexture=texture->EnsureRHI(*service->GetDevice(),m_context->graphics->GetDevice(),m_context->graphics->GetDeviceContext());
-					if(!draw.albedoTexture) return false;
-				}
-				return true;
-			});
 		if(const auto environment=GetEnvironmentMap()) {
-			conversion.scene.environmentTexture=environment->EnsureRHI(*service->GetDevice(),
+			scene.environmentTexture=environment->EnsureRHI(*service->GetDevice(),
 				m_context->graphics->GetDevice(),m_context->graphics->GetDeviceContext());
-			if(!conversion.scene.environmentTexture) throw std::runtime_error("Environment map RHI transfer failed");
-			conversion.scene.frame.cameraPosition[3]=1.f;
+			if(!scene.environmentTexture) throw std::runtime_error("Environment map RHI transfer failed");
+			scene.frame.cameraPosition[3]=1.f;
 		}
 		m_portableViewStatus = std::string(ToEngineConfigBackendName(service->GetSelectedBackend())) +
-			" scene / DX11 editor UI; compatibility readback. Draws: " + std::to_string(conversion.scene.draws.size()) + "; unsupported: " +
-			std::to_string(conversion.unsupportedPackets) + "; unresolved/animated: " + std::to_string(conversion.unresolvedMeshes);
-		return viewport->Render(conversion.scene, static_cast<uint32_t>(context.screenSize.x), static_cast<uint32_t>(context.screenSize.y));
+			" scene / DX11 editor UI; compatibility readback. Draws: " + std::to_string(scene.draws.size()) + "; unsupported: " +
+			std::to_string(unsupported) + "; unresolved/animated: " + std::to_string(unresolved);
+		return viewport->Render(scene, static_cast<uint32_t>(context.screenSize.x), static_cast<uint32_t>(context.screenSize.y));
 	} catch(const std::exception& error){
 		const std::string status = std::string("Selected rendering API failed: ") + error.what();
 		if(status != m_portableViewStatus) m_context->debug->Error(status, "RenderSystem::RenderPortableView");
