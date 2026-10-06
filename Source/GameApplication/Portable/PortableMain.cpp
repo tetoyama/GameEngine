@@ -8,6 +8,8 @@
 #include "Service/Graphics/Portable/RenderPacketAdapter.h"
 #include "Engine/Scene/System/Job/JobSystem.h"
 #include "Engine/Scene/Registry/entityRegistry.h"
+#include "Engine/engineContext.h"
+#include "Service/Runtime/TimeService/timeService.h"
 #include <algorithm>
 #include <filesystem>
 #include <fstream>
@@ -16,7 +18,6 @@
 #include <sstream>
 #include <string>
 #include <vector>
-#include <chrono>
 #include <cmath>
 using namespace Rendering;
 namespace {
@@ -116,7 +117,10 @@ int main(int argc,char** argv) {
         auto options=Parse(argc,argv);
         std::unique_ptr<SDL_Window,decltype(&SDL_DestroyWindow)> window(nullptr,SDL_DestroyWindow);
         if(!options.offscreen) { window.reset(SDL_CreateWindow("GameEngine | portable renderer",int(options.width),int(options.height),SDL_WINDOW_RESIZABLE|SDL_WINDOW_HIGH_PIXEL_DENSITY|(options.hidden?SDL_WINDOW_HIDDEN:0))); if(!window) throw std::runtime_error(SDL_GetError()); }
-        RHI::RenderHardwareInterfaceService graphics;
+        EngineContext context;
+        struct ShutdownServices { EngineContext& context; ~ShutdownServices(){ context.Shutdown(); } } shutdown{context};
+        auto& graphics=*context.Emplace<RHI::RenderHardwareInterfaceService>();
+        auto& time=*context.Emplace<TimeService>();
         if(!RHI::RegisterSDLGPUBackends(graphics.GetRegistry()) || !graphics.SelectBackend(options.backend)) throw std::runtime_error(std::string("Unsupported GPU backend: ")+SDL_GetError());
         RHI::DeviceCreateDesc dd; dd.nativeWindow={window.get(),nullptr,RHI::NativeWindowHandle::Kind::SDL}; dd.swapChain.width=options.width; dd.swapChain.height=options.height;
         dd.enableDebugLayer=options.validate;
@@ -148,13 +152,17 @@ int main(int argc,char** argv) {
             if(converted.unsupportedPackets || converted.unresolvedMeshes) throw std::runtime_error("Scene extraction failed");
             scene=std::move(converted.scene);
         };
-        bool running=true; int frame=0; float angle=.65f; auto start=std::chrono::steady_clock::now();
+        bool running=true; int frame=0; float angle=.65f; time.Initialize();
         while(running && (!options.frames || frame<options.frames)) {
+            time.Tick(); time.BeginDeltaUpdate();
             SDL_Event event; while(SDL_PollEvent(&event)) { if(event.type==SDL_EVENT_QUIT || (event.type==SDL_EVENT_KEY_DOWN && event.key.key==SDLK_ESCAPE)) running=false; }
             int w=int(options.width),h=int(options.height); if(window) SDL_GetWindowSizeInPixels(window.get(),&w,&h);
             if(w>0 && h>0 && (uint32_t(w)!=renderer.Width() || uint32_t(h)!=renderer.Height())) renderer.Resize(uint32_t(w),uint32_t(h));
-            if(!options.validate) { auto keys=SDL_GetKeyboardState(nullptr); if(keys[SDL_SCANCODE_LEFT]) angle-=.02f; if(keys[SDL_SCANCODE_RIGHT]) angle+=.02f; }
-            update(angle); renderer.Render(scene,!options.offscreen,!options.validate); ++frame;
+            if(!options.validate) { auto keys=SDL_GetKeyboardState(nullptr); const float turn=1.2f*time.GetDeltaTime(); if(keys[SDL_SCANCODE_LEFT]) angle-=turn; if(keys[SDL_SCANCODE_RIGHT]) angle+=turn; }
+            update(angle); time.EndDeltaUpdate();
+            time.BeginDraw(++frame); time.BeginDrawSection(DrawTimingSection::RenderSchedule);
+            renderer.Render(scene,!options.offscreen,!options.validate);
+            time.EndDrawSection(DrawTimingSection::RenderSchedule); time.EndDraw();
         }
         RHI::TextureReadback image; if(!renderer.Capture(image)) throw std::runtime_error("GPU capture failed");
         if(options.validate) {
@@ -216,7 +224,7 @@ int main(int argc,char** argv) {
             std::cout<<"validation=passed frame-reuse, geometry, shadows, materials, textures, UV, roughness, metallic, environment, emissive, unlit, linear-output, resize, readback\n";
         }
         if(!options.capture.empty()) Save(image,options.capture);
-        const auto& stats=renderer.Statistics(); auto elapsed=std::chrono::duration<double>(std::chrono::steady_clock::now()-start).count();
+        const auto& stats=renderer.Statistics(); time.Tick(); auto elapsed=time.GetTotalTime();
         std::cout<<"frames="<<frame<<" instances="<<stats.instances<<" batches="<<stats.batches<<" passes="<<stats.passes<<" seconds="<<elapsed<<'\n';
         jobs.Stop(); return 0;
     } catch(const std::exception& error) { std::cerr<<error.what()<<" (SDL: "<<SDL_GetError()<<")\n"; return 1; }

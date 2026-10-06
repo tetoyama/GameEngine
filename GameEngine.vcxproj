@@ -3602,6 +3602,7 @@
     <ClCompile Include="Source\GameApplication\Engine\Editor\UI\menuBar.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\engine.cpp" />
     <ClCompile Include="Source\GameApplication\Engine\engineContext.cpp" />
+    <ClCompile Include="Source\GameApplication\Engine\engineContextLifecycle.cpp" />
     <ClCompile Include="Source\GameApplication\Service\Graphics\D2DRenderer.cpp" />
     <ClCompile Include="Source\GameApplication\Service\Graphics\renderEffectSystem.cpp" />
     <ClCompile Include="Source\GameApplication\Service\Graphics\graphicsContext.cpp" />

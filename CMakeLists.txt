@@ -33,6 +33,11 @@ if(NOT SDL3_FOUND)
   FetchContent_MakeAvailable(SDL3)
 endif()
 
+add_library(GameEngineCore STATIC
+  Source/GameApplication/Engine/engineContextLifecycle.cpp
+  Source/GameApplication/Service/Runtime/TimeService/timeService.cpp)
+target_include_directories(GameEngineCore PUBLIC Source Source/GameApplication)
+
 add_library(GameEngineRHI STATIC
   Source/GameApplication/Service/Graphics/RHI/SDL/SDLGPUBackend.cpp
   Source/GameApplication/Service/Graphics/Portable/FrameRenderer.cpp)
@@ -46,6 +51,9 @@ endif()
 option(BUILD_TESTING "Build engine contract tests" ON)
 if(BUILD_TESTING)
   enable_testing()
+  add_executable(EngineLifecycleContractTest Tests/EngineLifecycleContractTest.cpp)
+  target_link_libraries(EngineLifecycleContractTest PRIVATE GameEngineCore)
+  add_test(NAME EngineLifecycleContract COMMAND EngineLifecycleContractTest)
   add_executable(PortableRenderPacketContractTest Tests/PortableRenderPacketContractTest.cpp)
   target_include_directories(PortableRenderPacketContractTest PRIVATE
     Source/GameApplication Source/GameApplication/Engine Source/GameApplication/Engine/Scene)
@@ -71,7 +79,7 @@ endif()
 add_executable(GameEnginePortable Source/GameApplication/Portable/PortableMain.cpp)
 target_include_directories(GameEnginePortable PRIVATE
   Source/GameApplication/Engine Source/GameApplication/Engine/Scene)
-target_link_libraries(GameEnginePortable PRIVATE GameEngineRHI)
+target_link_libraries(GameEnginePortable PRIVATE GameEngineRHI GameEngineCore)
 if(MSVC)
   target_compile_options(GameEnginePortable PRIVATE /W4 /permissive- /utf-8)
 endif()

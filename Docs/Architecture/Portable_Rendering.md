@@ -5,7 +5,7 @@
 既存RHIにSDL GPU Backendを追加し、共通の描画処理をD3D12 / Vulkan / Metalで実行する。
 新しいEngine / Scene / Asset管理の抽象階層は追加しない。
 
-`GameEnginePortable` は既存EntityRegistry、JobSystem、RenderPacket、RHIService、RenderGraphを
+`GameEnginePortable` は既存EngineContext、TimeService、EntityRegistry、JobSystem、RenderPacket、RHIService、RenderGraphを
 つないだ移植用ランタイム兼描画検証ホスト。既存Win32 Editorの全機能を含む実行ファイルではない。
 通常の `GameEngine.sln` のD3D11経路も保持する。
 
@@ -26,6 +26,10 @@ Editor Viewの旧Object-ID GBufferによるClick選択は無効化し、Hierarch
 ## Reused boundaries
 
 - Backend登録とDevice所有: `RenderHardwareInterfaceService` / `BackendRegistry`
+- Service所有 / 終了: 既存 `EngineContext`。Windows Builderと共通Lifecycleの実装を分離し、
+  HeaderからWin32依存を除去。Renderer破棄後、登録の逆順にServiceを終了・破棄する
+- Frame時間: 既存 `TimeService`。Windowsは従来のQPC、macOS / Linuxはmonotonicなsteady_clock。
+  RuntimeのCamera操作も既存Delta Timeに従い、Frame Rateによる回転速度の違いを避ける
 - ECSからの抽出結果: 既存 `RenderPacket`。API専用型を含まない所有Snapshotへコピー
 - Geometry: 既存 `ModelGeometryRuntimeMesh` のVertex / Index Buffer Handleを直接利用
 - Pass依存と論理状態遷移: 既存 `RenderGraph`
@@ -157,6 +161,8 @@ ComputeはReadonly=0、ReadWrite=1、Uniform=2。MetalのEntry Pointは `main0`�
 ## Validation
 
 CPU契約は通常CTestで検証する。実GPU検証は明示的に有効化する。
+Service重複登録時の所有権、依存Serviceを参照できる逆順Shutdown / 破棄、二重Shutdown、
+時計の進行、Fixed Update、Draw区間計測と再初期化を共通Lifecycle Testで検査する。
 
 ```sh
 cmake -S . -B build-portable -DGAMEENGINE_GPU_TESTS=ON
