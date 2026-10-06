@@ -61,6 +61,10 @@ public:
 	virtual uint32_t GetCurrentImageIndex() const noexcept = 0;
 	virtual TextureHandle GetImage(uint32_t imageIndex) const noexcept = 0;
 	virtual CommandQueueType GetPresentQueueType() const noexcept = 0;
+	// Explicit acquire is needed on Vulkan/Metal. Call after commandList.Begin(),
+	// on the window thread, before referencing the current image. False includes
+	// an unavailable/minimized surface; do not render to its image in that case.
+	virtual bool AcquireNextImage(IRHICommandList&) { return true; }
 	TextureHandle GetCurrentImage() const noexcept { return GetImage(GetCurrentImageIndex()); }
 };
 
@@ -100,6 +104,8 @@ public:
 	virtual IRHISwapChain* GetSwapChain() = 0;
 	virtual const IRHISwapChain* GetSwapChain() const = 0;
 	virtual void WaitIdle() = 0;
+	// Diagnostic capture; supported formats and row pitch are returned explicitly.
+	virtual bool ReadTexture(TextureHandle, TextureReadback&, uint64_t) { return false; }
 
 	// Runtime StorageはこのTokenを弱参照し、Device破棄後に保存済みの
 	// 生Pointerを逆参照せずAbandonへ切り替える。

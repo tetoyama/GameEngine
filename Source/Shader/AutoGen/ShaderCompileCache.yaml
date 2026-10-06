@@ -12,7 +12,9 @@ DeferredDebug:
     - path: Source/Shader/Material/MaterialDefine.hlsli
       stamp: -5018603727709551616
     - path: Source/Shader/Material/MaterialFunc.hlsli
-      stamp: -5015768503950442816
+      stamp: -5011016474427168816
+    - path: Source/Shader/Material/BRDF.hlsli
+      stamp: -5011017084465134516
     - path: Source/Shader/Material/DeferredFunc.hlsli
       stamp: -5017994486153550316
     - path: __materialCount__
@@ -31,7 +33,9 @@ ForwardDebug:
     - path: Source/Shader/Material/MaterialDefine.hlsli
       stamp: -5018603727709551616
     - path: Source/Shader/Material/MaterialFunc.hlsli
-      stamp: -5015768503950442816
+      stamp: -5011016474427168816
+    - path: Source/Shader/Material/BRDF.hlsli
+      stamp: -5011017084465134516
     - path: Source/Shader/Material/FowardFunc.hlsli
       stamp: -5017994486152550116
 Version: 2
@@ -49,7 +53,9 @@ Deferred:
       - path: Source/Shader/Material/MaterialDefine.hlsli
         stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5015768503950442816
+        stamp: -5011016474427168816
+      - path: Source/Shader/Material/BRDF.hlsli
+        stamp: -5011017084465134516
       - path: Source/Shader/Material/DeferredFunc.hlsli
         stamp: -5017994486153550316
       - path: Source/Shader/Material/UnlitShader.hlsli
@@ -67,7 +73,9 @@ Deferred:
       - path: Source/Shader/Material/MaterialDefine.hlsli
         stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5015768503950442816
+        stamp: -5011016474427168816
+      - path: Source/Shader/Material/BRDF.hlsli
+        stamp: -5011017084465134516
       - path: Source/Shader/Material/DeferredFunc.hlsli
         stamp: -5017994486153550316
       - path: Source/Shader/Material/PBRShader.hlsli
@@ -85,7 +93,9 @@ Deferred:
       - path: Source/Shader/Material/MaterialDefine.hlsli
         stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5015768503950442816
+        stamp: -5011016474427168816
+      - path: Source/Shader/Material/BRDF.hlsli
+        stamp: -5011017084465134516
       - path: Source/Shader/Material/DeferredFunc.hlsli
         stamp: -5017994486153550316
       - path: Source/Shader/Material/PBRToonShader.hlsli
@@ -103,7 +113,9 @@ Deferred:
       - path: Source/Shader/Material/MaterialDefine.hlsli
         stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5015768503950442816
+        stamp: -5011016474427168816
+      - path: Source/Shader/Material/BRDF.hlsli
+        stamp: -5011017084465134516
       - path: Source/Shader/Material/DeferredFunc.hlsli
         stamp: -5017994486153550316
       - path: Source/Shader/Material/ToonShader.hlsli
@@ -121,7 +133,9 @@ Deferred:
       - path: Source/Shader/Material/MaterialDefine.hlsli
         stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5015768503950442816
+        stamp: -5011016474427168816
+      - path: Source/Shader/Material/BRDF.hlsli
+        stamp: -5011017084465134516
       - path: Source/Shader/Material/DeferredFunc.hlsli
         stamp: -5017994486153550316
       - path: Source/Shader/Material/RimToonShader.hlsli
@@ -140,7 +154,9 @@ Forward:
       - path: Source/Shader/Material/MaterialDefine.hlsli
         stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5015768503950442816
+        stamp: -5011016474427168816
+      - path: Source/Shader/Material/BRDF.hlsli
+        stamp: -5011017084465134516
       - path: Source/Shader/Material/FowardFunc.hlsli
         stamp: -5017994486152550116
       - path: Source/Shader/Material/UnlitShader.hlsli
@@ -158,7 +174,9 @@ Forward:
       - path: Source/Shader/Material/MaterialDefine.hlsli
         stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5015768503950442816
+        stamp: -5011016474427168816
+      - path: Source/Shader/Material/BRDF.hlsli
+        stamp: -5011017084465134516
       - path: Source/Shader/Material/FowardFunc.hlsli
         stamp: -5017994486152550116
       - path: Source/Shader/Material/PBRShader.hlsli
@@ -176,7 +194,9 @@ Forward:
       - path: Source/Shader/Material/MaterialDefine.hlsli
         stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5015768503950442816
+        stamp: -5011016474427168816
+      - path: Source/Shader/Material/BRDF.hlsli
+        stamp: -5011017084465134516
       - path: Source/Shader/Material/FowardFunc.hlsli
         stamp: -5017994486152550116
       - path: Source/Shader/Material/PBRToonShader.hlsli
@@ -194,7 +214,9 @@ Forward:
       - path: Source/Shader/Material/MaterialDefine.hlsli
         stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5015768503950442816
+        stamp: -5011016474427168816
+      - path: Source/Shader/Material/BRDF.hlsli
+        stamp: -5011017084465134516
       - path: Source/Shader/Material/FowardFunc.hlsli
         stamp: -5017994486152550116
       - path: Source/Shader/Material/ToonShader.hlsli
@@ -212,7 +234,9 @@ Forward:
       - path: Source/Shader/Material/MaterialDefine.hlsli
         stamp: -5018603727709551616
       - path: Source/Shader/Material/MaterialFunc.hlsli
-        stamp: -5015768503950442816
+        stamp: -5011016474427168816
+      - path: Source/Shader/Material/BRDF.hlsli
+        stamp: -5011017084465134516
       - path: Source/Shader/Material/FowardFunc.hlsli
         stamp: -5017994486152550116
       - path: Source/Shader/Material/RimToonShader.hlsli

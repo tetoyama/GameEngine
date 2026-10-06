@@ -27,6 +27,8 @@
 #include "System/Render/RenderSystem/RenderPass/RenderPassContext.h"
 #include "System/Render/Animation/ModelRendererGpuRuntimeStorage.h"
 #include "System/Render/Model/ModelGeometryRuntimeStorage.h"
+#include "Service/Graphics/Portable/FrameRenderer.h"
+#include <stdexcept>
 
 struct SceneManagerContext;
 struct PixelShaderData;
@@ -64,6 +66,48 @@ struct PostEffect
 class RenderSystem: public ISystem, public IShaderMaterialProvider
 {
 private:
+	// Compatibility presentation for the existing DX11 ImGui shell. Scene passes
+	// execute on the selected RHI device; only the final RGBA image crosses to DX11.
+	// Readback is deliberately synchronous here. This is a migration path, not a
+	// claim of zero-copy interop or production performance.
+	class EditorGPUViewport final {
+	public:
+	    EditorGPUViewport(RHI::IRHIDevice& device, ID3D11Device* shellDevice, ID3D11DeviceContext* shellContext)
+	        : renderer(device, "Asset/Shader/Portable/Compiled"), shellDevice(shellDevice), shellContext(shellContext) {
+	        if(!shellDevice || !shellContext) throw std::invalid_argument("Missing editor presentation device");
+	    }
+
+	    ID3D11ShaderResourceView* Render(const Rendering::RenderScene& scene, uint32_t width, uint32_t height) {
+	        if (!width || !height) return nullptr;
+	        renderer.Resize(width, height);
+	        renderer.Render(scene, false);
+	        RHI::TextureReadback image;
+	        if (!renderer.Capture(image)) throw std::runtime_error("Selected RHI viewport readback failed");
+	        if (!texture || image.width != imageWidth || image.height != imageHeight) {
+	            Microsoft::WRL::ComPtr<ID3D11Texture2D> replacement;
+	            Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> replacementView;
+	            D3D11_TEXTURE2D_DESC desc{};
+	            desc.Width = image.width; desc.Height = image.height;
+	            desc.MipLevels = desc.ArraySize = desc.SampleDesc.Count = 1;
+	            desc.Format = DXGI_FORMAT_R8G8B8A8_UNORM;
+	            desc.Usage = D3D11_USAGE_DEFAULT; desc.BindFlags = D3D11_BIND_SHADER_RESOURCE;
+	            if (FAILED(shellDevice->CreateTexture2D(&desc, nullptr, &replacement)) ||
+	                FAILED(shellDevice->CreateShaderResourceView(replacement.Get(), nullptr, &replacementView)))
+	                throw std::runtime_error("Editor viewport presentation texture creation failed");
+	            texture = std::move(replacement); view = std::move(replacementView);
+	            imageWidth = image.width; imageHeight = image.height;
+	        }
+	        shellContext->UpdateSubresource(texture.Get(), 0, nullptr, image.pixels.data(), image.rowPitch, 0);
+	        return view.Get();
+	    }
+	private:
+	    Rendering::FrameRenderer renderer;
+	    Microsoft::WRL::ComPtr<ID3D11Device> shellDevice;
+	    Microsoft::WRL::ComPtr<ID3D11DeviceContext> shellContext;
+	    Microsoft::WRL::ComPtr<ID3D11Texture2D> texture;
+	    Microsoft::WRL::ComPtr<ID3D11ShaderResourceView> view;
+	    uint32_t imageWidth = 0, imageHeight = 0;
+	};
 	// Step 18-Aの隔離済みLegacy実装だけをコンパイルするための互換Facade。
 	// Active Build / Submit経路はRenderWorld APIを直接使用する。
 	class RenderWorldPacketCompatibility final {
@@ -141,6 +185,7 @@ public:
 	// RenderPacketはComponentへの非所有Pointerを保持するため、
 	// SceneのTempLoad / Shutdown前に公開済みRenderWorldを必ず無効化する。
 	void Stop() override {
+		ResetPortableViews();
 		m_renderWorld.Reset();
 		m_modelRendererGpuRuntime.Reset();
 		m_modelGeometryRuntime.Reset();
@@ -158,6 +203,8 @@ public:
 	void BuildRenderPackets();
 	void SynchronizeModelGeometryRuntime();
 	void SubmitRenderPackets();
+	ID3D11ShaderResourceView* RenderPortableView(const RenderPassContext&, bool editorView);
+	const std::string& PortableViewStatus() const noexcept { return m_portableViewStatus; }
 
 	void RegisterTasks(SystemScheduleBuilder& builder) override;
 
@@ -302,6 +349,7 @@ public:
 	std::vector<ShaderMaterial> ShaderMaterials;
 
 private:
+	void ResetPortableViews();
 	const CameraEntityData FindCameraEntity();
 	void UpdateSkyBoxEnvironmentMap();
 	void ControlButton();
@@ -346,6 +394,9 @@ private:
 	RenderWorldSubmissionCompatibility m_lastSubmittedPacketGeneration;
 
 	float lazyTimer = 0.0f;
+	std::unique_ptr<EditorGPUViewport> m_portableEditorView;
+	std::unique_ptr<EditorGPUViewport> m_portablePlayerView;
+	std::string m_portableViewStatus;
 };
 
 #include "../Animation/RenderSystemAnimationTasks.inl"

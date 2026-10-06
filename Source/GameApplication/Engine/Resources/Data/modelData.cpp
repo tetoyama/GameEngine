@@ -9,7 +9,10 @@
 #include "Backends/Assimp/cimport.h"
 #include "Backends/Assimp/postprocess.h"
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 #include "Graphics/graphicsContext.h"
+#endif
+#include <cstdio>
 
 aiQuaternion InterpolateRotation(
 	float time,
@@ -69,6 +72,7 @@ aiVector3D InterpolatePosition(
 }
 
 void ModelData::Release(){
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 	// ----------------------------
 	// classic buffers
 	// ----------------------------
@@ -98,6 +102,7 @@ void ModelData::Release(){
 	}
 
 	// ----------------------------
+#endif
 	// animations (imported scenes only)
 	// ----------------------------
 	for(auto& pair : m_Animation){
@@ -118,6 +123,7 @@ void ModelData::Release(){
 	// GPU skinning resources
 	// ============================================================
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 	for(auto*& b : m_SkinInputBuffer){
 		if(b){
 			b->Release(); b = nullptr;
@@ -163,6 +169,7 @@ void ModelData::Release(){
 	}
 
 	// ----------------------------
+#endif
 	// Assimp scene
 	// ----------------------------
 	if(AiScene){
@@ -215,15 +222,23 @@ void ModelData::LoadAnimation(const char* FileName, const char* Name){
 	const aiScene* primaryScene =
 		aiImportFile(FileName, aiProcess_ConvertToLeftHanded);
 	if(!primaryScene){
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 		OutputDebugStringA(
 			("Failed to load animation file: " + std::string(FileName) + "\n").c_str()
 		);
+#else
+		std::fprintf(stderr, "Failed to load animation file: %s\n", FileName);
+#endif
 		return;
 	}
 	if(!primaryScene->HasAnimations()){
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 		OutputDebugStringA(
 			("No animations found in file: " + std::string(FileName) + "\n").c_str()
 		);
+#else
+		std::fprintf(stderr, "No animations found in file: %s\n", FileName);
+#endif
 		aiReleaseImport(primaryScene);
 		return;
 	}
@@ -415,6 +430,7 @@ void ModelData::CPU_Skinning(
 	}
 }
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 void ModelData::CreateSkinningBuffers(GraphicsContext* ctx){
 	ID3D11Device* dev = ctx->GetDevice();
 	const size_t meshCount = AiScene->mNumMeshes;
@@ -581,3 +597,4 @@ void ModelData::UpdateAndDispatchSkinning(GraphicsContext* ctx, std::vector<ID3D
 		dc->CopyResource(dynamicVertexBuffers[m], m_SkinOutputUAVBuffer[m]);
 	}
 }
+#endif

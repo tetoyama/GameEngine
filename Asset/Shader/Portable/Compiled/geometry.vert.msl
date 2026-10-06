@@ -1,0 +1,96 @@
+#pragma clang diagnostic ignored "-Wmissing-prototypes"
+
+#include <metal_stdlib>
+#include <simd/simd.h>
+
+using namespace metal;
+
+// Returns the determinant of a 2x2 matrix.
+static inline __attribute__((always_inline))
+float spvDet2x2(float a1, float a2, float b1, float b2)
+{
+    return a1 * b2 - b1 * a2;
+}
+
+// Returns the inverse of a matrix, by using the algorithm of calculating the classical
+// adjoint and dividing by the determinant. The contents of the matrix are changed.
+static inline __attribute__((always_inline))
+float3x3 spvInverse3x3(float3x3 m)
+{
+    float3x3 adj;	// The adjoint matrix (inverse after dividing by determinant)
+
+    // Create the transpose of the cofactors, as the classical adjoint of the matrix.
+    adj[0][0] =  spvDet2x2(m[1][1], m[1][2], m[2][1], m[2][2]);
+    adj[0][1] = -spvDet2x2(m[0][1], m[0][2], m[2][1], m[2][2]);
+    adj[0][2] =  spvDet2x2(m[0][1], m[0][2], m[1][1], m[1][2]);
+
+    adj[1][0] = -spvDet2x2(m[1][0], m[1][2], m[2][0], m[2][2]);
+    adj[1][1] =  spvDet2x2(m[0][0], m[0][2], m[2][0], m[2][2]);
+    adj[1][2] = -spvDet2x2(m[0][0], m[0][2], m[1][0], m[1][2]);
+
+    adj[2][0] =  spvDet2x2(m[1][0], m[1][1], m[2][0], m[2][1]);
+    adj[2][1] = -spvDet2x2(m[0][0], m[0][1], m[2][0], m[2][1]);
+    adj[2][2] =  spvDet2x2(m[0][0], m[0][1], m[1][0], m[1][1]);
+
+    // Calculate the determinant as a combination of the cofactors of the first row.
+    float det = (adj[0][0] * m[0][0]) + (adj[0][1] * m[1][0]) + (adj[0][2] * m[2][0]);
+
+    // Divide the classical adjoint matrix by the determinant.
+    // If determinant is zero, matrix is not invertable, so leave it unchanged.
+    return (det != 0.0f) ? (adj * (1.0f / det)) : m;
+}
+
+struct Frame
+{
+    float4x4 viewProjection;
+    float4x4 lightViewProjection;
+    float4 lightDirection;
+    float4 lightColor;
+    float4 ambientColor;
+    float4 outputTransform;
+    float4 cameraPosition;
+};
+
+struct main0_out
+{
+    float3 worldPosition [[user(locn0)]];
+    float3 worldNormal [[user(locn1)]];
+    float4 albedo [[user(locn2)]];
+    float2 uv [[user(locn3)]];
+    float unlit [[user(locn4)]];
+    float4 material [[user(locn5)]];
+    float4 emissive [[user(locn6)]];
+    float4 gl_Position [[position]];
+};
+
+struct main0_in
+{
+    float3 position [[attribute(0)]];
+    float3 normal [[attribute(1)]];
+    float4 world0 [[attribute(2)]];
+    float4 world1 [[attribute(3)]];
+    float4 world2 [[attribute(4)]];
+    float4 world3 [[attribute(5)]];
+    float4 color [[attribute(6)]];
+    float2 texcoord [[attribute(7)]];
+    float4 uvTransform [[attribute(8)]];
+    float4 shading [[attribute(9)]];
+    float4 materialParameters [[attribute(10)]];
+    float4 emissiveColor [[attribute(11)]];
+};
+
+vertex main0_out main0(main0_in in [[stage_in]], constant Frame& frame [[buffer(0)]])
+{
+    main0_out out = {};
+    float4x4 world = float4x4(float4(in.world0), float4(in.world1), float4(in.world2), float4(in.world3));
+    float4 p = world * float4(in.position, 1.0);
+    out.worldPosition = p.xyz;
+    out.worldNormal = transpose(spvInverse3x3(float3x3(world[0].xyz, world[1].xyz, world[2].xyz))) * in.normal;
+    out.albedo = in.color;
+    out.uv = (in.texcoord * in.uvTransform.xy) + in.uvTransform.zw;
+    out.unlit = in.shading.x;
+    out.material = in.materialParameters;
+    out.emissive = in.emissiveColor;
+    out.gl_Position = frame.viewProjection * p;
+    return out;
+}

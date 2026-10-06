@@ -14,6 +14,10 @@
 #include "YAMLConverters.h"
 #include "buildSetting.h"
 #include "appConfig.h"
+enum class BuildTarget { Windows, MacOS };
+inline constexpr std::string_view BuildTargetName(BuildTarget target) noexcept {
+    return target == BuildTarget::MacOS ? "macOS" : "Windows";
+}
 #include "Service/Graphics/RHI/RHIBackend.h"
 
 struct EngineGraphicsConfig {
@@ -23,6 +27,7 @@ struct EngineGraphicsConfig {
 
 struct EngineConfig {
 	EngineGraphicsConfig graphics;
+	BuildTarget buildTarget = BuildTarget::Windows;
 };
 
 inline std::string_view ToEngineConfigBackendName(
@@ -33,6 +38,7 @@ inline std::string_view ToEngineConfigBackendName(
 		case RHI::BackendType::Direct3D11: return "Direct3D11";
 		case RHI::BackendType::Direct3D12: return "Direct3D12";
 		case RHI::BackendType::Vulkan: return "Vulkan";
+		case RHI::BackendType::Metal: return "Metal";
 	}
 	return "Direct3D11";
 }
@@ -50,6 +56,7 @@ inline std::optional<RHI::BackendType> ParseEngineConfigBackend(
 		return RHI::BackendType::Direct3D12;
 	}
 	if(name == "Vulkan" || name == "vulkan") return RHI::BackendType::Vulkan;
+	if(name == "Metal" || name == "metal") return RHI::BackendType::Metal;
 	return std::nullopt;
 }
 
@@ -198,6 +205,15 @@ public:
 private:
 	void LoadTypedEngineConfig(){
 		engineConfig = EngineConfig{};
+		const YAML::Node build = editorConfig["Build"];
+		if(build && build.IsMap() && build["Target"]){
+			try {
+				const auto target = build["Target"].as<std::string>();
+				if(target == "macOS") engineConfig.buildTarget = BuildTarget::MacOS;
+			} catch(const YAML::Exception&) {
+				OutputDebugStringA("Invalid Build.Target; using Windows.\n");
+			}
+		}
 		const YAML::Node graphics = editorConfig["Graphics"];
 		if(!graphics || !graphics.IsMap()) return;
 
@@ -231,11 +247,12 @@ private:
 				std::string("Invalid Graphics section in EngineConfig.yaml: ") +
 				exception.what() + ". Using default graphics settings.\n"
 			).c_str());
-			engineConfig = EngineConfig{};
+			engineConfig.graphics = EngineGraphicsConfig{};
 		}
 	}
 
 	void WriteTypedEngineConfig(){
+		editorConfig["Build"]["Target"] = std::string(BuildTargetName(engineConfig.buildTarget));
 		YAML::Node graphics = editorConfig["Graphics"];
 		graphics["Backend"] = std::string(
 			ToEngineConfigBackendName(engineConfig.graphics.backend)

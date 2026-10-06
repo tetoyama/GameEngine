@@ -116,6 +116,10 @@ void PlayerPass::Execute(const RenderPassContext& context){
 	viewContext.cullingViewKind = CullingViewKind::Player;
 	viewContext.cullingViewInstanceID = 0;
 	m_renderSystem->PrepareRenderPacketView(viewContext);
+	if(m_context->graphics->GetBackendType() != RHI::BackendType::Direct3D11){
+		result = m_renderSystem->RenderPortableView(viewContext, false);
+		return;
+	}
 
 	float clearColor[4] = {0.0f, 1.0f, 0.0f, 1.0f};
 	playerRenderTarget->Resize(viewContext.screenSize, m_context->graphics);

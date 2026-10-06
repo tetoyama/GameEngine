@@ -10,6 +10,8 @@
 #include <algorithm>
 #include <array>
 #include <cfloat>
+#include <shellapi.h>
+#pragma comment(lib, "shell32.lib")
 
 #include "Backends/ImGui/imgui.h"
 #include "Backends/ImGuiFunc.h"
@@ -36,8 +38,8 @@ struct BackendOption {
 
 constexpr std::array<BackendOption, 4> kBackendOptions = {{
 	{RHI::BackendType::Direct3D11, "Direct3D 11", true, nullptr},
-	{RHI::BackendType::Direct3D12, "Direct3D 12", false, "Renderer bridge is not implemented yet."},
-	{RHI::BackendType::Vulkan, "Vulkan", false, "Renderer bridge is not implemented yet."},
+	{RHI::BackendType::Direct3D12, "Direct3D 12 (Experimental)", true, "Opaque static models with base color textures; compatibility readback to the DX11 editor UI."},
+	{RHI::BackendType::Vulkan, "Vulkan (Experimental)", true, "Opaque static models with base color textures; compatibility readback to the DX11 editor UI."},
 	{RHI::BackendType::Null, "Null (Test)", false, "Null backend is for RHI tests only."}
 }};
 
@@ -103,6 +105,7 @@ inline void DrawRenderingSettings(
 				}
 			}
 			if(selected) ImGui::SetItemDefaultFocus();
+			if(option.selectable && option.note && ImGui::IsItemHovered()) ImGui::SetTooltip("%s", option.note);
 		}
 		ImGui::EndCombo();
 	}
@@ -156,7 +159,14 @@ inline void DrawRenderingSettings(
 	}
 
 	ImGui::EndTable();
-	ImGui::TextDisabled("Rendering API changes require restart. Frame latency changes are applied immediately.");
+	if(graphics){
+		ImGui::Text("Active scene API: %s", GetBackendLabel(graphics->GetBackendType()));
+		if(graphics->GetBackendType() != config.engineConfig.graphics.backend)
+			ImGui::TextWrapped("Save Project Settings, then restart the editor to apply the selected API.");
+	}
+	ImGui::TextDisabled("API: save and restart. Frame latency: applied immediately to the editor shell.");
+	if(config.engineConfig.graphics.backend != RHI::BackendType::Direct3D11)
+		ImGui::TextWrapped("Experimental scene rendering: opaque static models, base color textures, UV transforms, PBR/unlit, environment reflection, emissive and one directional light. Toon/custom shaders, animation, terrain, billboards, local lights and other legacy passes are not yet supported. Editor UI uses DX11; image readback adds latency.");
 }
 
 inline void DrawApplicationSettings(
@@ -275,6 +285,29 @@ void SystemSetting::Draw(const EditorDrawContext ctx) {
 		if(ImGui::BeginTabItem("Application")) {
 			DrawRenderingSettings(*config, sceneContext ? sceneContext->graphics : nullptr);
 			DrawApplicationSettings(*config, sceneContext ? sceneContext->graphics : nullptr);
+			ImGui::EndTabItem();
+		}
+		if(ImGui::BeginTabItem("Build")) {
+			ImGui::TextUnformatted("Native rendering preview package");
+			int target = config->engineConfig.buildTarget == BuildTarget::MacOS ? 1 : 0;
+			if(ImGui::Combo("Target platform", &target, "Windows\0macOS\0"))
+				config->engineConfig.buildTarget = target == 1 ? BuildTarget::MacOS : BuildTarget::Windows;
+			const auto selected = config->engineConfig.buildTarget;
+			ImGui::Text("Runtime API: %s", selected == BuildTarget::MacOS ? "Metal" : "Direct3D 12 / Vulkan");
+			ImGui::TextWrapped("Builds the rendering preview. The full editor and the current project's gameplay/assets are not included in this package yet.");
+			const std::string command = "cmake -DTARGET_PLATFORM=" + std::string(BuildTargetName(selected)) + " -P cmake/BuildPortable.cmake";
+			ImGui::TextWrapped("Native build command: %s", command.c_str());
+			if(ImGui::Button("Copy build command")) ImGui::SetClipboardText(command.c_str());
+			ImGui::UndoInputText("CMake executable", &m_cmakeExecutable, 1024);
+			const bool building = PollBuild();
+			ImGui::BeginDisabled(building || selected != BuildTarget::Windows);
+			if(ImGui::Button("Build package on this computer")) StartBuild(selected);
+			ImGui::EndDisabled();
+			if(selected == BuildTarget::MacOS) ImGui::TextWrapped("Use a Mac for the native build, or choose macOS in the Windows Build workflow's target_platform input. CI packages can be downloaded from the workflow's Artifacts.");
+			if(ImGui::Button("Open CI builds")) ShellExecuteW(nullptr, L"open", L"https://github.com/tetoyama/GameEngine/actions/workflows/windows-build.yml", nullptr, nullptr, SW_SHOWNORMAL);
+			if(!m_buildStatus.empty()) ImGui::TextWrapped("%s", m_buildStatus.c_str());
+			if(!m_buildLogPath.empty() && ImGui::Button("Open build log")) ShellExecuteW(nullptr, L"open", m_buildLogPath.c_str(), nullptr, nullptr, SW_SHOWNORMAL);
+			ImGui::TextDisabled("Save Project Settings to keep the target platform.");
 			ImGui::EndTabItem();
 		}
 		if(ImGui::BeginTabItem("Lighting")) {

@@ -15,6 +15,17 @@ on:
         options:
           - Debug
           - Release
+      portable_gpu:
+        description: Run portable GPU validation on the macOS runner
+        required: false
+        default: false
+        type: boolean
+      target_platform:
+        description: Package target (uses a native runner for each OS)
+        required: false
+        default: all
+        type: choice
+        options: [all, Windows, macOS]
 
 concurrency:
   group: windows-build-${{ github.ref }}
@@ -24,7 +35,32 @@ permissions:
   contents: read
 
 jobs:
+  portable-build:
+    name: Native renderer (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(github.event_name != 'workflow_dispatch' && '["windows-2022","macos-14"]' || inputs.target_platform == 'Windows' && '["windows-2022"]' || inputs.target_platform == 'macOS' && '["macos-14"]' || '["windows-2022","macos-14"]') }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          show-progress: false
+      - name: Build and package selected native target
+        run: cmake -DTARGET_PLATFORM=${{ runner.os }} -P cmake/BuildPortable.cmake
+      - name: Validate Metal renderer
+        if: runner.os == 'macOS' && github.event_name == 'workflow_dispatch' && inputs.portable_gpu
+        run: |
+          ./portable-runtime/macOS/Release/bin/GameEnginePortable --backend metal --frames 2 --offscreen --width 480 --height 320 --capture portable-runtime/macOS/Release/metal.ppm
+          ./portable-runtime/macOS/Release/bin/GameEnginePortable --backend metal --frames 2 --hidden --width 480 --height 320 --model Asset/Model/player.obj --capture portable-runtime/macOS/Release/metal-model.ppm
+      - uses: actions/upload-artifact@v4
+        with:
+          name: portable-runtime-${{ runner.os }}
+          path: portable-runtime/
+
   build-x64:
+    if: github.event_name != 'workflow_dispatch' || inputs.target_platform == 'all' || inputs.target_platform == 'Windows' || inputs.target_platform == ''
     runs-on: windows-2022
     timeout-minutes: 45
     env:

@@ -1,3 +1,18 @@
+#ifdef GAMEENGINE_PORTABLE
+#include "GameApplication/gameApplication.h"
+#include <exception>
+#include <iostream>
+
+int main(int argc, char** argv) {
+    try {
+        GameApplication app;
+        return app.Run(argc, argv);
+    } catch(const std::exception& error) {
+        std::cerr << error.what() << '\n';
+        return -1;
+    }
+}
+#else
 // =======================================================================
 // 
 // main.cpp
@@ -57,3 +72,5 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
         return -1;
     }
 }
+
+#endif

@@ -16,6 +16,8 @@ namespace RHI {
 struct NativeWindowHandle {
 	void* window = nullptr;
 	void* display = nullptr;
+	enum class Kind : uint8_t { PlatformDefault, Win32, SDL };
+	Kind kind = Kind::PlatformDefault;
 };
 
 struct DeviceCreateDesc {

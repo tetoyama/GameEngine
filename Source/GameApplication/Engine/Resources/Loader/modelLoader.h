@@ -4,23 +4,23 @@
 // 
 // =======================================================================
 #pragma once
-#include "ResourceLoader.h"
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
+#include "resourceLoader.h"
+#include "Graphics/graphicsContext.h"
+#include "Backends/DirectX11/DirectXTex.h"
+#pragma comment (lib, "assimp-vc143-mt.lib")
+#endif
 
 #include <memory>
 #include <string>
 #include <filesystem>
 
 #include "Resources/Data/modelData.h"
-#include "Graphics/graphicsContext.h"
-
-#include "Backends/DirectX11/DirectXTex.h"
 #include "Backends/Assimp/material.h"
 #include "Backends/Assimp/scene.h"
 #include "Backends/Assimp/cimport.h"
 #include "Backends/Assimp/postprocess.h"
 #include "Backends/Assimp/matrix4x4.h"
-
-#pragma comment (lib, "assimp-vc143-mt.lib")
 
 #include <cassert>
 
@@ -39,8 +39,12 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 	}
 
 	model->MeshGeometry.resize(model->AiScene->mNumMeshes);
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 	model->VertexBuffer.resize(model->AiScene->mNumMeshes);
 	model->IndexBuffer.resize(model->AiScene->mNumMeshes);
+#else
+	(void)context;
+#endif
 
 	//変形後頂点配列生成
 	model->m_DeformVertex = new std::vector<DEFORM_VERTEX>[model->AiScene->mNumMeshes];
@@ -70,18 +74,6 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 			for(unsigned int v = 0; v < mesh->mNumVertices; v++){
 
-				if(v == 0 && m == 0){
-					Min = Max = DirectX::XMFLOAT3(mesh->mVertices[v].x, mesh->mVertices[v].y, mesh->mVertices[v].z);
-				} else{
-
-					Min.x = (std::min)(mesh->mVertices[v].x, Min.x);
-					Min.y = (std::min)(mesh->mVertices[v].y, Min.y);
-					Min.z = (std::min)(mesh->mVertices[v].z, Min.z);
-
-					Max.x = (std::max)(mesh->mVertices[v].x, Max.x);
-					Max.y = (std::max)(mesh->mVertices[v].y, Max.y);
-					Max.z = (std::max)(mesh->mVertices[v].z, Max.z);
-				}
 				if(mesh->HasPositions()){
 					if(isBlender){
 						vertex[v].Position = DirectX::XMFLOAT3(mesh->mVertices[v].x, -mesh->mVertices[v].z, mesh->mVertices[v].y);
@@ -91,6 +83,12 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 					}
 				} else{
 					vertex[v].Position = DirectX::XMFLOAT3(0.0f, 0.0f, 0.0f);
+				}
+				const auto& position = vertex[v].Position;
+				if(v == 0 && m == 0) Min = Max = position;
+				else {
+					Min.x = (std::min)(position.x, Min.x); Min.y = (std::min)(position.y, Min.y); Min.z = (std::min)(position.z, Min.z);
+					Max.x = (std::max)(position.x, Max.x); Max.y = (std::max)(position.y, Max.y); Max.z = (std::max)(position.z, Max.z);
 				}
 				if(mesh->HasNormals()){
 					if(isBlender){
@@ -110,8 +108,8 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 				} else{
 					vertex[v].Tangent = DirectX::XMFLOAT3(0.0f, 1.0f, 0.0f);
 				}
-				if(mesh->HasVertexColors(v)){
-					vertex[v].Diffuse = DirectX::XMFLOAT4(mesh->mColors[v]->r, mesh->mColors[v]->g, mesh->mColors[v]->b, mesh->mColors[v]->a);
+				if(mesh->HasVertexColors(0)){
+					vertex[v].Diffuse = DirectX::XMFLOAT4(mesh->mColors[0][v].r, mesh->mColors[0][v].g, mesh->mColors[0][v].b, mesh->mColors[0][v].a);
 				} else{
 					vertex[v].Diffuse = DirectX::XMFLOAT4(1.0f, 1.0f, 1.0f, 1.0f);
 				}
@@ -125,6 +123,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 
 			}
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 			D3D11_BUFFER_DESC bd = {};
 			bd.Usage = D3D11_USAGE_DYNAMIC;
 			bd.ByteWidth = sizeof(VERTEX_3D) * mesh->mNumVertices;
@@ -135,6 +134,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			sd.pSysMem = geometry.vertices.data();
 
 			context->GetDevice()->CreateBuffer(&bd, &sd, &model->VertexBuffer[m]);
+#endif
 		}
 		if (hasBones) {
 
@@ -159,6 +159,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 				index[f * 3 + 2] = face->mIndices[2];
 			}
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 			D3D11_BUFFER_DESC bd = {};
 
 			bd.Usage = D3D11_USAGE_DEFAULT;
@@ -171,13 +172,14 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			sd.pSysMem = geometry.indices.data();
 
 			context->GetDevice()->CreateBuffer(&bd, &sd, &model->IndexBuffer[m]);
+#endif
 		}
 
 		//変形後頂点データ初期化
 		for (unsigned int v = 0; v < mesh->mNumVertices; v++) {
 			DEFORM_VERTEX deformVertex;
 			deformVertex.Position = mesh->mVertices[v];
-			deformVertex.Normal = mesh->mNormals[v];
+			deformVertex.Normal = mesh->HasNormals() ? mesh->mNormals[v] : aiVector3D{1,1,1};
 
 			for (unsigned int b = 0; b < 4; b++) {
 				deformVertex.BoneIndex[b] = 0;
@@ -225,6 +227,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 	}
 
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 	if(model->AiScene->mNumTextures > 0){
 		model->SetTexture = true;
 
@@ -368,6 +371,7 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			}
 		}
 	}
+#endif
 	if (hasBones && model->AiScene->HasAnimations()) {
 		for (unsigned int i = 0; i < model->AiScene->mNumAnimations; i++) {
 
@@ -386,10 +390,13 @@ inline std::shared_ptr<ModelData> LoadModelFromFile(const std::string& path, boo
 			model->m_Animation[animName] = animationData;
 		}
 
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 		model->CreateSkinningBuffers(context);
+#endif
 	}
 	return model;
 }
+#if defined(_WIN32) && !defined(GAMEENGINE_PORTABLE)
 template<>
 inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr) {
 	OutputDebugStringA("SetupLoadFunc ModelData called\n");
@@ -407,3 +414,4 @@ inline void ResourceLoader<ModelData>::SetupLoadFunc(void* contextPtr) {
 		return LoadModelFromFile(path, isBlender, context);
 	});
 }
+#endif
